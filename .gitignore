@@ -1,0 +1,10 @@
+# Intellij
+/.idea/*
+
+# VS Code
+/.vscode/*
+
+# Mac
+.DS_Store
+.AppleDouble
+.LSOverride
