@@ -32,7 +32,7 @@
 | 주차 | 이재현 | 양지웅 | 유소현 |
 | --- | --- | --- | --- |
 | **1주차(-9/4)** | Beam projector selection |  | Beam projector selection |
-| **2주차(9/5–11)** | - 젯슨 세팅<br>- YOLO 확인, 데이터 추출<br>- Whisper 기본 연결<br>- ElevenLabs 기본 연결<br>- 카메라 제품 결정 | LLM관련 계획 교수님께 확인<br>- LLM·RAG 구축 시작<br>지도 경로표시 LLM vs Python 계획 | - 테스트 환경·시나리오 결정(일요일 완료예정)<br>기계과 설치 문의<br>- 빔프로젝터 적합성 테스트(일요일 완료예정)<br>- Pan/tilt 하드웨어 선택·주문(금요일 완료예정) |
+| **2주차(9/5–11)** | - 젯슨 세팅<br>- YOLO 확인, 데이터 추출<br>- Whisper 기본 연결<br>- ElevenLabs 기본 연결<br>- 카메라 제품 결정 | LLM관련 계획 교수님께 확인<br>- LLM·RAG 구축 시작<br>지도 경로표시 LLM vs Python 계획 | - 테스트 환경·시나리오 결정<br>기계과 설치 문의<br>- 빔프로젝터 적합성 테스트<br>- Pan/tilt 하드웨어 선택·주문 |
 | **3주차(9/12–18)** | - 마이크·스피커 성능 확인(VAD 활용)<br>- Voice chat 기능 개발(STT, TTS, VAD)<br>- Decision func 관련 논문 조사<br>- Decision func 개발(1) | - LLM·RAG 구축 | - 카메라·빔프로젝터 관련 수식 정의·코드 테스트<br>- 스탠드 설계(및 주문)<br>- 메인 코드 구조·모듈 정리<br>- UX 선행 자료 조사 |
 | **4주차(9/19–25)** | - IRB 신청<br>- Decision func 개발(2) | - IRB 신청<br>- LLM·RAG 구축<br>- LLM 프롬프트 자료 조사 | - 팬/틸트 모듈·빔프로젝터·카메라·Jetson Orin 연결 및 테스트<br>- 스탠드 조립<br>- Nudge UI 개발<br>- (필요시)Pan/tilt 모듈 설계·제작 |
 | **5주차(9/26–10/2)** | - Intuitive Map UI 개발<br>- Nudge 기능 테스트 | - LLM·RAG 구축·프롬프트 작성<br>- Nudge 기능 테스트 | - Pan/tilt·스탠드·Beam Aiming·Camera Mount 완료<br>- Nudge 기능 테스트 |
