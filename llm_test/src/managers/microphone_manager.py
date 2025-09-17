@@ -3,7 +3,7 @@
 마이크 관리 모듈 - 마이크 입력 및 녹음 관리
 """
 
-import pyaudio
+import sounddevice as sd
 import numpy as np
 import wave
 import tempfile
@@ -18,7 +18,7 @@ class MicrophoneManager:
     def __init__(self):
         # 오디오 설정
         self.CHUNK = 1024
-        self.FORMAT = pyaudio.paInt16
+        self.DTYPE = np.int16
         self.CHANNELS = 1
         self.RATE = 16000
         self.SILENCE_THRESHOLD = 500
@@ -28,8 +28,10 @@ class MicrophoneManager:
         self.input_device_index = None
         self.preferred_device_name = None
 
-        # PyAudio 초기화
-        self.audio = pyaudio.PyAudio()
+        # SoundDevice 설정
+        sd.default.samplerate = self.RATE
+        sd.default.channels = self.CHANNELS
+        sd.default.dtype = self.DTYPE
 
         # 상태 변수
         self.is_listening = False
@@ -41,16 +43,16 @@ class MicrophoneManager:
         input_devices = []
         recommended_input = None
 
-        for i in range(self.audio.get_device_count()):
+        devices = sd.query_devices()
+        for i, device in enumerate(devices):
             try:
-                info = self.audio.get_device_info_by_index(i)
-                if info['maxInputChannels'] > 0:
-                    device_name = info['name']
+                if device['max_input_channels'] > 0:
+                    device_name = device['name']
                     input_devices.append((i, device_name))
 
                     logger.info(f"입력 디바이스 {i}: {device_name}")
-                    logger.info(f"  - 최대 입력 채널: {info['maxInputChannels']}")
-                    logger.info(f"  - 기본 샘플레이트: {info['defaultSampleRate']}")
+                    logger.info(f"  - 최대 입력 채널: {device['max_input_channels']}")
+                    logger.info(f"  - 기본 샘플레이트: {device['default_samplerate']}")
 
             except Exception as e:
                 logger.warning(f"디바이스 {i} 정보 읽기 실패: {e}")
@@ -145,18 +147,17 @@ class MicrophoneManager:
         """단일 디바이스로 마이크 테스트"""
         try:
             # 스트림 설정
-            stream_kwargs = {
-                'format': self.FORMAT,
-                'channels': self.CHANNELS,
-                'rate': self.RATE,
-                'input': True,
-                'frames_per_buffer': self.CHUNK
-            }
+            device = device_index if device_index is not None else None
 
-            if device_index is not None:
-                stream_kwargs['input_device_index'] = device_index
-
-            stream = self.audio.open(**stream_kwargs)
+            # sounddevice 스트림 생성
+            stream = sd.InputStream(
+                device=device,
+                channels=self.CHANNELS,
+                samplerate=self.RATE,
+                dtype=self.DTYPE,
+                blocksize=self.CHUNK
+            )
+            stream.start()
 
         except Exception as e:
             logger.warning(f"디바이스 {device_index} 스트림 열기 실패: {e}")
@@ -171,9 +172,12 @@ class MicrophoneManager:
         try:
             for i in range(chunks_to_record):
                 try:
-                    data = stream.read(self.CHUNK, exception_on_overflow=False)
-                    audio_chunk = np.frombuffer(data, dtype=np.int16)
-                    frames.append(data)
+                    audio_chunk, overflowed = stream.read(self.CHUNK)
+                    if overflowed:
+                        logger.warning("오디오 버퍼 오버플로우")
+
+                    audio_chunk = audio_chunk.flatten().astype(np.int16)
+                    frames.append(audio_chunk.tobytes())
 
                     # 진폭 분석
                     chunk_max = np.max(np.abs(audio_chunk))
@@ -192,7 +196,7 @@ class MicrophoneManager:
                     break
 
         finally:
-            stream.stop_stream()
+            stream.stop()
             stream.close()
 
         if frames_recorded > 0:
@@ -229,18 +233,16 @@ class MicrophoneManager:
 
         try:
             # 입력 디바이스 설정
-            stream_kwargs = {
-                'format': self.FORMAT,
-                'channels': self.CHANNELS,
-                'rate': self.RATE,
-                'input': True,
-                'frames_per_buffer': self.CHUNK
-            }
+            device = self.input_device_index if self.input_device_index is not None else None
 
-            if self.input_device_index is not None:
-                stream_kwargs['input_device_index'] = self.input_device_index
-
-            stream = self.audio.open(**stream_kwargs)
+            stream = sd.InputStream(
+                device=device,
+                channels=self.CHANNELS,
+                samplerate=self.RATE,
+                dtype=self.DTYPE,
+                blocksize=self.CHUNK
+            )
+            stream.start()
 
         except Exception as e:
             logger.error(f"오디오 스트림 열기 실패: {e}")
@@ -253,8 +255,11 @@ class MicrophoneManager:
         try:
             while self.is_listening:
                 try:
-                    data = stream.read(self.CHUNK, exception_on_overflow=False)
-                    audio_chunk = np.frombuffer(data, dtype=np.int16)
+                    audio_chunk, overflowed = stream.read(self.CHUNK)
+                    if overflowed:
+                        logger.warning("오디오 버퍼 오버플로우")
+
+                    audio_chunk = audio_chunk.flatten().astype(np.int16)
 
                     is_silent = self.detect_silence(audio_chunk)
 
@@ -262,10 +267,10 @@ class MicrophoneManager:
                         if not recording_started:
                             logger.info("🔴 녹음 시작")
                             recording_started = True
-                        frames.append(data)
+                        frames.append(audio_chunk.tobytes())
                         silent_chunks = 0
                     elif recording_started:
-                        frames.append(data)
+                        frames.append(audio_chunk.tobytes())
                         silent_chunks += 1
 
                         # 무음이 지속되면 녹음 종료
@@ -280,7 +285,7 @@ class MicrophoneManager:
         except Exception as e:
             logger.error(f"녹음 중 오류: {e}")
         finally:
-            stream.stop_stream()
+            stream.stop()
             stream.close()
 
         if frames:
@@ -292,7 +297,7 @@ class MicrophoneManager:
         try:
             with wave.open(file_path, 'wb') as wav_file:
                 wav_file.setnchannels(self.CHANNELS)
-                wav_file.setsampwidth(self.audio.get_sample_size(self.FORMAT))
+                wav_file.setsampwidth(2)  # int16 = 2 bytes
                 wav_file.setframerate(self.RATE)
                 wav_file.writeframes(audio_data)
             logger.info(f"오디오 저장 완료: {file_path}")
@@ -366,8 +371,7 @@ class MicrophoneManager:
         """리소스 정리"""
         try:
             self.stop_listening()
-            if hasattr(self, 'audio') and self.audio:
-                self.audio.terminate()
+            # sounddevice는 별도의 terminate 불필요
         except Exception as e:
             logger.warning(f"마이크 관리자 리소스 정리 중 오류: {e}")
         logger.info("마이크 관리자 리소스 정리 완료")
