@@ -5,7 +5,7 @@ import sys
 import requests
 import pygame
 from dotenv import load_dotenv
-from typing import Optional, Dict
+from typing import Optional, Dict, Any
 
 TEMP_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "temp"))
 os.makedirs(TEMP_DIR, exist_ok=True)
@@ -33,6 +33,37 @@ def _load_config_value(config: Dict, key: str, expected_type):
     return value
 
 
+def _normalize_voice_settings(settings: Dict[str, Any]) -> Dict[str, Any]:
+    """Validate and prepare ElevenLabs voice settings from configuration."""
+
+    numeric_keys = {"stability", "similarity_boost", "style", "speed"}
+    normalized: Dict[str, Any] = {}
+
+    for key, value in settings.items():
+        if key in numeric_keys:
+            if value is None:
+                normalized[key] = None
+            elif isinstance(value, (int, float)):
+                normalized[key] = float(value)
+            else:
+                raise RuntimeError(
+                    "tts_config.ELEVENLABS_CONFIG.voice_settings.%s 값은 숫자 또는 null 이어야 합니다." % key
+                )
+            continue
+
+        if key == "use_speaker_boost":
+            if not isinstance(value, bool):
+                raise RuntimeError(
+                    "tts_config.ELEVENLABS_CONFIG.voice_settings.use_speaker_boost 값은 bool 이어야 합니다."
+                )
+            normalized[key] = value
+            continue
+
+        normalized[key] = value
+
+    return normalized
+
+
 class ElevenLabsEngine:
     def __init__(self):
         self.name = "ElevenLabs TTS"
@@ -54,7 +85,7 @@ class ElevenLabsEngine:
             )
 
         voice_settings = _load_config_value(ELEVENLABS_CONFIG, "voice_settings", dict)
-        self.voice_settings = voice_settings.copy()
+        self.voice_settings = _normalize_voice_settings(voice_settings)
 
         supported_languages = _load_config_value(
             ELEVENLABS_CONFIG, "supported_languages", list

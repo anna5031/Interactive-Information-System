@@ -5,6 +5,7 @@ LLM 설정 파일
 LLM_CONFIG = {
     # 기본 LLM 모델
     "llm_model": "llama-3.1-8b-instant",
+    # "llm_model": "openai/gpt-oss-20b",
     # 채팅 생성 파라미터
     "chat_parameters": {
         "temperature": 0.7,
