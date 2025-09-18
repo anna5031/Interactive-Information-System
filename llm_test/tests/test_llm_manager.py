@@ -1,5 +1,6 @@
 """Groq 클라이언트를 모킹해 LLMManager를 검증하는 단위 테스트."""
 
+import json
 import os
 import sys
 import unittest
@@ -85,6 +86,22 @@ BASE_LLM_CONFIG = {
         "frequency_penalty": 0.0,
         "stream": False,
     },
+    "structured_output": {
+        "name": "voice_ai_structured_response",
+        "strict": True,
+        "schema": {
+            "type": "object",
+            "properties": {
+                "text": {"type": "string"},
+                "type": {
+                    "type": "string",
+                    "enum": ["info", "map", "clarify"],
+                },
+            },
+            "required": ["text", "type"],
+            "additionalProperties": False,
+        },
+    },
 }
 
 
@@ -119,7 +136,13 @@ class LLMManagerTests(unittest.TestCase):
 
         mock_chat = mock.Mock()
         mock_response = SimpleNamespace(
-            choices=[SimpleNamespace(message=SimpleNamespace(content="테스트 응답"))]
+            choices=[
+                SimpleNamespace(
+                    message=SimpleNamespace(
+                        content=json.dumps({"text": "테스트 응답", "type": "info"})
+                    )
+                )
+            ]
         )
         mock_chat.completions.create.return_value = mock_response
         mock_client = mock.Mock(chat=mock_chat)
@@ -135,7 +158,7 @@ class LLMManagerTests(unittest.TestCase):
             "안녕", conversation_history=[{"role": "user", "content": "hi"}]
         )
 
-        self.assertEqual(result, "테스트 응답")
+        self.assertEqual(result, {"text": "테스트 응답", "type": "info"})
         mock_chat.completions.create.assert_called_once()
         call_kwargs = mock_chat.completions.create.call_args.kwargs
         self.assertIn(
@@ -143,6 +166,7 @@ class LLMManagerTests(unittest.TestCase):
             call_kwargs["messages"],
         )
         self.assertEqual(call_kwargs["model"], "fake-llm")
+        self.assertIn("response_format", call_kwargs)
 
     def test_exit_command_detection(self):
         manager, _ = self._make_manager()
@@ -164,6 +188,8 @@ class LLMManagerTests(unittest.TestCase):
 
         self.assertTrue(manager.test_connection())
         mock_chat.completions.create.assert_called_once()
+        call_kwargs = mock_chat.completions.create.call_args.kwargs
+        self.assertIn("response_format", call_kwargs)
 
 
 if __name__ == "__main__":

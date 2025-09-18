@@ -1,10 +1,11 @@
 """구성 기반으로 Groq 채팅을 제어하는 관리자."""
 
 import copy
+import json
 import logging
 import os
 import sys
-from typing import Optional
+from typing import Optional, TypedDict
 
 from dotenv import load_dotenv
 from groq import Groq
@@ -30,6 +31,10 @@ def _load_llm_config() -> dict:
 
 
 class LLMManager:
+    class StructuredResponse(TypedDict):
+        text: str
+        type: str
+
     def __init__(self):
         """LLM 관리자 초기화"""
         load_dotenv()
@@ -40,6 +45,12 @@ class LLMManager:
 
         self.llm_model = self._resolve_model_name("llm_model")
         self.chat_parameters = self._resolve_chat_parameters()
+        self.structured_output_config = self._resolve_structured_output_config()
+        (
+            self.allowed_response_types,
+            self.default_response_type,
+        ) = self._extract_allowed_response_types()
+        self.response_format = self._build_response_format()
 
         self.system_prompt = self._load_system_prompt()
 
@@ -128,11 +139,75 @@ class LLMManager:
         )
         return resolved
 
+    def _resolve_structured_output_config(self) -> dict:
+        config = self.llm_config.get("structured_output")
+        if not isinstance(config, dict):
+            raise RuntimeError("llm_config에 'structured_output' 설정이 필요합니다.")
+
+        name = config.get("name")
+        schema = config.get("schema")
+
+        if not isinstance(name, str) or not name.strip():
+            raise RuntimeError("structured_output.name 설정이 올바르지 않습니다.")
+        if not isinstance(schema, dict):
+            raise RuntimeError("structured_output.schema 설정이 올바르지 않습니다.")
+
+        strict = config.get("strict", True)
+        if not isinstance(strict, bool):
+            raise RuntimeError("structured_output.strict 설정은 boolean 이어야 합니다.")
+
+        resolved = {
+            "name": name.strip(),
+            "schema": copy.deepcopy(schema),
+            "strict": strict,
+        }
+        return resolved
+
+    def _extract_allowed_response_types(self) -> tuple[set[str], str]:
+        try:
+            type_property = (
+                self.structured_output_config["schema"]["properties"]["type"]
+            )
+            enum_values = type_property["enum"]
+        except KeyError as exc:
+            raise RuntimeError(
+                "structured_output.schema.properties.type.enum 설정이 필요합니다."
+            ) from exc
+
+        if not isinstance(enum_values, list) or not enum_values:
+            raise RuntimeError("type.enum 설정이 비어 있거나 올바르지 않습니다.")
+
+        normalized = []
+        for value in enum_values:
+            if not isinstance(value, str) or not value.strip():
+                raise RuntimeError("type.enum 항목은 비어 있지 않은 문자열이어야 합니다.")
+            normalized.append(value.strip().lower())
+
+        allowed_set = set(normalized)
+        if not allowed_set:
+            raise RuntimeError("type.enum 설정에서 허용 타입을 찾을 수 없습니다.")
+
+        default_type = "info" if "info" in allowed_set else normalized[0]
+        return allowed_set, default_type
+
+    def _build_response_format(self) -> dict:
+        json_schema = {
+            "name": self.structured_output_config["name"],
+            "schema": self.structured_output_config["schema"],
+        }
+        if self.structured_output_config.get("strict", True):
+            json_schema["strict"] = True
+
+        return {
+            "type": "json_schema",
+            "json_schema": json_schema,
+        }
+
     def generate_response(
         self,
         user_text: str,
         conversation_history: Optional[list] = None,
-    ) -> Optional[str]:
+    ) -> Optional[StructuredResponse]:
         """채팅 완성 요청을 보내고 모델 응답을 반환."""
         try:
             # 메시지 구성
@@ -155,15 +230,47 @@ class LLMManager:
                 presence_penalty=self.chat_parameters["presence_penalty"],
                 frequency_penalty=self.chat_parameters["frequency_penalty"],
                 stream=self.chat_parameters["stream"],
+                response_format=self.response_format,
             )
 
-            response_text = completion.choices[0].message.content
-            logger.info(f"AI 응답 생성 완료: {response_text[:100]}...")
-            return response_text
+            structured = self._parse_structured_response(completion)
+            preview = structured["text"][:100]
+            logger.info("AI 응답 생성 완료 (type=%s, text=%s...)", structured["type"], preview)
+            return structured
 
         except Exception as exc:
             logger.error("응답 생성 실패: %s", exc)
             raise
+
+    def _parse_structured_response(self, completion) -> StructuredResponse:
+        try:
+            message = completion.choices[0].message
+        except (AttributeError, IndexError) as exc:
+            raise ValueError("Groq 응답에서 메시지를 찾을 수 없습니다.") from exc
+
+        raw_content = getattr(message, "content", None)
+        if not raw_content:
+            raise ValueError("구조화된 응답이 비어 있습니다.")
+
+        try:
+            parsed = json.loads(raw_content)
+        except json.JSONDecodeError as exc:
+            raise ValueError("구조화된 JSON 응답을 파싱할 수 없습니다.") from exc
+
+        text = parsed.get("text")
+        if not isinstance(text, str) or not text.strip():
+            raise ValueError("응답 JSON에 text 필드가 없습니다.")
+
+        response_type = parsed.get("type", "").lower()
+        if response_type not in self.allowed_response_types:
+            logger.warning(
+                "알 수 없는 응답 type='%s' → '%s'로 대체",
+                response_type,
+                self.default_response_type,
+            )
+            response_type = self.default_response_type
+
+        return {"text": text.strip(), "type": response_type}
 
     def check_exit_command(self, text: str) -> bool:
         """종료 키워드가 포함되면 True를 반환."""
@@ -202,6 +309,7 @@ class LLMManager:
                 model=self.llm_model,
                 messages=[{"role": "user", "content": "Hello"}],
                 max_tokens=10,
+                response_format=self.response_format,
             )
 
             logger.info("✅ Groq API 연결 테스트 성공")
@@ -226,22 +334,14 @@ class LLMManager:
 
         try:
             with open(prompt_path, "r", encoding="utf-8") as file:
-                content = file.read()
+                content = file.read().strip()
         except Exception as exc:
             raise RuntimeError(
                 f"시스템 프롬프트 파일을 읽을 수 없습니다: {prompt_path}"
             ) from exc
 
-        lines = [line.strip() for line in content.splitlines()]
-        prompt_parts = [
-            line
-            for line in lines
-            if line and not line.startswith("#") and not line.startswith("-")
-        ]
-
-        if not prompt_parts:
+        if not content:
             raise RuntimeError("시스템 프롬프트 파일에 사용할 수 있는 내용이 없습니다.")
 
-        resolved_prompt = " ".join(prompt_parts)
-        logger.info("시스템 프롬프트 로드 완료 (길이 %d)", len(resolved_prompt))
-        return resolved_prompt
+        logger.info("시스템 프롬프트 로드 완료 (길이 %d)", len(content))
+        return content

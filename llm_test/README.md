@@ -81,6 +81,8 @@ llm_test/
 │   ├── stt_config.py           # Whisper 모델 및 파라미터
 │   └── tts_config.py           # TTS 엔진 우선순위와 설정
 ├── src/
+│   ├── system/
+│   │   └── voice_ai_system.py          # LLM/STT/TTS를 조합한 대화 엔진
 │   ├── managers/
 │   │   ├── device_manager.py           # USB 오디오 장치 요약
 │   │   ├── llm_manager.py              # Groq API 연동 로직

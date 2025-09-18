@@ -158,7 +158,7 @@ class FakeLLMManager:
 
     def generate_response(self, user_text, conversation_history=None):
         self.generate_calls.append((user_text, tuple(conversation_history or [])))
-        return "응답 메시지"
+        return {"text": "응답 메시지", "type": "info"}
 
     def check_exit_command(self, text: str) -> bool:
         return text == "quit"
@@ -177,16 +177,16 @@ class FakeLLMManager:
 class ConversationFlowTests(unittest.TestCase):
     def setUp(self):
         patchers = [
-            mock.patch("main.DeviceManager", FakeDeviceManager),
-            mock.patch("main.VoiceInterfaceManager", FakeVoiceInterfaceManager),
-            mock.patch("main.STTManager", FakeSTTManager),
-            mock.patch("main.LLMManager", FakeLLMManager),
+            mock.patch("src.system.voice_ai_system.DeviceManager", FakeDeviceManager),
+            mock.patch("src.system.voice_ai_system.VoiceInterfaceManager", FakeVoiceInterfaceManager),
+            mock.patch("src.system.voice_ai_system.STTManager", FakeSTTManager),
+            mock.patch("src.system.voice_ai_system.LLMManager", FakeLLMManager),
         ]
         for patcher in patchers:
             patcher.start()
             self.addCleanup(patcher.stop)
 
-        from main import VoiceAISystem
+        from src.system.voice_ai_system import VoiceAISystem
 
         self.system = VoiceAISystem()
 
