@@ -1,0 +1,10 @@
+"""
+사용자별 마이크 우선순위 목록 예시 파일.
+
+이 파일을 복사하여 `config/microphone_priority.py` 이름으로 저장한 뒤
+`PRIORITY_DEVICE_NAMES` 값을 환경에 맞게 수정하세요.
+"""
+
+PRIORITY_DEVICE_NAMES = [
+    # "USB Mic",  # 부분 문자열 일치로 매칭됩니다.
+]
