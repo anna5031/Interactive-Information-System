@@ -1,0 +1,9 @@
+# config.yaml
+geometry:
+  z_offset: 1000   # mm
+  H: 2000          # mm
+  scale_factor: 1328   # mm
+serial:
+  port: /dev/ttyUSB0   # Windows면 COM3 같은 포트
+  baudrate: 115200
+  timeout: 1.0
