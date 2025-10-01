@@ -1,7 +1,11 @@
-z_offset = 1000 # mm
-H = 2000 # mm
-standard = 1328 # mm
+# display.py
+from config_loader import load_config
+import pygame, sys
 
+config = load_config()
+z_offset = config["geometry"]["z_offset"]
+H = config["geometry"]["H"]
+scale_factor = config["geometry"]["scale_factor"]
 
 def _calSizeRatio(target):
     x, y, z = target
