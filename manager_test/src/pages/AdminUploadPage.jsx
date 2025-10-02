@@ -22,7 +22,7 @@ const AdminUploadPage = () => {
       return;
     }
 
-    if (state.stage === 'review' && state.savedText) {
+    if (state.stage === 'review' && (state.savedYoloText || state.savedWallText)) {
       navigate('/admin/review', { replace: true });
       return;
     }
@@ -30,7 +30,15 @@ const AdminUploadPage = () => {
     if (state.stage !== 'upload') {
       setStage('upload');
     }
-  }, [state.stage, state.imageUrl, state.savedText, state.skipUploadRedirect, navigate, setStage]);
+  }, [
+    state.stage,
+    state.imageUrl,
+    state.savedYoloText,
+    state.savedWallText,
+    state.skipUploadRedirect,
+    navigate,
+    setStage
+  ]);
 
   const handleSelectFile = async (file) => {
     setError(null);

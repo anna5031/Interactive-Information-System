@@ -26,9 +26,6 @@ const AnnotationSidebar = ({
   onToggleLabelVisibility,
   isLineLabelActive,
 }) => {
-  const isBoxAddDisabled = addMode && !isBoxLabel(activeLabelId);
-  const isLineAddDisabled = addMode && !isLineLabel(activeLabelId);
-
   const handleSelectBox = (box) => onSelect?.({ type: 'box', id: box.id });
   const handleSelectLine = (line) => onSelect?.({ type: 'line', id: line.id });
 

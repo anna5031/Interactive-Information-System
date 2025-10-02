@@ -7,7 +7,7 @@ import layoutStyles from './MainPage.module.css';
 
 const AdminEditorPage = () => {
   const navigate = useNavigate();
-  const { state, setStage, updateAnnotations, setSavedText, resetWorkflow } = useFloorPlan();
+  const { state, setStage, updateBoxes, updateLines, setSavedTexts, resetWorkflow } = useFloorPlan();
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState(null);
 
@@ -49,13 +49,14 @@ const AdminEditorPage = () => {
     navigate('/admin/upload', { replace: true });
   };
 
-  const handleSubmit = async (nextAnnotations) => {
+  const handleSubmit = async ({ boxes, lines }) => {
     setIsSaving(true);
     setError(null);
     try {
-      updateAnnotations(nextAnnotations);
-      const { savedText } = await saveAnnotations({ annotations: nextAnnotations });
-      setSavedText(savedText);
+      updateBoxes(boxes);
+      updateLines(lines);
+      const { savedYoloText, savedWallText } = await saveAnnotations({ boxes, lines });
+      setSavedTexts({ yolo: savedYoloText, wall: savedWallText });
       setStage('review');
       navigate('/admin/review');
     } catch (saveError) {
@@ -66,8 +67,12 @@ const AdminEditorPage = () => {
     }
   };
 
-  const handleAnnotationsChange = (nextAnnotations) => {
-    updateAnnotations(nextAnnotations);
+  const handleBoxesChange = (nextBoxes) => {
+    updateBoxes(nextBoxes);
+  };
+
+  const handleLinesChange = (nextLines) => {
+    updateLines(nextLines);
   };
 
   return (
@@ -75,11 +80,13 @@ const AdminEditorPage = () => {
       <FloorPlanEditorPage
         fileName={state.fileName || 'floor-plan.png'}
         imageUrl={state.imageUrl}
-        initialAnnotations={state.annotations}
+        initialBoxes={state.boxes}
+        initialLines={state.lines}
         onCancel={handleCancel}
         onSubmit={handleSubmit}
         isSaving={isSaving}
-        onAnnotationsChange={handleAnnotationsChange}
+        onBoxesChange={handleBoxesChange}
+        onLinesChange={handleLinesChange}
         errorMessage={error}
       />
     </div>
