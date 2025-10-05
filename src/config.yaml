@@ -1,0 +1,18 @@
+# config.yaml
+geometry:
+  z_offset: 150   # tilt 회전축 ~ 빔프로젝터 거리 mm
+  H: 848          # 바닥 ~ tilt 축 거리 mm
+  scale_factor: 1328   # 빔프로젝터 화면 크기 일정 보정 factor mm
+serial:
+  port: COM5
+  baudrate: 115200
+  timeout: 1.0
+motor:
+  pan:
+    min_deg: 0
+    max_deg: 180
+    init_deg: 0
+  tilt:
+    min_deg: 50
+    max_deg: 170
+    init_deg: 110
