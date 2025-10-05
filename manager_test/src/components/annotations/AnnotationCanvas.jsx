@@ -13,6 +13,8 @@ const clamp = (value, min = 0, max = 1) => {
 const MIN_BOX_SIZE = 0.01;
 const MIN_LINE_LENGTH = 0.01;
 const LINE_SNAP_THRESHOLD = 0.02;
+const AXIS_LOCK_ANGLE_DEG = 5;
+const AXIS_LOCK_TOLERANCE = Math.tan((AXIS_LOCK_ANGLE_DEG * Math.PI) / 180);
 
 const AnnotationCanvas = ({
   imageUrl,
@@ -619,8 +621,31 @@ const AnnotationCanvas = ({
         prev
           ? {
               ...prev,
-              x2: clamp(x),
-              y2: clamp(y),
+              ...(() => {
+                const dx = x - state.originX;
+                const dy = y - state.originY;
+                const absDx = Math.abs(dx);
+                const absDy = Math.abs(dy);
+
+                if (absDy <= absDx * AXIS_LOCK_TOLERANCE) {
+                  return {
+                    x2: clamp(x),
+                    y2: clamp(state.originY),
+                  };
+                }
+
+                if (absDx <= absDy * AXIS_LOCK_TOLERANCE) {
+                  return {
+                    x2: clamp(state.originX),
+                    y2: clamp(y),
+                  };
+                }
+
+                return {
+                  x2: clamp(x),
+                  y2: clamp(y),
+                };
+              })(),
             }
           : prev
       );
