@@ -14,6 +14,14 @@
   cursor: crosshair;
 }
 
+.canvas.adding .annotation,
+.canvas.adding .annotation:active,
+.canvas.adding .lineHandle,
+.canvas.adding .resizeHandle,
+.canvas.adding .line {
+  cursor: crosshair;
+}
+
 .image {
   width: 100%;
   height: 100%;

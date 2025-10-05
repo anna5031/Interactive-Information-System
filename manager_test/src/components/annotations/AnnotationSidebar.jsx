@@ -47,7 +47,11 @@ const AnnotationSidebar = ({
         <h3 className={styles.heading}>라벨 추가</h3>
         <div className={styles.fieldGroup}>
           <label className={styles.label} htmlFor='label-selector'>
-            객체 종류
+            {addMode
+              ? isLineLabelActive
+                ? '객체 종류 : 화면에서 선을 그리고 놓으면 선이 추가됩니다.'
+                : '객체 종류 : 드래그하여 박스를 추가하세요.'
+              : '객체 종류'}
           </label>
           <select
             id='label-selector'
@@ -70,13 +74,6 @@ const AnnotationSidebar = ({
           <SquarePlus size={16} />
           {addMode ? '추가 종료' : '새 객체 추가'}
         </button>
-        {addMode && (
-          <p className={styles.helperText}>
-            {isLineLabelActive
-              ? '화면에서 선을 그리고 놓으면 선이 추가됩니다.'
-              : '화면에서 드래그하여 박스를 추가하세요.'}
-          </p>
-        )}
       </div>
 
       <div className={styles.section}>
@@ -112,7 +109,7 @@ const AnnotationSidebar = ({
                   type='button'
                   className={`${styles.listItem} ${isSelected ? styles.listItemActive : ''}`}
                   onClick={() => handleSelectBox(box)}
-                  disabled={isLineLabelActive}
+                  disabled={isLineLabelActive || addMode}
                 >
                   <span className={styles.colorIndicator} style={{ backgroundColor: label?.color }} />
                   <span className={styles.listText}>{`${label?.name ?? '라벨'} (${box.labelId})`}</span>
@@ -138,7 +135,7 @@ const AnnotationSidebar = ({
                   type='button'
                   className={`${styles.listItem} ${isSelected ? styles.listItemActive : ''}`}
                   onClick={() => handleSelectLine(line)}
-                  disabled={!isLineLabelActive && addMode}
+                  disabled={addMode}
                 >
                   <span className={styles.colorIndicator} style={{ backgroundColor: label?.color }} />
                   <span className={styles.listText}>{`${label?.name ?? '벽'} (${line.labelId})`}</span>

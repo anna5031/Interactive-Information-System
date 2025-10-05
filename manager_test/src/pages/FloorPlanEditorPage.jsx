@@ -80,6 +80,9 @@ const FloorPlanEditorPage = ({
   };
 
   const handleSelect = (item) => {
+    if (addMode) {
+      return;
+    }
     setSelectedItem(item);
   };
 
@@ -150,7 +153,13 @@ const FloorPlanEditorPage = ({
   };
 
   const handleToggleAddMode = () => {
-    setAddMode((prev) => !prev);
+    setAddMode((prev) => {
+      const next = !prev;
+      if (next) {
+        setSelectedItem(null);
+      }
+      return next;
+    });
   };
 
   const handleToggleLabelVisibility = (labelId) => {

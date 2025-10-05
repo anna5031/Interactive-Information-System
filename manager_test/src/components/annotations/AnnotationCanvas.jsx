@@ -183,14 +183,14 @@ const AnnotationCanvas = ({
   };
 
   const handleBoxPointerDown = (event, box) => {
+    if (addMode) {
+      return;
+    }
+
     event.preventDefault();
     event.stopPropagation();
 
     setSelection('box', box.id);
-
-    if (addMode) {
-      return;
-    }
 
     const { x, y } = normalisePointer(event);
 
@@ -229,12 +229,12 @@ const AnnotationCanvas = ({
   };
 
   const handleBoxResizePointerDown = (event, box, corner) => {
-    event.preventDefault();
-    event.stopPropagation();
-
     if (addMode) {
       return;
     }
+
+    event.preventDefault();
+    event.stopPropagation();
 
     const { x, y } = normalisePointer(event);
 
@@ -311,14 +311,14 @@ const AnnotationCanvas = ({
   };
 
   const handleLinePointerDown = (event, line) => {
+    if (addMode) {
+      return;
+    }
+
     event.preventDefault();
     event.stopPropagation();
 
     setSelection('line', line.id);
-
-    if (addMode) {
-      return;
-    }
 
     const { x, y } = normalisePointer(event);
 
@@ -361,12 +361,12 @@ const AnnotationCanvas = ({
   };
 
   const handleLineHandlePointerDown = (event, line, handle) => {
-    event.preventDefault();
-    event.stopPropagation();
-
     if (addMode) {
       return;
     }
+
+    event.preventDefault();
+    event.stopPropagation();
 
     const { x, y } = normalisePointer(event);
 
