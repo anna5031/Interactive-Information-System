@@ -13,6 +13,7 @@ const clamp = (value, min = 0, max = 1) => {
 const MIN_BOX_SIZE = 0.01;
 const MIN_LINE_LENGTH = 0.01;
 const LINE_SNAP_THRESHOLD = 0.02;
+const DRAW_SNAP_DISTANCE = 0.02;
 const AXIS_LOCK_ANGLE_DEG = 5;
 const AXIS_LOCK_TOLERANCE = Math.tan((AXIS_LOCK_ANGLE_DEG * Math.PI) / 180);
 
@@ -73,6 +74,48 @@ const AnnotationCanvas = ({
       return acc;
     }, {});
   }, [lines]);
+
+  const snapPoints = useMemo(() => {
+    const pointsList = [];
+
+    boxes.forEach((box) => {
+      const corners = [
+        { x: box.x, y: box.y },
+        { x: box.x + box.width, y: box.y },
+        { x: box.x, y: box.y + box.height },
+        { x: box.x + box.width, y: box.y + box.height },
+      ];
+      pointsList.push(...corners);
+    });
+
+    lines.forEach((line) => {
+      pointsList.push({ x: line.x1, y: line.y1 });
+      pointsList.push({ x: line.x2, y: line.y2 });
+    });
+
+    points.forEach((point) => {
+      pointsList.push({ x: point.x, y: point.y });
+    });
+
+    return pointsList;
+  }, [boxes, lines, points]);
+
+  const snapSegments = useMemo(() => {
+    const segments = [];
+
+    boxes.forEach((box) => {
+      segments.push({ ax: box.x, ay: box.y, bx: box.x + box.width, by: box.y });
+      segments.push({ ax: box.x, ay: box.y + box.height, bx: box.x + box.width, by: box.y + box.height });
+      segments.push({ ax: box.x, ay: box.y, bx: box.x, by: box.y + box.height });
+      segments.push({ ax: box.x + box.width, ay: box.y, bx: box.x + box.width, by: box.y + box.height });
+    });
+
+    lines.forEach((line) => {
+      segments.push({ ax: line.x1, ay: line.y1, bx: line.x2, by: line.y2 });
+    });
+
+    return segments;
+  }, [boxes, lines]);
 
   const updateImageBox = useCallback(() => {
     const container = containerRef.current;
@@ -259,6 +302,30 @@ const AnnotationCanvas = ({
     });
 
     return best;
+  };
+
+  const snapDrawingPosition = (x, y) => {
+    let best = null;
+
+    snapPoints.forEach((point) => {
+      const distance = Math.hypot(x - point.x, y - point.y);
+      if (distance <= DRAW_SNAP_DISTANCE && (!best || distance < best.distance)) {
+        best = { x: point.x, y: point.y, distance };
+      }
+    });
+
+    snapSegments.forEach((segment) => {
+      const projection = projectPointToSegment(x, y, segment.ax, segment.ay, segment.bx, segment.by);
+      if (projection.distance <= DRAW_SNAP_DISTANCE && (!best || projection.distance < best.distance)) {
+        best = { x: projection.x, y: projection.y, distance: projection.distance };
+      }
+    });
+
+    if (best) {
+      return { x: clamp(best.x), y: clamp(best.y), snapped: true };
+    }
+
+    return { x: clamp(x), y: clamp(y), snapped: false };
   };
 
   const handleBoxPointerDown = (event, box) => {
@@ -585,21 +652,23 @@ const AnnotationCanvas = ({
     }
     event.preventDefault();
 
+    const snappedStart = snapDrawingPosition(position.x, position.y);
+
     if (labelIsLine) {
       const draft = {
         type: 'line',
         labelId: activeLabelId,
-        x1: position.x,
-        y1: position.y,
-        x2: position.x,
-        y2: position.y,
+        x1: snappedStart.x,
+        y1: snappedStart.y,
+        x2: snappedStart.x,
+        y2: snappedStart.y,
       };
       setDraftShape(draft);
       pointerStateRef.current = {
         type: 'add-line',
         pointerId: event.pointerId,
-        originX: position.x,
-        originY: position.y,
+        originX: snappedStart.x,
+        originY: snappedStart.y,
       };
       event.currentTarget.setPointerCapture(event.pointerId);
     } else if (labelIsPoint) {
@@ -616,11 +685,12 @@ const AnnotationCanvas = ({
       };
       onAddShape?.(draft);
     } else if (isBoxLabel(activeLabelId)) {
+      const snapped = snapDrawingPosition(position.x, position.y);
       const draft = {
         type: 'box',
         labelId: activeLabelId,
-        x: position.x,
-        y: position.y,
+        x: snapped.x,
+        y: snapped.y,
         width: 0,
         height: 0,
       };
@@ -628,8 +698,8 @@ const AnnotationCanvas = ({
       pointerStateRef.current = {
         type: 'add-box',
         pointerId: event.pointerId,
-        originX: position.x,
-        originY: position.y,
+        originX: snapped.x,
+        originY: snapped.y,
       };
       event.currentTarget.setPointerCapture(event.pointerId);
     } else {
@@ -647,36 +717,42 @@ const AnnotationCanvas = ({
     const { x, y } = normalisePointer(event);
 
     if (state.type === 'add-box') {
-      const minX = Math.min(state.originX, x);
-      const minY = Math.min(state.originY, y);
-      const width = Math.abs(x - state.originX);
-      const height = Math.abs(y - state.originY);
+      const snapped = snapDrawingPosition(x, y);
+      const snappedX = snapped.x;
+      const snappedY = snapped.y;
+      const boxMinX = Math.min(state.originX, snappedX);
+      const boxMinY = Math.min(state.originY, snappedY);
+      const width = Math.abs(snappedX - state.originX);
+      const height = Math.abs(snappedY - state.originY);
 
       setDraftShape((prev) =>
         prev
           ? {
               ...prev,
-              x: clamp(minX, 0, 1 - MIN_BOX_SIZE),
-              y: clamp(minY, 0, 1 - MIN_BOX_SIZE),
+              x: clamp(boxMinX, 0, 1 - MIN_BOX_SIZE),
+              y: clamp(boxMinY, 0, 1 - MIN_BOX_SIZE),
               width: clamp(width, 0, 1),
               height: clamp(height, 0, 1),
             }
           : prev
       );
     } else if (state.type === 'add-line') {
+      const snapped = snapDrawingPosition(x, y);
+      const snappedX = snapped.x;
+      const snappedY = snapped.y;
       setDraftShape((prev) =>
         prev
           ? {
               ...prev,
               ...(() => {
-                const dx = x - state.originX;
-                const dy = y - state.originY;
+                const dx = snappedX - state.originX;
+                const dy = snappedY - state.originY;
                 const absDx = Math.abs(dx);
                 const absDy = Math.abs(dy);
 
                 if (absDy <= absDx * AXIS_LOCK_TOLERANCE) {
                   return {
-                    x2: clamp(x),
+                    x2: snappedX,
                     y2: clamp(state.originY),
                   };
                 }
@@ -684,13 +760,13 @@ const AnnotationCanvas = ({
                 if (absDx <= absDy * AXIS_LOCK_TOLERANCE) {
                   return {
                     x2: clamp(state.originX),
-                    y2: clamp(y),
+                    y2: snappedY,
                   };
                 }
 
                 return {
-                  x2: clamp(x),
-                  y2: clamp(y),
+                  x2: snappedX,
+                  y2: snappedY,
                 };
               })(),
             }
