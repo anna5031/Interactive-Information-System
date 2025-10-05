@@ -90,8 +90,6 @@ const useLineInteractions = ({
       event.preventDefault();
       event.stopPropagation();
 
-      const { x, y } = normalisePointer(event);
-
       pointerStateRef.current = {
         type: 'resize-line',
         id: line.id,
@@ -102,7 +100,7 @@ const useLineInteractions = ({
 
       handlePointerCapture(event);
     },
-    [addMode, normalisePointer, pointerStateRef]
+    [addMode, pointerStateRef]
   );
 
   const handleLineResizeMove = useCallback(

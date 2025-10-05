@@ -122,8 +122,6 @@ const useBoxInteractions = ({
       event.preventDefault();
       event.stopPropagation();
 
-      const { x, y } = normalisePointer(event);
-
       pointerStateRef.current = {
         type: 'resize-box',
         id: box.id,
@@ -134,7 +132,7 @@ const useBoxInteractions = ({
 
       handlePointerCapture(event);
     },
-    [addMode, normalisePointer, pointerStateRef]
+    [addMode, pointerStateRef]
   );
 
   const handleBoxResizePointerMove = useCallback(
