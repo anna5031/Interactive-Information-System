@@ -4,6 +4,7 @@ import { ArrowLeft, Loader2, Save } from 'lucide-react';
 import AnnotationCanvas from '../components/annotations/AnnotationCanvas';
 import AnnotationSidebar from '../components/annotations/AnnotationSidebar';
 import { getDefaultLabelId, isLineLabel } from '../config/annotationConfig';
+import { subtractBoxFromLines } from '../utils/wallTrimmer';
 import styles from './FloorPlanEditorPage.module.css';
 
 const createSelectionFromData = (boxes, lines) => {
@@ -100,6 +101,7 @@ const FloorPlanEditorPage = ({
       const nextId = `box-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
       const prepared = { ...draft, id: nextId, labelId: draft.labelId ?? activeLabelId };
       handleUpdateBoxes((prev) => [...prev, prepared]);
+      handleUpdateLines((prev) => subtractBoxFromLines(prev, prepared));
       setSelectedItem({ type: 'box', id: nextId });
     }
     setAddMode(false);

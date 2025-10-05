@@ -1,6 +1,7 @@
 import yoloTxtPath from '../dummy/yolo.txt';
 import wallTxtPath from '../dummy/wall.txt';
 import { isLineLabel } from '../config/annotationConfig';
+import { subtractBoxesFromLines } from '../utils/wallTrimmer';
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -128,7 +129,8 @@ export const uploadFloorPlan = async (file) => {
   const [yoloText, wallText] = await Promise.all([yoloResponse.text(), wallResponse.text()]);
 
   const boxes = parseYoloBoxes(yoloText);
-  const lines = parseWallLines(wallText);
+  const rawLines = parseWallLines(wallText);
+  const lines = subtractBoxesFromLines(rawLines, boxes);
   const imageUrl = await readFileAsDataUrl(file);
 
   return {
