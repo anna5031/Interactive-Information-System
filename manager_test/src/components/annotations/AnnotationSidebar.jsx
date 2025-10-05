@@ -87,103 +87,6 @@ const AnnotationSidebar = ({
         {addMode && <p className={styles.helperText}>{helperMessage}</p>}
       </div>
 
-      <div className={styles.section}>
-        <h3 className={styles.heading}>라벨 표시</h3>
-        <div className={styles.filterList}>
-          {LABEL_CONFIG.map((label) => {
-            const hidden = hiddenLabelIds?.has(label.id);
-            return (
-              <button
-                key={label.id}
-                type='button'
-                className={`${styles.filterTag} ${hidden ? styles.filterTagInactive : ''}`}
-                onClick={() => onToggleLabelVisibility?.(label.id)}
-              >
-                <span className={styles.colorIndicator} style={{ backgroundColor: label.color }} />
-                {label.name}
-                {hidden && <span className={styles.hiddenBadge}>숨김</span>}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className={styles.section}>
-        <h3 className={styles.heading}>박스 객체</h3>
-        <ul className={styles.list}>
-          {boxes.map((box) => {
-            const label = getLabelById(box.labelId) || LABEL_CONFIG[0];
-            const isSelected = selectedBox?.id === box.id;
-            return (
-              <li key={box.id}>
-                <button
-                  type='button'
-                  className={`${styles.listItem} ${isSelected ? styles.listItemActive : ''}`}
-                  onClick={() => handleSelectBox(box)}
-                  disabled={isLineLabelActive || addMode}
-                >
-                  <span className={styles.colorIndicator} style={{ backgroundColor: label?.color }} />
-                  <span className={styles.listText}>{`${label?.name ?? '라벨'} (${box.labelId})`}</span>
-                  <span className={styles.dimensions}>
-                    {formatPercentage(box.width)} × {formatPercentage(box.height)}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
-
-      <div className={styles.section}>
-        <h3 className={styles.heading}>벽(선) 객체</h3>
-        <ul className={styles.list}>
-          {lines.map((line) => {
-            const label = getLabelById(line.labelId) || LABEL_CONFIG[0];
-            const isSelected = selectedLine?.id === line.id;
-            return (
-              <li key={line.id}>
-                <button
-                  type='button'
-                  className={`${styles.listItem} ${isSelected ? styles.listItemActive : ''}`}
-                  onClick={() => handleSelectLine(line)}
-                  disabled={addMode}
-                >
-                  <span className={styles.colorIndicator} style={{ backgroundColor: label?.color }} />
-                  <span className={styles.listText}>{`${label?.name ?? '벽'} (${line.labelId})`}</span>
-                  <span className={styles.dimensions}>{formatLineLength(line)}</span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
-
-      <div className={styles.section}>
-        <h3 className={styles.heading}>문(점) 객체</h3>
-        <ul className={styles.list}>
-          {points.map((point) => {
-            const label = getLabelById(point.labelId) || LABEL_CONFIG[0];
-            const isSelected = selectedPoint?.id === point.id;
-            return (
-              <li key={point.id}>
-                <button
-                  type='button'
-                  className={`${styles.listItem} ${isSelected ? styles.listItemActive : ''}`}
-                  onClick={() => handleSelectPoint(point)}
-                  disabled={addMode}
-                >
-                  <span className={styles.colorIndicator} style={{ backgroundColor: label?.color }} />
-                  <span className={styles.listText}>{`${label?.name ?? '문'} (${point.labelId})`}</span>
-                  <span className={styles.dimensions}>
-                    {formatPercentage(point.x)}, {formatPercentage(point.y)}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
-
       {selectedBox && (
         <div className={styles.section}>
           <h3 className={styles.heading}>선택된 박스</h3>
@@ -332,6 +235,104 @@ const AnnotationSidebar = ({
           </button>
         </div>
       )}
+
+      <div className={styles.section}>
+        <h3 className={styles.heading}>라벨 표시</h3>
+        <div className={styles.filterList}>
+          {LABEL_CONFIG.map((label) => {
+            const hidden = hiddenLabelIds?.has(label.id);
+            return (
+              <button
+                key={label.id}
+                type='button'
+                className={`${styles.filterTag} ${hidden ? styles.filterTagInactive : ''}`}
+                onClick={() => onToggleLabelVisibility?.(label.id)}
+              >
+                <span className={styles.colorIndicator} style={{ backgroundColor: label.color }} />
+                {label.name}
+                {hidden && <span className={styles.hiddenBadge}>숨김</span>}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className={styles.section}>
+        <h3 className={styles.heading}>박스 객체</h3>
+        <ul className={styles.list}>
+          {boxes.map((box) => {
+            const label = getLabelById(box.labelId) || LABEL_CONFIG[0];
+            const isSelected = selectedBox?.id === box.id;
+            return (
+              <li key={box.id}>
+                <button
+                  type='button'
+                  className={`${styles.listItem} ${isSelected ? styles.listItemActive : ''}`}
+                  onClick={() => handleSelectBox(box)}
+                  disabled={isLineLabelActive || addMode}
+                >
+                  <span className={styles.colorIndicator} style={{ backgroundColor: label?.color }} />
+                  <span className={styles.listText}>{`${label?.name ?? '라벨'} (${box.labelId})`}</span>
+                  <span className={styles.dimensions}>
+                    {formatPercentage(box.width)} × {formatPercentage(box.height)}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+
+      <div className={styles.section}>
+        <h3 className={styles.heading}>벽(선) 객체</h3>
+        <ul className={styles.list}>
+          {lines.map((line) => {
+            const label = getLabelById(line.labelId) || LABEL_CONFIG[0];
+            const isSelected = selectedLine?.id === line.id;
+            return (
+              <li key={line.id}>
+                <button
+                  type='button'
+                  className={`${styles.listItem} ${isSelected ? styles.listItemActive : ''}`}
+                  onClick={() => handleSelectLine(line)}
+                  disabled={addMode}
+                >
+                  <span className={styles.colorIndicator} style={{ backgroundColor: label?.color }} />
+                  <span className={styles.listText}>{`${label?.name ?? '벽'} (${line.labelId})`}</span>
+                  <span className={styles.dimensions}>{formatLineLength(line)}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+
+      <div className={styles.section}>
+        <h3 className={styles.heading}>문(점) 객체</h3>
+        <ul className={styles.list}>
+          {points.map((point) => {
+            const label = getLabelById(point.labelId) || LABEL_CONFIG[0];
+            const isSelected = selectedPoint?.id === point.id;
+            return (
+              <li key={point.id}>
+                <button
+                  type='button'
+                  className={`${styles.listItem} ${isSelected ? styles.listItemActive : ''}`}
+                  onClick={() => handleSelectPoint(point)}
+                  disabled={addMode}
+                >
+                  <span className={styles.colorIndicator} style={{ backgroundColor: label?.color }} />
+                  <span className={styles.listText}>{`${label?.name ?? '문'} (${point.labelId})`}</span>
+                  <span className={styles.dimensions}>
+                    {formatPercentage(point.x)}, {formatPercentage(point.y)}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+
     </aside>
   );
 };
