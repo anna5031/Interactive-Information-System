@@ -2,21 +2,28 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import LABEL_CONFIG, { getLabelById, isLineLabel, isBoxLabel, isPointLabel } from '../../config/annotationConfig';
 import styles from './AnnotationCanvas.module.css';
-
-const clamp = (value, min = 0, max = 1) => {
-  if (Number.isNaN(value)) {
-    return min;
-  }
-  return Math.min(Math.max(value, min), max);
-};
+import BoxAnnotation from './shapes/BoxAnnotation';
+import LineAnnotation from './shapes/LineAnnotation';
+import PointAnnotation from './shapes/PointAnnotation';
+import useBoxInteractions from './hooks/useBoxInteractions';
+import useLineInteractions from './hooks/useLineInteractions';
+import usePointInteractions from './hooks/usePointInteractions';
+import {
+  clamp,
+  LINE_SNAP_THRESHOLD,
+  AXIS_LOCK_TOLERANCE,
+  buildSnapPoints,
+  buildSnapSegments,
+  snapPosition,
+  findAnchorForPoint,
+  applyAxisLockToLine,
+  snapLineEndpoints,
+  snapSpecificLineEndpoint,
+} from './utils/canvasGeometry';
 
 const MIN_BOX_SIZE = 0.01;
 const MIN_LINE_LENGTH = 0.01;
-const LINE_SNAP_THRESHOLD = 0.02;
-const DRAW_SNAP_DISTANCE = 0.02;
-const AXIS_LOCK_ANGLE_DEG = 5;
-const AXIS_LOCK_TOLERANCE = Math.tan((AXIS_LOCK_ANGLE_DEG * Math.PI) / 180);
-const EMPTY_SET = new Set();
+const getLabel = (labelId) => getLabelById(labelId) || LABEL_CONFIG[0];
 
 const AnnotationCanvas = ({
   imageUrl,
@@ -76,65 +83,9 @@ const AnnotationCanvas = ({
     }, {});
   }, [lines]);
 
-  const snapPoints = useMemo(() => {
-    const pointsList = [];
+  const snapPoints = useMemo(() => buildSnapPoints(boxes, lines, points), [boxes, lines, points]);
 
-    boxes.forEach((box) => {
-      const corners = [
-        { x: box.x, y: box.y, ownerId: box.id, type: 'box-corner', meta: { corner: 'top-left' } },
-        {
-          x: box.x + box.width,
-          y: box.y,
-          ownerId: box.id,
-          type: 'box-corner',
-          meta: { corner: 'top-right' },
-        },
-        {
-          x: box.x,
-          y: box.y + box.height,
-          ownerId: box.id,
-          type: 'box-corner',
-          meta: { corner: 'bottom-left' },
-        },
-        {
-          x: box.x + box.width,
-          y: box.y + box.height,
-          ownerId: box.id,
-          type: 'box-corner',
-          meta: { corner: 'bottom-right' },
-        },
-      ];
-      pointsList.push(...corners);
-    });
-
-    lines.forEach((line) => {
-      pointsList.push({ x: line.x1, y: line.y1, ownerId: line.id, type: 'line-end', meta: { end: 'start' } });
-      pointsList.push({ x: line.x2, y: line.y2, ownerId: line.id, type: 'line-end', meta: { end: 'end' } });
-    });
-
-    points.forEach((point) => {
-      pointsList.push({ x: point.x, y: point.y, ownerId: point.id, type: 'point' });
-    });
-
-    return pointsList;
-  }, [boxes, lines, points]);
-
-  const snapSegments = useMemo(() => {
-    const segments = [];
-
-    boxes.forEach((box) => {
-      segments.push({ ax: box.x, ay: box.y, bx: box.x + box.width, by: box.y, ownerId: box.id, type: 'box-edge', meta: { edge: 'top' } });
-      segments.push({ ax: box.x, ay: box.y + box.height, bx: box.x + box.width, by: box.y + box.height, ownerId: box.id, type: 'box-edge', meta: { edge: 'bottom' } });
-      segments.push({ ax: box.x, ay: box.y, bx: box.x, by: box.y + box.height, ownerId: box.id, type: 'box-edge', meta: { edge: 'left' } });
-      segments.push({ ax: box.x + box.width, ay: box.y, bx: box.x + box.width, by: box.y + box.height, ownerId: box.id, type: 'box-edge', meta: { edge: 'right' } });
-    });
-
-    lines.forEach((line) => {
-      segments.push({ ax: line.x1, ay: line.y1, bx: line.x2, by: line.y2, ownerId: line.id, type: 'line' });
-    });
-
-    return segments;
-  }, [boxes, lines]);
+  const snapSegments = useMemo(() => buildSnapSegments(boxes, lines), [boxes, lines]);
 
   const updateImageBox = useCallback(() => {
     const container = containerRef.current;
@@ -256,198 +207,19 @@ const AnnotationCanvas = ({
     onSelect?.({ type, id });
   };
 
-  const projectPointToSegment = (px, py, ax, ay, bx, by) => {
-    const dx = bx - ax;
-    const dy = by - ay;
-    const lengthSquared = dx * dx + dy * dy;
-    if (lengthSquared <= Number.EPSILON) {
-      const distance = Math.hypot(px - ax, py - ay);
-      return { t: 0, x: ax, y: ay, distance };
-    }
+  const snapDrawingPosition = (x, y, options = {}) =>
+    snapPosition({ x, y, snapPoints, snapSegments, ...options });
 
-    const t = clamp(((px - ax) * dx + (py - ay) * dy) / lengthSquared, 0, 1);
-    const x = ax + dx * t;
-    const y = ay + dy * t;
-    const distance = Math.hypot(px - x, py - y);
+  const getAnchorForPoint = (x, y) =>
+    findAnchorForPoint(x, y, lines, boxes, LINE_SNAP_THRESHOLD);
 
-    return { t, x, y, distance };
-  };
+  const applyAxisLock = (line) => applyAxisLockToLine(line, AXIS_LOCK_TOLERANCE);
 
-  const findAnchorForPoint = (x, y) => {
-    let best = null;
+  const snapLineWithState = (line, excludeId) =>
+    snapLineEndpoints({ line, snapPoints, snapSegments, excludeId });
 
-    lines.forEach((line, lineIndex) => {
-      const projection = projectPointToSegment(x, y, line.x1, line.y1, line.x2, line.y2);
-      if (projection.distance <= LINE_SNAP_THRESHOLD && (!best || projection.distance < best.distance)) {
-        best = {
-          x: projection.x,
-          y: projection.y,
-          distance: projection.distance,
-          anchor: {
-            type: 'line',
-            id: line.id,
-            index: lineIndex,
-            t: projection.t,
-          },
-        };
-      }
-    });
-
-    boxes.forEach((box, boxIndex) => {
-      const edges = [
-        { edge: 'top', ax: box.x, ay: box.y, bx: box.x + box.width, by: box.y },
-        { edge: 'bottom', ax: box.x, ay: box.y + box.height, bx: box.x + box.width, by: box.y + box.height },
-        { edge: 'left', ax: box.x, ay: box.y, bx: box.x, by: box.y + box.height },
-        { edge: 'right', ax: box.x + box.width, ay: box.y, bx: box.x + box.width, by: box.y + box.height },
-      ];
-
-      edges.forEach(({ edge, ax, ay, bx, by }) => {
-        const projection = projectPointToSegment(x, y, ax, ay, bx, by);
-        if (projection.distance <= LINE_SNAP_THRESHOLD && (!best || projection.distance < best.distance)) {
-          best = {
-            x: projection.x,
-            y: projection.y,
-            distance: projection.distance,
-            anchor: {
-              type: 'box',
-              id: box.id,
-              index: boxIndex,
-              edge,
-              t: projection.t,
-            },
-          };
-        }
-      });
-    });
-
-    return best;
-  };
-
-  const snapDrawingPosition = (x, y, options = {}) => {
-    const {
-      excludePointOwners = EMPTY_SET,
-      excludeSegmentOwners = EMPTY_SET,
-      includePointTypes = null,
-      includeSegmentTypes = null,
-    } = options;
-
-    let best = null;
-
-    snapPoints.forEach((point) => {
-      if (point.ownerId && excludePointOwners.has(point.ownerId)) {
-        return;
-      }
-      if (includePointTypes && !includePointTypes.has(point.type)) {
-        return;
-      }
-
-      const distance = Math.hypot(x - point.x, y - point.y);
-      if (distance <= DRAW_SNAP_DISTANCE && (!best || distance < best.distance)) {
-        best = { x: point.x, y: point.y, distance, source: point };
-      }
-    });
-
-    snapSegments.forEach((segment) => {
-      if (segment.ownerId && excludeSegmentOwners.has(segment.ownerId)) {
-        return;
-      }
-      if (includeSegmentTypes && !includeSegmentTypes.has(segment.type)) {
-        return;
-      }
-
-      const projection = projectPointToSegment(x, y, segment.ax, segment.ay, segment.bx, segment.by);
-      if (projection.distance <= DRAW_SNAP_DISTANCE && (!best || projection.distance < best.distance)) {
-        best = {
-          x: projection.x,
-          y: projection.y,
-          distance: projection.distance,
-          source: segment,
-        };
-      }
-    });
-
-    if (best) {
-      return { x: clamp(best.x), y: clamp(best.y), snapped: true, distance: best.distance, source: best.source };
-    }
-
-    return { x: clamp(x), y: clamp(y), snapped: false, distance: Infinity };
-  };
-
-  const applyAxisLockToLine = (line) => {
-    const dx = line.x2 - line.x1;
-    const dy = line.y2 - line.y1;
-
-    if (Math.abs(dy) <= Math.abs(dx) * AXIS_LOCK_TOLERANCE) {
-      const midY = clamp((line.y1 + line.y2) / 2);
-      return { ...line, y1: midY, y2: midY };
-    }
-
-    if (Math.abs(dx) <= Math.abs(dy) * AXIS_LOCK_TOLERANCE) {
-      const midX = clamp((line.x1 + line.x2) / 2);
-      return { ...line, x1: midX, x2: midX };
-    }
-
-    return line;
-  };
-
-  const snapLineEndpoints = (line, excludeId) => {
-    const excludeOwners = excludeId ? new Set([excludeId]) : EMPTY_SET;
-    const endpoints = [
-      { key: 'start', x: line.x1, y: line.y1 },
-      { key: 'end', x: line.x2, y: line.y2 },
-    ];
-
-    let best = null;
-    endpoints.forEach((endpoint) => {
-      const snap = snapDrawingPosition(endpoint.x, endpoint.y, {
-        excludePointOwners: excludeOwners,
-        excludeSegmentOwners: excludeOwners,
-      });
-      if (snap.snapped && (!best || snap.distance < best.distance)) {
-        best = { ...snap, key: endpoint.key };
-      }
-    });
-
-    if (best) {
-      const deltaX = best.x - (best.key === 'start' ? line.x1 : line.x2);
-      const deltaY = best.y - (best.key === 'start' ? line.y1 : line.y2);
-      return {
-        x1: clamp(line.x1 + deltaX),
-        y1: clamp(line.y1 + deltaY),
-        x2: clamp(line.x2 + deltaX),
-        y2: clamp(line.y2 + deltaY),
-      };
-    }
-
-    return line;
-  };
-
-  const snapSpecificLineEndpoint = (line, endpointKey, excludeId) => {
-    const excludeOwners = excludeId ? new Set([excludeId]) : EMPTY_SET;
-    const targetX = endpointKey === 'start' ? line.x1 : line.x2;
-    const targetY = endpointKey === 'start' ? line.y1 : line.y2;
-    const snap = snapDrawingPosition(targetX, targetY, {
-      excludePointOwners: excludeOwners,
-      excludeSegmentOwners: excludeOwners,
-    });
-
-    if (snap.snapped) {
-      if (endpointKey === 'start') {
-        return {
-          ...line,
-          x1: clamp(snap.x),
-          y1: clamp(snap.y),
-        };
-      }
-      return {
-        ...line,
-        x2: clamp(snap.x),
-        y2: clamp(snap.y),
-      };
-    }
-
-    return line;
-  };
+  const snapLineEndpointWithState = (line, endpoint, excludeId) =>
+    snapSpecificLineEndpoint({ line, endpoint, snapPoints, snapSegments, excludeId });
 
   const handleBoxPointerDown = (event, box) => {
     if (addMode) {
@@ -672,9 +444,9 @@ const AnnotationCanvas = ({
       y2: clamp(state.startLine.y2 + deltaY),
     };
 
-    next = applyAxisLockToLine(next);
-    next = snapLineEndpoints(next, line.id);
-    next = applyAxisLockToLine(next);
+    next = applyAxisLock(next);
+    next = snapLineWithState(next, line.id);
+    next = applyAxisLock(next);
 
     onUpdateLine?.(line.id, next);
   };
@@ -717,14 +489,14 @@ const AnnotationCanvas = ({
     if (handle === 'start') {
       next.x1 = clamp(x);
       next.y1 = clamp(y);
-      next = snapSpecificLineEndpoint(next, 'start', id);
+      next = snapLineEndpointWithState(next, 'start', id);
     } else {
       next.x2 = clamp(x);
       next.y2 = clamp(y);
-      next = snapSpecificLineEndpoint(next, 'end', id);
+      next = snapLineEndpointWithState(next, 'end', id);
     }
 
-    next = applyAxisLockToLine(next);
+    next = applyAxisLock(next);
 
     onUpdateLine?.(id, next);
   };
@@ -759,7 +531,7 @@ const AnnotationCanvas = ({
       return;
     }
 
-    const anchor = findAnchorForPoint(x, y);
+    const anchor = getAnchorForPoint(x, y);
     if (!anchor) {
       return;
     }
@@ -843,7 +615,7 @@ const AnnotationCanvas = ({
       };
       event.currentTarget.setPointerCapture(event.pointerId);
     } else if (labelIsPoint) {
-      const anchor = findAnchorForPoint(position.x, position.y);
+      const anchor = getAnchorForPoint(position.x, position.y);
       if (!anchor) {
         return;
       }
@@ -946,135 +718,6 @@ const AnnotationCanvas = ({
     }
   };
 
-  const renderBoxHandles = (box) => {
-    const corners = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
-    const cursorMap = {
-      'top-left': 'nwse-resize',
-      'top-right': 'nesw-resize',
-      'bottom-left': 'nesw-resize',
-      'bottom-right': 'nwse-resize',
-    };
-
-    return corners.map((corner) => {
-      const [vertical, horizontal] = corner.split('-');
-      const style = {
-        top: vertical === 'top' ? 0 : undefined,
-        bottom: vertical === 'bottom' ? 0 : undefined,
-        left: horizontal === 'left' ? 0 : undefined,
-        right: horizontal === 'right' ? 0 : undefined,
-        cursor: cursorMap[corner] || 'pointer',
-      };
-
-      return (
-        <div
-          key={corner}
-          role='presentation'
-          className={styles.resizeHandle}
-          style={style}
-          onPointerDown={(event) => handleBoxResizePointerDown(event, box, corner)}
-          onPointerMove={handleBoxResizePointerMove}
-          onPointerUp={handlePointerUp}
-        />
-      );
-    });
-  };
-
-  const renderBox = (box) => {
-    const label = getLabelById(box.labelId) || LABEL_CONFIG[0];
-    const borderColor = label?.color || '#f59e0b';
-    const isSelected = selectedItem?.type === 'box' && selectedItem.id === box.id;
-
-    return (
-      <div
-        key={box.id}
-        role='presentation'
-        className={`${styles.annotation} ${isSelected ? styles.selected : ''}`}
-        style={{
-          left: `${box.x * 100}%`,
-          top: `${box.y * 100}%`,
-          width: `${box.width * 100}%`,
-          height: `${box.height * 100}%`,
-          borderColor,
-        }}
-        onPointerDown={(event) => handleBoxPointerDown(event, box)}
-        onPointerMove={handleBoxPointerMove}
-        onPointerUp={handlePointerUp}
-      >
-        <span className={styles.label} style={{ backgroundColor: borderColor }}>
-          {label?.name || box.labelId}
-        </span>
-        {isSelected && renderBoxHandles(box)}
-      </div>
-    );
-  };
-
-  const renderLine = (line) => {
-    const label = getLabelById(line.labelId) || LABEL_CONFIG[0];
-    const stroke = label?.color || '#f59e0b';
-
-    const isSelected = selectedItem?.type === 'line' && selectedItem.id === line.id;
-
-    return (
-      <g key={line.id} className={styles.lineGroup}>
-        <line
-          x1={line.x1 * imageBox.width}
-          y1={line.y1 * imageBox.height}
-          x2={line.x2 * imageBox.width}
-          y2={line.y2 * imageBox.height}
-          stroke={stroke}
-          strokeWidth={4}
-          strokeLinecap='round'
-          className={styles.line}
-          onPointerDown={(event) => handleLinePointerDown(event, line)}
-          onPointerMove={handleLinePointerMove}
-          onPointerUp={handlePointerUp}
-        />
-        {isSelected && (
-          <>
-            <circle
-              cx={line.x1 * imageBox.width}
-              cy={line.y1 * imageBox.height}
-              r={8}
-              className={styles.lineHandle}
-              onPointerDown={(event) => handleLineHandlePointerDown(event, line, 'start')}
-              onPointerMove={handleLineResizeMove}
-              onPointerUp={handlePointerUp}
-            />
-            <circle
-              cx={line.x2 * imageBox.width}
-              cy={line.y2 * imageBox.height}
-              r={8}
-              className={styles.lineHandle}
-              onPointerDown={(event) => handleLineHandlePointerDown(event, line, 'end')}
-              onPointerMove={handleLineResizeMove}
-              onPointerUp={handlePointerUp}
-            />
-          </>
-        )}
-      </g>
-    );
-  };
-
-  const renderPoint = (point) => {
-    const label = getLabelById(point.labelId) || LABEL_CONFIG[0];
-    const fill = label?.color || '#ef4444';
-    const isSelected = selectedItem?.type === 'point' && selectedItem.id === point.id;
-
-    return (
-      <circle
-        key={point.id}
-        cx={point.x * imageBox.width}
-        cy={point.y * imageBox.height}
-        r={isSelected ? 10 : 7}
-        className={`${styles.point} ${isSelected ? styles.pointSelected : ''}`}
-        fill={fill}
-        onPointerDown={(event) => handlePointPointerDown(event, point)}
-        onPointerMove={handlePointPointerMove}
-        onPointerUp={handlePointerUp}
-      />
-    );
-  };
-
   const overlayStyle = useMemo(() => {
     return {
       left: `${imageBox.offsetX}px`,
@@ -1086,7 +729,7 @@ const AnnotationCanvas = ({
 
   const draftElements = [];
   if (draftShape?.type === 'box') {
-    const label = getLabelById(draftShape.labelId) || LABEL_CONFIG[0];
+    const label = getLabel(draftShape.labelId);
     draftElements.push(
       <div
         key='draft-box'
@@ -1129,12 +772,48 @@ const AnnotationCanvas = ({
       <img ref={imageRef} src={imageUrl} alt='floor plan' className={styles.image} />
       <div className={styles.overlay} style={overlayStyle}>
         {draftElements}
-        {visibleBoxes.map((box) => renderBox(box))}
+        {visibleBoxes.map((box) => (
+          <BoxAnnotation
+            key={box.id}
+            box={box}
+            label={getLabel(box.labelId)}
+            isSelected={selectedItem?.type === 'box' && selectedItem.id === box.id}
+            onPointerDown={handleBoxPointerDown}
+            onPointerMove={handleBoxPointerMove}
+            onPointerUp={handlePointerUp}
+            onResizePointerDown={handleBoxResizePointerDown}
+            onResizePointerMove={handleBoxResizePointerMove}
+          />
+        ))}
         <svg className={styles.lineLayer} width={imageBox.width} height={imageBox.height}>
-          {visibleLines.map((line) => renderLine(line))}
+          {visibleLines.map((line) => (
+            <LineAnnotation
+              key={line.id}
+              line={line}
+              label={getLabel(line.labelId)}
+              isSelected={selectedItem?.type === 'line' && selectedItem.id === line.id}
+              imageBox={imageBox}
+              onPointerDown={handleLinePointerDown}
+              onPointerMove={handleLinePointerMove}
+              onPointerUp={handlePointerUp}
+              onHandlePointerDown={handleLineHandlePointerDown}
+              onHandlePointerMove={handleLineResizeMove}
+            />
+          ))}
         </svg>
         <svg className={styles.pointLayer} width={imageBox.width} height={imageBox.height}>
-          {visiblePoints.map((point) => renderPoint(point))}
+          {visiblePoints.map((point) => (
+            <PointAnnotation
+              key={point.id}
+              point={point}
+              label={getLabel(point.labelId)}
+              isSelected={selectedItem?.type === 'point' && selectedItem.id === point.id}
+              imageBox={imageBox}
+              onPointerDown={handlePointPointerDown}
+              onPointerMove={handlePointPointerMove}
+              onPointerUp={handlePointerUp}
+            />
+          ))}
         </svg>
       </div>
     </div>
