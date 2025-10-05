@@ -25,6 +25,7 @@ const AnnotationCanvas = ({
   onSelect,
   onUpdateBox,
   onUpdateLine,
+  onUpdatePoint,
   addMode,
   activeLabelId,
   onAddShape,
@@ -490,6 +491,48 @@ const AnnotationCanvas = ({
     onUpdateLine?.(id, next);
   };
 
+  const handlePointPointerDown = (event, point) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    setSelection('point', point.id);
+
+    if (addMode) {
+      return;
+    }
+
+    pointerStateRef.current = {
+      type: 'move-point',
+      id: point.id,
+    };
+
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handlePointPointerMove = (event) => {
+    const state = pointerStateRef.current;
+    if (!state || state.type !== 'move-point') {
+      return;
+    }
+    event.preventDefault();
+
+    const { x, y, isInside } = normalisePointer(event);
+    if (!isInside) {
+      return;
+    }
+
+    const anchor = findAnchorForPoint(x, y);
+    if (!anchor) {
+      return;
+    }
+
+    onUpdatePoint?.(state.id, {
+      x: anchor.x,
+      y: anchor.y,
+      anchor: anchor.anchor,
+    });
+  };
+
   const handlePointerUp = (event) => {
     const state = pointerStateRef.current;
     if (!state) {
@@ -515,6 +558,10 @@ const AnnotationCanvas = ({
         }
       }
       setDraftShape(null);
+    }
+
+    if (state.type === 'move-point') {
+      // point updates already applied during move
     }
 
     pointerStateRef.current = null;
@@ -774,14 +821,9 @@ const AnnotationCanvas = ({
         r={isSelected ? 10 : 7}
         className={`${styles.point} ${isSelected ? styles.pointSelected : ''}`}
         fill={fill}
-        onPointerDown={(event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          if (addMode) {
-            return;
-          }
-          setSelection('point', point.id);
-        }}
+        onPointerDown={(event) => handlePointPointerDown(event, point)}
+        onPointerMove={handlePointPointerMove}
+        onPointerUp={handlePointerUp}
       />
     );
   };
@@ -895,6 +937,7 @@ AnnotationCanvas.propTypes = {
   onSelect: PropTypes.func,
   onUpdateBox: PropTypes.func,
   onUpdateLine: PropTypes.func,
+  onUpdatePoint: PropTypes.func,
   addMode: PropTypes.bool,
   activeLabelId: PropTypes.string,
   onAddShape: PropTypes.func,
@@ -906,6 +949,7 @@ AnnotationCanvas.defaultProps = {
   onSelect: undefined,
   onUpdateBox: undefined,
   onUpdateLine: undefined,
+  onUpdatePoint: undefined,
   addMode: false,
   activeLabelId: LABEL_CONFIG[0]?.id ?? '0',
   onAddShape: undefined,

@@ -104,7 +104,24 @@ const recalcPointsForGeometry = (points, boxes, lines) => {
 
     return point;
   })
-  .filter(Boolean);
+    .filter(Boolean);
+};
+
+const getNextWallId = (existingLines) => {
+  const regex = /^wall-(\d+)$/;
+  let maxIndex = -1;
+
+  existingLines.forEach((line) => {
+    const match = regex.exec(line.id);
+    if (match) {
+      const value = Number.parseInt(match[1], 10);
+      if (!Number.isNaN(value) && value > maxIndex) {
+        maxIndex = value;
+      }
+    }
+  });
+
+  return `wall-${maxIndex + 1}`;
 };
 
 const FloorPlanEditorPage = ({
@@ -222,12 +239,22 @@ const FloorPlanEditorPage = ({
     handleUpdateLines((prev) => prev.map((line) => (line.id === id ? { ...line, ...updates } : line)));
   };
 
+  const handleUpdatePoint = (id, updates) => {
+    applyPointsUpdate((prev) => prev.map((point) => (point.id === id ? { ...point, ...updates } : point)));
+  };
+
   const handleAddShape = (draft) => {
     if (draft.type === 'line') {
-      const nextId = `line-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-      const prepared = { ...draft, id: nextId, labelId: draft.labelId ?? activeLabelId };
-      handleUpdateLines((prev) => [...prev, prepared]);
-      setSelectedItem({ type: 'line', id: nextId });
+      let createdId;
+      handleUpdateLines((prev) => {
+        const nextId = getNextWallId(prev);
+        createdId = nextId;
+        const prepared = { ...draft, id: nextId, labelId: draft.labelId ?? activeLabelId };
+        return [...prev, prepared];
+      });
+      if (createdId) {
+        setSelectedItem({ type: 'line', id: createdId });
+      }
     } else if (draft.type === 'box') {
       const nextId = `box-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
       const prepared = { ...draft, id: nextId, labelId: draft.labelId ?? activeLabelId };
@@ -352,6 +379,7 @@ const FloorPlanEditorPage = ({
             onSelect={handleSelect}
             onUpdateBox={handleUpdateBox}
             onUpdateLine={handleUpdateLine}
+            onUpdatePoint={handleUpdatePoint}
             addMode={addMode}
             activeLabelId={activeLabelId}
             onAddShape={handleAddShape}
