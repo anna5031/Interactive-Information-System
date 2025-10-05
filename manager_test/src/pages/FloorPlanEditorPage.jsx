@@ -240,7 +240,6 @@ const FloorPlanEditorPage = ({
       applyPointsUpdate((prev) => [...prev, prepared]);
       setSelectedItem({ type: 'point', id: nextId });
     }
-    setAddMode(false);
   };
 
   const handleDelete = (item) => {
