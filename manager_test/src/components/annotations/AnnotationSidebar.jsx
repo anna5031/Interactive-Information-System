@@ -46,13 +46,7 @@ const AnnotationSidebar = ({
       <div className={styles.section}>
         <h3 className={styles.heading}>라벨 추가</h3>
         <div className={styles.fieldGroup}>
-          <label className={styles.label} htmlFor='label-selector'>
-            {addMode
-              ? isLineLabelActive
-                ? '객체 종류 : 화면에서 선을 그리고 놓으면 선이 추가됩니다.'
-                : '객체 종류 : 드래그하여 박스를 추가하세요.'
-              : '객체 종류'}
-          </label>
+          <label className={styles.label} htmlFor='label-selector'>객체 종류</label>
           <select
             id='label-selector'
             className={styles.select}
@@ -74,6 +68,13 @@ const AnnotationSidebar = ({
           <SquarePlus size={16} />
           {addMode ? '추가 종료' : '새 객체 추가'}
         </button>
+        {addMode && (
+          <p className={styles.helperText}>
+            {isLineLabelActive
+              ? '화면에서 선을 그리고 놓으면 선이 추가됩니다.'
+              : '화면에서 드래그하여 박스를 추가하세요.'}
+          </p>
+        )}
       </div>
 
       <div className={styles.section}>
