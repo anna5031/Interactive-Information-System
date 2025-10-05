@@ -16,6 +16,7 @@ const LINE_SNAP_THRESHOLD = 0.02;
 const DRAW_SNAP_DISTANCE = 0.02;
 const AXIS_LOCK_ANGLE_DEG = 5;
 const AXIS_LOCK_TOLERANCE = Math.tan((AXIS_LOCK_ANGLE_DEG * Math.PI) / 180);
+const EMPTY_SET = new Set();
 
 const AnnotationCanvas = ({
   imageUrl,
@@ -80,21 +81,39 @@ const AnnotationCanvas = ({
 
     boxes.forEach((box) => {
       const corners = [
-        { x: box.x, y: box.y },
-        { x: box.x + box.width, y: box.y },
-        { x: box.x, y: box.y + box.height },
-        { x: box.x + box.width, y: box.y + box.height },
+        { x: box.x, y: box.y, ownerId: box.id, type: 'box-corner', meta: { corner: 'top-left' } },
+        {
+          x: box.x + box.width,
+          y: box.y,
+          ownerId: box.id,
+          type: 'box-corner',
+          meta: { corner: 'top-right' },
+        },
+        {
+          x: box.x,
+          y: box.y + box.height,
+          ownerId: box.id,
+          type: 'box-corner',
+          meta: { corner: 'bottom-left' },
+        },
+        {
+          x: box.x + box.width,
+          y: box.y + box.height,
+          ownerId: box.id,
+          type: 'box-corner',
+          meta: { corner: 'bottom-right' },
+        },
       ];
       pointsList.push(...corners);
     });
 
     lines.forEach((line) => {
-      pointsList.push({ x: line.x1, y: line.y1 });
-      pointsList.push({ x: line.x2, y: line.y2 });
+      pointsList.push({ x: line.x1, y: line.y1, ownerId: line.id, type: 'line-end', meta: { end: 'start' } });
+      pointsList.push({ x: line.x2, y: line.y2, ownerId: line.id, type: 'line-end', meta: { end: 'end' } });
     });
 
     points.forEach((point) => {
-      pointsList.push({ x: point.x, y: point.y });
+      pointsList.push({ x: point.x, y: point.y, ownerId: point.id, type: 'point' });
     });
 
     return pointsList;
@@ -104,14 +123,14 @@ const AnnotationCanvas = ({
     const segments = [];
 
     boxes.forEach((box) => {
-      segments.push({ ax: box.x, ay: box.y, bx: box.x + box.width, by: box.y });
-      segments.push({ ax: box.x, ay: box.y + box.height, bx: box.x + box.width, by: box.y + box.height });
-      segments.push({ ax: box.x, ay: box.y, bx: box.x, by: box.y + box.height });
-      segments.push({ ax: box.x + box.width, ay: box.y, bx: box.x + box.width, by: box.y + box.height });
+      segments.push({ ax: box.x, ay: box.y, bx: box.x + box.width, by: box.y, ownerId: box.id, type: 'box-edge', meta: { edge: 'top' } });
+      segments.push({ ax: box.x, ay: box.y + box.height, bx: box.x + box.width, by: box.y + box.height, ownerId: box.id, type: 'box-edge', meta: { edge: 'bottom' } });
+      segments.push({ ax: box.x, ay: box.y, bx: box.x, by: box.y + box.height, ownerId: box.id, type: 'box-edge', meta: { edge: 'left' } });
+      segments.push({ ax: box.x + box.width, ay: box.y, bx: box.x + box.width, by: box.y + box.height, ownerId: box.id, type: 'box-edge', meta: { edge: 'right' } });
     });
 
     lines.forEach((line) => {
-      segments.push({ ax: line.x1, ay: line.y1, bx: line.x2, by: line.y2 });
+      segments.push({ ax: line.x1, ay: line.y1, bx: line.x2, by: line.y2, ownerId: line.id, type: 'line' });
     });
 
     return segments;
@@ -304,28 +323,130 @@ const AnnotationCanvas = ({
     return best;
   };
 
-  const snapDrawingPosition = (x, y) => {
+  const snapDrawingPosition = (x, y, options = {}) => {
+    const {
+      excludePointOwners = EMPTY_SET,
+      excludeSegmentOwners = EMPTY_SET,
+      includePointTypes = null,
+      includeSegmentTypes = null,
+    } = options;
+
     let best = null;
 
     snapPoints.forEach((point) => {
+      if (point.ownerId && excludePointOwners.has(point.ownerId)) {
+        return;
+      }
+      if (includePointTypes && !includePointTypes.has(point.type)) {
+        return;
+      }
+
       const distance = Math.hypot(x - point.x, y - point.y);
       if (distance <= DRAW_SNAP_DISTANCE && (!best || distance < best.distance)) {
-        best = { x: point.x, y: point.y, distance };
+        best = { x: point.x, y: point.y, distance, source: point };
       }
     });
 
     snapSegments.forEach((segment) => {
+      if (segment.ownerId && excludeSegmentOwners.has(segment.ownerId)) {
+        return;
+      }
+      if (includeSegmentTypes && !includeSegmentTypes.has(segment.type)) {
+        return;
+      }
+
       const projection = projectPointToSegment(x, y, segment.ax, segment.ay, segment.bx, segment.by);
       if (projection.distance <= DRAW_SNAP_DISTANCE && (!best || projection.distance < best.distance)) {
-        best = { x: projection.x, y: projection.y, distance: projection.distance };
+        best = {
+          x: projection.x,
+          y: projection.y,
+          distance: projection.distance,
+          source: segment,
+        };
       }
     });
 
     if (best) {
-      return { x: clamp(best.x), y: clamp(best.y), snapped: true };
+      return { x: clamp(best.x), y: clamp(best.y), snapped: true, distance: best.distance, source: best.source };
     }
 
-    return { x: clamp(x), y: clamp(y), snapped: false };
+    return { x: clamp(x), y: clamp(y), snapped: false, distance: Infinity };
+  };
+
+  const applyAxisLockToLine = (line) => {
+    const dx = line.x2 - line.x1;
+    const dy = line.y2 - line.y1;
+
+    if (Math.abs(dy) <= Math.abs(dx) * AXIS_LOCK_TOLERANCE) {
+      const midY = clamp((line.y1 + line.y2) / 2);
+      return { ...line, y1: midY, y2: midY };
+    }
+
+    if (Math.abs(dx) <= Math.abs(dy) * AXIS_LOCK_TOLERANCE) {
+      const midX = clamp((line.x1 + line.x2) / 2);
+      return { ...line, x1: midX, x2: midX };
+    }
+
+    return line;
+  };
+
+  const snapLineEndpoints = (line, excludeId) => {
+    const excludeOwners = excludeId ? new Set([excludeId]) : EMPTY_SET;
+    const endpoints = [
+      { key: 'start', x: line.x1, y: line.y1 },
+      { key: 'end', x: line.x2, y: line.y2 },
+    ];
+
+    let best = null;
+    endpoints.forEach((endpoint) => {
+      const snap = snapDrawingPosition(endpoint.x, endpoint.y, {
+        excludePointOwners: excludeOwners,
+        excludeSegmentOwners: excludeOwners,
+      });
+      if (snap.snapped && (!best || snap.distance < best.distance)) {
+        best = { ...snap, key: endpoint.key };
+      }
+    });
+
+    if (best) {
+      const deltaX = best.x - (best.key === 'start' ? line.x1 : line.x2);
+      const deltaY = best.y - (best.key === 'start' ? line.y1 : line.y2);
+      return {
+        x1: clamp(line.x1 + deltaX),
+        y1: clamp(line.y1 + deltaY),
+        x2: clamp(line.x2 + deltaX),
+        y2: clamp(line.y2 + deltaY),
+      };
+    }
+
+    return line;
+  };
+
+  const snapSpecificLineEndpoint = (line, endpointKey, excludeId) => {
+    const excludeOwners = excludeId ? new Set([excludeId]) : EMPTY_SET;
+    const targetX = endpointKey === 'start' ? line.x1 : line.x2;
+    const targetY = endpointKey === 'start' ? line.y1 : line.y2;
+    const snap = snapDrawingPosition(targetX, targetY, {
+      excludePointOwners: excludeOwners,
+      excludeSegmentOwners: excludeOwners,
+    });
+
+    if (snap.snapped) {
+      if (endpointKey === 'start') {
+        return {
+          ...line,
+          x1: clamp(snap.x),
+          y1: clamp(snap.y),
+        };
+      }
+      return {
+        ...line,
+        x2: clamp(snap.x),
+        y2: clamp(snap.y),
+      };
+    }
+
+    return line;
   };
 
   const handleBoxPointerDown = (event, box) => {
@@ -365,8 +486,49 @@ const AnnotationCanvas = ({
 
     const { x, y } = normalisePointer(event);
 
-    const nextX = clamp(x - state.offsetX, 0, 1 - box.width);
-    const nextY = clamp(y - state.offsetY, 0, 1 - box.height);
+    let nextX = clamp(x - state.offsetX, 0, 1 - box.width);
+    let nextY = clamp(y - state.offsetY, 0, 1 - box.height);
+
+    const excludeOwners = new Set([box.id]);
+    const candidates = [
+      {
+        x: nextX,
+        y: nextY,
+        apply: (snapX, snapY) => ({ x: snapX, y: snapY }),
+      },
+      {
+        x: nextX + box.width,
+        y: nextY,
+        apply: (snapX, snapY) => ({ x: snapX - box.width, y: snapY }),
+      },
+      {
+        x: nextX,
+        y: nextY + box.height,
+        apply: (snapX, snapY) => ({ x: snapX, y: snapY - box.height }),
+      },
+      {
+        x: nextX + box.width,
+        y: nextY + box.height,
+        apply: (snapX, snapY) => ({ x: snapX - box.width, y: snapY - box.height }),
+      },
+    ];
+
+    let bestSnap = null;
+    candidates.forEach((candidate) => {
+      const snap = snapDrawingPosition(candidate.x, candidate.y, {
+        excludePointOwners: excludeOwners,
+        excludeSegmentOwners: excludeOwners,
+      });
+      if (snap.snapped && (!bestSnap || snap.distance < bestSnap.distance)) {
+        bestSnap = { ...snap, apply: candidate.apply };
+      }
+    });
+
+    if (bestSnap) {
+      const applied = bestSnap.apply(bestSnap.x, bestSnap.y);
+      nextX = clamp(applied.x, 0, 1 - box.width);
+      nextY = clamp(applied.y, 0, 1 - box.height);
+    }
 
     onUpdateBox?.(box.id, {
       x: nextX,
@@ -404,49 +566,56 @@ const AnnotationCanvas = ({
     }
     event.preventDefault();
 
-    const { id, corner, startX, startY, startBox } = state;
+    const { id, corner, startBox } = state;
     const { x, y } = normalisePointer(event);
 
-    let { x: nextX, y: nextY, width: nextWidth, height: nextHeight } = startBox;
+    const excludeOwners = new Set([id]);
 
-    if (corner.includes('right')) {
-      const delta = x - startX;
-      nextWidth = clamp(startBox.width + delta, MIN_BOX_SIZE, 1);
+    const original = {
+      left: startBox.x,
+      right: startBox.x + startBox.width,
+      top: startBox.y,
+      bottom: startBox.y + startBox.height,
+    };
+
+    let newLeft = original.left;
+    let newRight = original.right;
+    let newTop = original.top;
+    let newBottom = original.bottom;
+
+    let cornerX = clamp(x);
+    let cornerY = clamp(y);
+    const snap = snapDrawingPosition(cornerX, cornerY, {
+      excludePointOwners: excludeOwners,
+      excludeSegmentOwners: excludeOwners,
+    });
+    if (snap.snapped) {
+      cornerX = snap.x;
+      cornerY = snap.y;
     }
 
     if (corner.includes('left')) {
-      const delta = x - startX;
-      const proposedWidth = startBox.width - delta;
-      const proposedX = startBox.x + delta;
-      if (proposedWidth >= MIN_BOX_SIZE) {
-        nextX = clamp(proposedX, 0, 1 - MIN_BOX_SIZE);
-        nextWidth = clamp(proposedWidth, MIN_BOX_SIZE, 1);
-      } else {
-        nextX = startBox.x + startBox.width - MIN_BOX_SIZE;
-        nextWidth = MIN_BOX_SIZE;
-      }
+      newLeft = clamp(Math.min(cornerX, original.right - MIN_BOX_SIZE), 0, original.right - MIN_BOX_SIZE);
     }
-
-    if (corner.includes('bottom')) {
-      const delta = y - startY;
-      nextHeight = clamp(startBox.height + delta, MIN_BOX_SIZE, 1);
+    if (corner.includes('right')) {
+      newRight = clamp(Math.max(cornerX, original.left + MIN_BOX_SIZE), original.left + MIN_BOX_SIZE, 1);
     }
-
     if (corner.includes('top')) {
-      const delta = y - startY;
-      const proposedHeight = startBox.height - delta;
-      const proposedY = startBox.y + delta;
-      if (proposedHeight >= MIN_BOX_SIZE) {
-        nextY = clamp(proposedY, 0, 1 - MIN_BOX_SIZE);
-        nextHeight = clamp(proposedHeight, MIN_BOX_SIZE, 1);
-      } else {
-        nextY = startBox.y + startBox.height - MIN_BOX_SIZE;
-        nextHeight = MIN_BOX_SIZE;
-      }
+      newTop = clamp(Math.min(cornerY, original.bottom - MIN_BOX_SIZE), 0, original.bottom - MIN_BOX_SIZE);
+    }
+    if (corner.includes('bottom')) {
+      newBottom = clamp(Math.max(cornerY, original.top + MIN_BOX_SIZE), original.top + MIN_BOX_SIZE, 1);
     }
 
-    nextX = clamp(nextX, 0, 1 - nextWidth);
-    nextY = clamp(nextY, 0, 1 - nextHeight);
+    const boundedLeft = clamp(newLeft, 0, newRight - MIN_BOX_SIZE);
+    const boundedRight = clamp(newRight, boundedLeft + MIN_BOX_SIZE, 1);
+    const boundedTop = clamp(newTop, 0, newBottom - MIN_BOX_SIZE);
+    const boundedBottom = clamp(newBottom, boundedTop + MIN_BOX_SIZE, 1);
+
+    const nextX = boundedLeft;
+    const nextY = boundedTop;
+    const nextWidth = clamp(boundedRight - boundedLeft, MIN_BOX_SIZE, 1);
+    const nextHeight = clamp(boundedBottom - boundedTop, MIN_BOX_SIZE, 1);
 
     onUpdateBox?.(id, {
       x: nextX,
@@ -496,12 +665,16 @@ const AnnotationCanvas = ({
     const deltaX = x - state.startX;
     const deltaY = y - state.startY;
 
-    const next = {
+    let next = {
       x1: clamp(state.startLine.x1 + deltaX),
       y1: clamp(state.startLine.y1 + deltaY),
       x2: clamp(state.startLine.x2 + deltaX),
       y2: clamp(state.startLine.y2 + deltaY),
     };
+
+    next = applyAxisLockToLine(next);
+    next = snapLineEndpoints(next, line.id);
+    next = applyAxisLockToLine(next);
 
     onUpdateLine?.(line.id, next);
   };
@@ -542,18 +715,16 @@ const AnnotationCanvas = ({
     let next = { ...startLine };
 
     if (handle === 'start') {
-      next = {
-        ...next,
-        x1: clamp(x),
-        y1: clamp(y),
-      };
+      next.x1 = clamp(x);
+      next.y1 = clamp(y);
+      next = snapSpecificLineEndpoint(next, 'start', id);
     } else {
-      next = {
-        ...next,
-        x2: clamp(x),
-        y2: clamp(y),
-      };
+      next.x2 = clamp(x);
+      next.y2 = clamp(y);
+      next = snapSpecificLineEndpoint(next, 'end', id);
     }
+
+    next = applyAxisLockToLine(next);
 
     onUpdateLine?.(id, next);
   };
