@@ -19,14 +19,15 @@ const copyText = async (text, message) => {
   }
 };
 
-const AnnotationReviewPage = ({ savedYoloText, savedWallText, onBack, onFinish }) => {
+const AnnotationReviewPage = ({ savedYoloText, savedWallText, savedDoorText, onBack, onFinish }) => {
   const handleCopyAll = () => {
-    const combined = [savedYoloText, savedWallText].filter(Boolean).join('\n\n');
+    const combined = [savedYoloText, savedWallText, savedDoorText].filter(Boolean).join('\n\n');
     copyText(combined, '전체 결과');
   };
 
   const handleCopyYolo = () => copyText(savedYoloText, 'YOLO 박스 결과');
   const handleCopyWall = () => copyText(savedWallText, '벽 선 결과');
+  const handleCopyDoor = () => copyText(savedDoorText, '문 점 결과');
 
   return (
     <div className={styles.container}>
@@ -37,7 +38,7 @@ const AnnotationReviewPage = ({ savedYoloText, savedWallText, onBack, onFinish }
         </button>
         <div className={styles.titleGroup}>
           <h2 className={styles.title}>결과 확인</h2>
-          <p className={styles.subtitle}>YOLO 박스와 벽(선) 데이터를 각각 내려받을 수 있습니다.</p>
+          <p className={styles.subtitle}>YOLO 박스, 벽(선), 문(점) 데이터를 각각 내려받을 수 있습니다.</p>
         </div>
         <button type='button' className={styles.primaryButton} onClick={handleCopyAll}>
           <Clipboard size={18} />
@@ -65,6 +66,16 @@ const AnnotationReviewPage = ({ savedYoloText, savedWallText, onBack, onFinish }
           </div>
           <textarea className={styles.textarea} value={savedWallText} readOnly />
         </section>
+
+        <section className={styles.panel}>
+          <div className={styles.panelHeader}>
+            <h3 className={styles.panelTitle}>문 점 (door.txt)</h3>
+            <button type='button' className={styles.copyButton} onClick={handleCopyDoor}>
+              <Clipboard size={16} /> 복사
+            </button>
+          </div>
+          <textarea className={styles.textarea} value={savedDoorText} readOnly />
+        </section>
       </main>
 
       <footer className={styles.footer}>
@@ -80,6 +91,7 @@ const AnnotationReviewPage = ({ savedYoloText, savedWallText, onBack, onFinish }
 AnnotationReviewPage.propTypes = {
   savedYoloText: PropTypes.string,
   savedWallText: PropTypes.string,
+  savedDoorText: PropTypes.string,
   onBack: PropTypes.func.isRequired,
   onFinish: PropTypes.func.isRequired,
 };
@@ -87,6 +99,7 @@ AnnotationReviewPage.propTypes = {
 AnnotationReviewPage.defaultProps = {
   savedYoloText: '',
   savedWallText: '',
+  savedDoorText: '',
 };
 
 export default AnnotationReviewPage;

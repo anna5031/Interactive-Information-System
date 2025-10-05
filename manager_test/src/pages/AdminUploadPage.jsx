@@ -22,7 +22,7 @@ const AdminUploadPage = () => {
       return;
     }
 
-    if (state.stage === 'review' && (state.savedYoloText || state.savedWallText)) {
+    if (state.stage === 'review' && (state.savedYoloText || state.savedWallText || state.savedDoorText)) {
       navigate('/admin/review', { replace: true });
       return;
     }
@@ -35,6 +35,7 @@ const AdminUploadPage = () => {
     state.imageUrl,
     state.savedYoloText,
     state.savedWallText,
+    state.savedDoorText,
     state.skipUploadRedirect,
     navigate,
     setStage

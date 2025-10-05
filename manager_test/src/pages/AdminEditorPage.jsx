@@ -7,7 +7,7 @@ import layoutStyles from './MainPage.module.css';
 
 const AdminEditorPage = () => {
   const navigate = useNavigate();
-  const { state, setStage, updateBoxes, updateLines, setSavedTexts, resetWorkflow } = useFloorPlan();
+  const { state, setStage, updateBoxes, updateLines, updatePoints, setSavedTexts, resetWorkflow } = useFloorPlan();
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState(null);
 
@@ -49,14 +49,15 @@ const AdminEditorPage = () => {
     navigate('/admin/upload', { replace: true });
   };
 
-  const handleSubmit = async ({ boxes, lines }) => {
+  const handleSubmit = async ({ boxes, lines, points }) => {
     setIsSaving(true);
     setError(null);
     try {
       updateBoxes(boxes);
       updateLines(lines);
-      const { savedYoloText, savedWallText } = await saveAnnotations({ boxes, lines });
-      setSavedTexts({ yolo: savedYoloText, wall: savedWallText });
+      updatePoints(points);
+      const { savedYoloText, savedWallText, savedDoorText } = await saveAnnotations({ boxes, lines, points });
+      setSavedTexts({ yolo: savedYoloText, wall: savedWallText, door: savedDoorText });
       setStage('review');
       navigate('/admin/review');
     } catch (saveError) {
@@ -75,6 +76,10 @@ const AdminEditorPage = () => {
     updateLines(nextLines);
   };
 
+  const handlePointsChange = (nextPoints) => {
+    updatePoints(nextPoints);
+  };
+
   return (
     <div className={layoutStyles.fillContainer}>
       <FloorPlanEditorPage
@@ -82,11 +87,13 @@ const AdminEditorPage = () => {
         imageUrl={state.imageUrl}
         initialBoxes={state.boxes}
         initialLines={state.lines}
+        initialPoints={state.points}
         onCancel={handleCancel}
         onSubmit={handleSubmit}
         isSaving={isSaving}
         onBoxesChange={handleBoxesChange}
         onLinesChange={handleLinesChange}
+        onPointsChange={handlePointsChange}
         errorMessage={error}
       />
     </div>

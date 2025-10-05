@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import { Trash2, SquarePlus } from 'lucide-react';
-import LABEL_CONFIG, { getLabelById, isLineLabel, isBoxLabel } from '../../config/annotationConfig';
+import LABEL_CONFIG, { getLabelById, isLineLabel, isBoxLabel, isPointLabel } from '../../config/annotationConfig';
 import styles from './AnnotationSidebar.module.css';
 
 const formatPercentage = (value) => `${(value * 100).toFixed(1)}%`;
@@ -13,8 +13,10 @@ const formatLineLength = (line) => {
 const AnnotationSidebar = ({
   boxes,
   lines,
+  points,
   selectedBox,
   selectedLine,
+  selectedPoint,
   onSelect,
   onDelete,
   onLabelChange,
@@ -25,9 +27,11 @@ const AnnotationSidebar = ({
   hiddenLabelIds,
   onToggleLabelVisibility,
   isLineLabelActive,
+  isPointLabelActive,
 }) => {
   const handleSelectBox = (box) => onSelect?.({ type: 'box', id: box.id });
   const handleSelectLine = (line) => onSelect?.({ type: 'line', id: line.id });
+  const handleSelectPoint = (point) => onSelect?.({ type: 'point', id: point.id });
 
   const handleLabelChangeBox = (event) => {
     if (selectedBox) {
@@ -40,6 +44,18 @@ const AnnotationSidebar = ({
       onLabelChange?.({ type: 'line', id: selectedLine.id }, event.target.value);
     }
   };
+
+  const handleLabelChangePoint = (event) => {
+    if (selectedPoint) {
+      onLabelChange?.({ type: 'point', id: selectedPoint.id }, event.target.value);
+    }
+  };
+
+  const helperMessage = isLineLabelActive
+    ? '화면에서 선을 그리고 놓으면 선이 추가됩니다.'
+    : isPointLabelActive
+    ? '벽이나 박스의 외곽을 클릭하면 문이 추가됩니다.'
+    : '화면에서 드래그하여 박스를 추가하세요.';
 
   return (
     <aside className={styles.sidebar}>
@@ -68,13 +84,7 @@ const AnnotationSidebar = ({
           <SquarePlus size={16} />
           {addMode ? '추가 종료' : '새 객체 추가'}
         </button>
-        {addMode && (
-          <p className={styles.helperText}>
-            {isLineLabelActive
-              ? '화면에서 선을 그리고 놓으면 선이 추가됩니다.'
-              : '화면에서 드래그하여 박스를 추가하세요.'}
-          </p>
-        )}
+        {addMode && <p className={styles.helperText}>{helperMessage}</p>}
       </div>
 
       <div className={styles.section}>
@@ -141,6 +151,32 @@ const AnnotationSidebar = ({
                   <span className={styles.colorIndicator} style={{ backgroundColor: label?.color }} />
                   <span className={styles.listText}>{`${label?.name ?? '벽'} (${line.labelId})`}</span>
                   <span className={styles.dimensions}>{formatLineLength(line)}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+
+      <div className={styles.section}>
+        <h3 className={styles.heading}>문(점) 객체</h3>
+        <ul className={styles.list}>
+          {points.map((point) => {
+            const label = getLabelById(point.labelId) || LABEL_CONFIG[0];
+            const isSelected = selectedPoint?.id === point.id;
+            return (
+              <li key={point.id}>
+                <button
+                  type='button'
+                  className={`${styles.listItem} ${isSelected ? styles.listItemActive : ''}`}
+                  onClick={() => handleSelectPoint(point)}
+                  disabled={addMode}
+                >
+                  <span className={styles.colorIndicator} style={{ backgroundColor: label?.color }} />
+                  <span className={styles.listText}>{`${label?.name ?? '문'} (${point.labelId})`}</span>
+                  <span className={styles.dimensions}>
+                    {formatPercentage(point.x)}, {formatPercentage(point.y)}
+                  </span>
                 </button>
               </li>
             );
@@ -241,6 +277,61 @@ const AnnotationSidebar = ({
           </button>
         </div>
       )}
+
+      {selectedPoint && (
+        <div className={styles.section}>
+          <h3 className={styles.heading}>선택된 문</h3>
+          <div className={styles.fieldGroup}>
+            <label className={styles.label} htmlFor='selected-point-label'>
+              라벨
+            </label>
+            <select
+              id='selected-point-label'
+              className={styles.select}
+              value={selectedPoint.labelId}
+              onChange={handleLabelChangePoint}
+            >
+              {LABEL_CONFIG.filter((label) => isPointLabel(label.id)).map((label) => (
+                <option key={label.id} value={label.id}>
+                  {`${label.id} - ${label.name}`}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className={styles.stats}>
+            <div>
+              <span className={styles.statLabel}>위치</span>
+              <span className={styles.statValue}>
+                {formatPercentage(selectedPoint.x)}, {formatPercentage(selectedPoint.y)}
+              </span>
+            </div>
+            {selectedPoint.anchor?.type === 'line' && (
+              <div>
+                <span className={styles.statLabel}>기준 벽</span>
+                <span className={styles.statValue}>
+                  {selectedPoint.anchor.id} (t={selectedPoint.anchor.t?.toFixed(2) ?? '0'})
+                </span>
+              </div>
+            )}
+            {selectedPoint.anchor?.type === 'box' && (
+              <div>
+                <span className={styles.statLabel}>기준 박스</span>
+                <span className={styles.statValue}>
+                  {selectedPoint.anchor.id} / {selectedPoint.anchor.edge}
+                </span>
+              </div>
+            )}
+          </div>
+          <button
+            type='button'
+            className={`${styles.button} ${styles.danger}`}
+            onClick={() => onDelete?.({ type: 'point', id: selectedPoint.id })}
+          >
+            <Trash2 size={16} />
+            삭제하기
+          </button>
+        </div>
+      )}
     </aside>
   );
 };
@@ -266,6 +357,20 @@ AnnotationSidebar.propTypes = {
       y2: PropTypes.number.isRequired,
     })
   ).isRequired,
+  points: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.string.isRequired,
+      labelId: PropTypes.string.isRequired,
+      x: PropTypes.number.isRequired,
+      y: PropTypes.number.isRequired,
+      anchor: PropTypes.shape({
+        type: PropTypes.oneOf(['line', 'box']),
+        id: PropTypes.string,
+        t: PropTypes.number,
+        edge: PropTypes.oneOf(['top', 'bottom', 'left', 'right']),
+      }),
+    })
+  ).isRequired,
   selectedBox: PropTypes.shape({
     id: PropTypes.string.isRequired,
     labelId: PropTypes.string.isRequired,
@@ -282,6 +387,18 @@ AnnotationSidebar.propTypes = {
     x2: PropTypes.number.isRequired,
     y2: PropTypes.number.isRequired,
   }),
+  selectedPoint: PropTypes.shape({
+    id: PropTypes.string.isRequired,
+    labelId: PropTypes.string.isRequired,
+    x: PropTypes.number.isRequired,
+    y: PropTypes.number.isRequired,
+    anchor: PropTypes.shape({
+      type: PropTypes.oneOf(['line', 'box']),
+      id: PropTypes.string,
+      t: PropTypes.number,
+      edge: PropTypes.oneOf(['top', 'bottom', 'left', 'right']),
+    }),
+  }),
   onSelect: PropTypes.func,
   onDelete: PropTypes.func,
   onLabelChange: PropTypes.func,
@@ -292,11 +409,13 @@ AnnotationSidebar.propTypes = {
   hiddenLabelIds: PropTypes.instanceOf(Set),
   onToggleLabelVisibility: PropTypes.func,
   isLineLabelActive: PropTypes.bool,
+  isPointLabelActive: PropTypes.bool,
 };
 
 AnnotationSidebar.defaultProps = {
   selectedBox: null,
   selectedLine: null,
+  selectedPoint: null,
   onSelect: undefined,
   onDelete: undefined,
   onLabelChange: undefined,
@@ -306,6 +425,7 @@ AnnotationSidebar.defaultProps = {
   hiddenLabelIds: undefined,
   onToggleLabelVisibility: undefined,
   isLineLabelActive: false,
+  isPointLabelActive: false,
 };
 
 export default AnnotationSidebar;

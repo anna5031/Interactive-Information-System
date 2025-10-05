@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
-import LABEL_CONFIG, { getLabelById, isLineLabel, isBoxLabel } from '../../config/annotationConfig';
+import LABEL_CONFIG, { getLabelById, isLineLabel, isBoxLabel, isPointLabel } from '../../config/annotationConfig';
 import styles from './AnnotationCanvas.module.css';
 
 const clamp = (value, min = 0, max = 1) => {
@@ -12,11 +12,13 @@ const clamp = (value, min = 0, max = 1) => {
 
 const MIN_BOX_SIZE = 0.01;
 const MIN_LINE_LENGTH = 0.01;
+const LINE_SNAP_THRESHOLD = 0.02;
 
 const AnnotationCanvas = ({
   imageUrl,
   boxes,
   lines,
+  points = [],
   selectedItem,
   onSelect,
   onUpdateBox,
@@ -47,6 +49,13 @@ const AnnotationCanvas = ({
     }
     return lines.filter((line) => !hiddenLabelIds.has(line.labelId));
   }, [lines, hiddenLabelIds]);
+
+  const visiblePoints = useMemo(() => {
+    if (!hiddenLabelIds || hiddenLabelIds.size === 0) {
+      return points;
+    }
+    return points.filter((point) => !hiddenLabelIds.has(point.labelId));
+  }, [points, hiddenLabelIds]);
 
   const boxesMap = useMemo(() => {
     return boxes.reduce((acc, box) => {
@@ -180,6 +189,73 @@ const AnnotationCanvas = ({
 
   const setSelection = (type, id) => {
     onSelect?.({ type, id });
+  };
+
+  const projectPointToSegment = (px, py, ax, ay, bx, by) => {
+    const dx = bx - ax;
+    const dy = by - ay;
+    const lengthSquared = dx * dx + dy * dy;
+    if (lengthSquared <= Number.EPSILON) {
+      const distance = Math.hypot(px - ax, py - ay);
+      return { t: 0, x: ax, y: ay, distance };
+    }
+
+    const t = clamp(((px - ax) * dx + (py - ay) * dy) / lengthSquared, 0, 1);
+    const x = ax + dx * t;
+    const y = ay + dy * t;
+    const distance = Math.hypot(px - x, py - y);
+
+    return { t, x, y, distance };
+  };
+
+  const findAnchorForPoint = (x, y) => {
+    let best = null;
+
+    lines.forEach((line, lineIndex) => {
+      const projection = projectPointToSegment(x, y, line.x1, line.y1, line.x2, line.y2);
+      if (projection.distance <= LINE_SNAP_THRESHOLD && (!best || projection.distance < best.distance)) {
+        best = {
+          x: projection.x,
+          y: projection.y,
+          distance: projection.distance,
+          anchor: {
+            type: 'line',
+            id: line.id,
+            index: lineIndex,
+            t: projection.t,
+          },
+        };
+      }
+    });
+
+    boxes.forEach((box, boxIndex) => {
+      const edges = [
+        { edge: 'top', ax: box.x, ay: box.y, bx: box.x + box.width, by: box.y },
+        { edge: 'bottom', ax: box.x, ay: box.y + box.height, bx: box.x + box.width, by: box.y + box.height },
+        { edge: 'left', ax: box.x, ay: box.y, bx: box.x, by: box.y + box.height },
+        { edge: 'right', ax: box.x + box.width, ay: box.y, bx: box.x + box.width, by: box.y + box.height },
+      ];
+
+      edges.forEach(({ edge, ax, ay, bx, by }) => {
+        const projection = projectPointToSegment(x, y, ax, ay, bx, by);
+        if (projection.distance <= LINE_SNAP_THRESHOLD && (!best || projection.distance < best.distance)) {
+          best = {
+            x: projection.x,
+            y: projection.y,
+            distance: projection.distance,
+            anchor: {
+              type: 'box',
+              id: box.id,
+              index: boxIndex,
+              edge,
+              t: projection.t,
+            },
+          };
+        }
+      });
+    });
+
+    return best;
   };
 
   const handleBoxPointerDown = (event, box) => {
@@ -444,6 +520,7 @@ const AnnotationCanvas = ({
 
   const handleCanvasPointerDown = (event) => {
     const labelIsLine = isLineLabel(activeLabelId);
+    const labelIsPoint = isPointLabel(activeLabelId);
 
     if (!addMode) {
       const { isInside } = normalisePointer(event);
@@ -475,6 +552,20 @@ const AnnotationCanvas = ({
         originX: position.x,
         originY: position.y,
       };
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } else if (labelIsPoint) {
+      const anchor = findAnchorForPoint(position.x, position.y);
+      if (!anchor) {
+        return;
+      }
+      const draft = {
+        type: 'point',
+        labelId: activeLabelId,
+        x: anchor.x,
+        y: anchor.y,
+        anchor: anchor.anchor,
+      };
+      onAddShape?.(draft);
     } else if (isBoxLabel(activeLabelId)) {
       const draft = {
         type: 'box',
@@ -491,11 +582,10 @@ const AnnotationCanvas = ({
         originX: position.x,
         originY: position.y,
       };
+      event.currentTarget.setPointerCapture(event.pointerId);
     } else {
       return;
     }
-
-    event.currentTarget.setPointerCapture(event.pointerId);
   };
 
   const handleCanvasPointerMove = (event) => {
@@ -646,6 +736,31 @@ const AnnotationCanvas = ({
     );
   };
 
+  const renderPoint = (point) => {
+    const label = getLabelById(point.labelId) || LABEL_CONFIG[0];
+    const fill = label?.color || '#ef4444';
+    const isSelected = selectedItem?.type === 'point' && selectedItem.id === point.id;
+
+    return (
+      <circle
+        key={point.id}
+        cx={point.x * imageBox.width}
+        cy={point.y * imageBox.height}
+        r={isSelected ? 10 : 7}
+        className={`${styles.point} ${isSelected ? styles.pointSelected : ''}`}
+        fill={fill}
+        onPointerDown={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          if (addMode) {
+            return;
+          }
+          setSelection('point', point.id);
+        }}
+      />
+    );
+  };
+
   const overlayStyle = useMemo(() => {
     return {
       left: `${imageBox.offsetX}px`,
@@ -704,6 +819,9 @@ const AnnotationCanvas = ({
         <svg className={styles.lineLayer} width={imageBox.width} height={imageBox.height}>
           {visibleLines.map((line) => renderLine(line))}
         </svg>
+        <svg className={styles.pointLayer} width={imageBox.width} height={imageBox.height}>
+          {visiblePoints.map((point) => renderPoint(point))}
+        </svg>
       </div>
     </div>
   );
@@ -731,8 +849,22 @@ AnnotationCanvas.propTypes = {
       y2: PropTypes.number.isRequired,
     })
   ).isRequired,
+  points: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.string.isRequired,
+      labelId: PropTypes.string.isRequired,
+      x: PropTypes.number.isRequired,
+      y: PropTypes.number.isRequired,
+      anchor: PropTypes.shape({
+        type: PropTypes.oneOf(['line', 'box']),
+        id: PropTypes.string,
+        t: PropTypes.number,
+        edge: PropTypes.oneOf(['top', 'bottom', 'left', 'right']),
+      }),
+    })
+  ).isRequired,
   selectedItem: PropTypes.shape({
-    type: PropTypes.oneOf(['box', 'line']).isRequired,
+    type: PropTypes.oneOf(['box', 'line', 'point']).isRequired,
     id: PropTypes.string.isRequired,
   }),
   onSelect: PropTypes.func,

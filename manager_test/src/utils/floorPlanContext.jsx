@@ -9,10 +9,13 @@ const defaultState = {
   imageUrl: null,
   boxes: [],
   lines: [],
+  points: [],
   rawYoloText: '',
   rawWallText: '',
+  rawDoorText: '',
   savedYoloText: '',
   savedWallText: '',
+  savedDoorText: '',
   skipUploadRedirect: false,
 };
 
@@ -55,7 +58,8 @@ export const FloorPlanProvider = ({ children }) => {
       !state.fileName &&
       !state.imageUrl &&
       (!state.boxes || state.boxes.length === 0) &&
-      (!state.lines || state.lines.length === 0)
+      (!state.lines || state.lines.length === 0) &&
+      (!state.points || state.points.length === 0)
     ) {
       window.localStorage.removeItem(STORAGE_KEY);
       return;
@@ -72,7 +76,7 @@ export const FloorPlanProvider = ({ children }) => {
     }));
   };
 
-  const setUploadData = ({ fileName, imageUrl, boxes, lines, rawYoloText, rawWallText }) => {
+  const setUploadData = ({ fileName, imageUrl, boxes, lines, points, rawYoloText, rawWallText, rawDoorText }) => {
     setState(
       mergeWithDefaults({
         stage: 'editor',
@@ -80,10 +84,13 @@ export const FloorPlanProvider = ({ children }) => {
         imageUrl,
         boxes,
         lines,
+        points,
         rawYoloText,
         rawWallText,
+        rawDoorText,
         savedYoloText: '',
         savedWallText: '',
+        savedDoorText: '',
         skipUploadRedirect: false,
       })
     );
@@ -103,11 +110,19 @@ export const FloorPlanProvider = ({ children }) => {
     }));
   };
 
-  const setSavedTexts = ({ yolo, wall }) => {
+  const updatePoints = (points) => {
+    setState((prev) => ({
+      ...prev,
+      points,
+    }));
+  };
+
+  const setSavedTexts = ({ yolo, wall, door }) => {
     setState((prev) => ({
       ...prev,
       savedYoloText: yolo,
       savedWallText: wall,
+      savedDoorText: door,
     }));
   };
 
@@ -131,6 +146,7 @@ export const FloorPlanProvider = ({ children }) => {
       setUploadData,
       updateBoxes,
       updateLines,
+      updatePoints,
       setSavedTexts,
       resetWorkflow,
     }),

@@ -8,7 +8,7 @@ const AdminReviewPage = () => {
   const navigate = useNavigate();
   const { state, setStage, resetWorkflow } = useFloorPlan();
 
-  const hasSavedOutput = Boolean(state.savedYoloText || state.savedWallText);
+  const hasSavedOutput = Boolean(state.savedYoloText || state.savedWallText || state.savedDoorText);
 
   useEffect(() => {
     if (hasSavedOutput) {
@@ -38,6 +38,7 @@ const AdminReviewPage = () => {
       <AnnotationReviewPage
         savedYoloText={state.savedYoloText}
         savedWallText={state.savedWallText}
+        savedDoorText={state.savedDoorText}
         onBack={handleBack}
         onFinish={handleFinish}
       />
