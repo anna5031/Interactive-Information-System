@@ -97,14 +97,16 @@ const serialiseBoxesToYoloText = (boxes) => {
 
   return boxes
     .filter((annotation) => annotation.type === 'box')
-    .map((annotation) => {
-      const { labelId, x, y, width, height } = annotation;
+    .map((annotation, index) => {
+      const { labelId, x, y, width, height, id } = annotation;
       const centerX = normaliseValue(x + width / 2);
       const centerY = normaliseValue(y + height / 2);
       const normalisedWidth = normaliseValue(width);
       const normalisedHeight = normaliseValue(height);
 
-      return `${labelId} ${centerX} ${centerY} ${normalisedWidth} ${normalisedHeight}`;
+      const identifier = id ?? `${labelId}-box-${index}`;
+
+      return `${labelId} ${centerX} ${centerY} ${normalisedWidth} ${normalisedHeight} ${identifier}`.trim();
     })
     .join('\n');
 };
@@ -116,9 +118,10 @@ const serialiseLinesToWallText = (lines) => {
 
   return lines
     .filter((annotation) => annotation.type === 'line')
-    .map((annotation) => {
-      const { x1, y1, x2, y2 } = annotation;
-      return `${normaliseValue(x1)} ${normaliseValue(y1)} ${normaliseValue(x2)} ${normaliseValue(y2)}`;
+    .map((annotation, index) => {
+      const { x1, y1, x2, y2, id } = annotation;
+      const identifier = id ?? `wall-${index}`;
+      return `${normaliseValue(x1)} ${normaliseValue(y1)} ${normaliseValue(x2)} ${normaliseValue(y2)} ${identifier}`.trim();
     })
     .join('\n');
 };
