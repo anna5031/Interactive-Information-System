@@ -69,6 +69,20 @@ const AnnotationCanvas = ({
     return points.filter((point) => !hiddenLabelIds.has(point.labelId));
   }, [points, hiddenLabelIds]);
 
+  const anchoredPointIdsByBox = useMemo(() => {
+    const map = new Map();
+    points.forEach((point) => {
+      const anchor = point?.anchor;
+      if (anchor?.type === 'box' && anchor.id && point.id) {
+        if (!map.has(anchor.id)) {
+          map.set(anchor.id, new Set());
+        }
+        map.get(anchor.id).add(point.id);
+      }
+    });
+    return map;
+  }, [points]);
+
   const boxesMap = useMemo(() => {
     return boxes.reduce((acc, box) => {
       acc[box.id] = box;
@@ -238,6 +252,7 @@ const AnnotationCanvas = ({
     setSelection,
     clamp,
     minBoxSize: MIN_BOX_SIZE,
+    anchoredPointIdsByBox,
   });
 
   const {

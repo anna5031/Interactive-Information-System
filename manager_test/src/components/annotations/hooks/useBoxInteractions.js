@@ -11,6 +11,7 @@ const useBoxInteractions = ({
   setSelection,
   clamp,
   minBoxSize,
+  anchoredPointIdsByBox,
 }) => {
   const handlePointerCapture = (event) => {
     try {
@@ -65,6 +66,10 @@ const useBoxInteractions = ({
       let nextY = clamp(y - state.offsetY, 0, 1 - box.height);
 
       const excludeOwners = new Set([box.id]);
+      const anchoredPoints = anchoredPointIdsByBox?.get?.(box.id);
+      if (anchoredPoints) {
+        anchoredPoints.forEach((pointId) => excludeOwners.add(pointId));
+      }
       const candidates = [
         {
           x: nextX,
@@ -110,7 +115,16 @@ const useBoxInteractions = ({
         y: nextY,
       });
     },
-    [boxesMap, clamp, hiddenLabelIds, normalisePointer, onUpdateBox, pointerStateRef, snapDrawingPosition]
+    [
+      anchoredPointIdsByBox,
+      boxesMap,
+      clamp,
+      hiddenLabelIds,
+      normalisePointer,
+      onUpdateBox,
+      pointerStateRef,
+      snapDrawingPosition,
+    ]
   );
 
   const handleBoxResizePointerDown = useCallback(
