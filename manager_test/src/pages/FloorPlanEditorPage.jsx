@@ -256,8 +256,23 @@ const FloorPlanEditorPage = ({
         setSelectedItem({ type: 'line', id: createdId });
       }
     } else if (draft.type === 'box') {
-      const nextId = `box-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-      const prepared = { ...draft, id: nextId, labelId: draft.labelId ?? activeLabelId };
+      const resolvedLabelId = draft.labelId ?? activeLabelId;
+      const nextIndex = (() => {
+        const regex = new RegExp(`^${resolvedLabelId}-box-(\\d+)$`);
+        let max = -1;
+        boxesMemo.forEach((box) => {
+          const match = regex.exec(box.id);
+          if (match) {
+            const value = Number.parseInt(match[1], 10);
+            if (!Number.isNaN(value) && value > max) {
+              max = value;
+            }
+          }
+        });
+        return max + 1;
+      })();
+      const nextId = `${resolvedLabelId}-box-${nextIndex}`;
+      const prepared = { ...draft, id: nextId, labelId: resolvedLabelId };
       handleUpdateBoxes((prev) => [...prev, prepared]);
       handleUpdateLines((prev) => subtractBoxFromLines(prev, prepared));
       setSelectedItem({ type: 'box', id: nextId });
