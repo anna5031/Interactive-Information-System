@@ -1,6 +1,5 @@
 import yoloTxtPath from '../dummy/yolo.txt';
 import wallTxtPath from '../dummy/wall.txt';
-import doorTxtPath from '../dummy/door.txt';
 import { isBoxLabel, isPointLabel } from '../config/annotationConfig';
 import { subtractBoxesFromLines } from '../utils/wallTrimmer';
 
@@ -19,6 +18,24 @@ const normaliseValue = (value) => {
     return 0;
   }
   return Math.min(Math.max(value, 0), 1);
+};
+
+const DOOR_LABEL_ID = '0';
+const SMALL_NUMBER = 1e-9;
+
+const clampToRange = (value, start, end) => {
+  const min = Math.min(start, end);
+  const max = Math.max(start, end);
+  if (!Number.isFinite(value)) {
+    return min;
+  }
+  if (value <= min) {
+    return min;
+  }
+  if (value >= max) {
+    return max;
+  }
+  return value;
 };
 
 export const parseYoloBoxes = (text) => {
@@ -90,6 +107,444 @@ export const parseWallLines = (text) => {
     .filter(Boolean);
 };
 
+const parseDoorCandidatesFromYolo = (text) => {
+  return text
+    .split('\n')
+    .map((line, index) => {
+      const trimmed = line.trim();
+      if (!trimmed) {
+        return null;
+      }
+
+      const parts = trimmed.split(/\s+/);
+      if (parts.length < 5) {
+        return null;
+      }
+
+      const [labelId, centerX, centerY, width, height] = parts;
+      if (labelId !== DOOR_LABEL_ID) {
+        return null;
+      }
+
+      const parsedWidth = Number.parseFloat(width);
+      const parsedHeight = Number.parseFloat(height);
+      const parsedCenterX = Number.parseFloat(centerX);
+      const parsedCenterY = Number.parseFloat(centerY);
+
+      if (
+        !Number.isFinite(parsedWidth) ||
+        !Number.isFinite(parsedHeight) ||
+        !Number.isFinite(parsedCenterX) ||
+        !Number.isFinite(parsedCenterY) ||
+        parsedWidth <= 0 ||
+        parsedHeight <= 0
+      ) {
+        return null;
+      }
+
+      const normalisedWidth = normaliseValue(parsedWidth);
+      const normalisedHeight = normaliseValue(parsedHeight);
+      if (normalisedWidth <= 0 || normalisedHeight <= 0) {
+        return null;
+      }
+
+      const normalisedCenterX = normaliseValue(parsedCenterX);
+      const normalisedCenterY = normaliseValue(parsedCenterY);
+      const x = normaliseValue(normalisedCenterX - normalisedWidth / 2);
+      const y = normaliseValue(normalisedCenterY - normalisedHeight / 2);
+
+      return {
+        id: `door-candidate-${index}`,
+        x,
+        y,
+        width: normalisedWidth,
+        height: normalisedHeight,
+        centerX: normaliseValue(x + normalisedWidth / 2),
+        centerY: normaliseValue(y + normalisedHeight / 2),
+      };
+    })
+    .filter(Boolean);
+};
+
+const clampFraction = (value) => {
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
+  if (value <= 0) {
+    return 0;
+  }
+  if (value >= 1) {
+    return 1;
+  }
+  return value;
+};
+
+const projectPointToSegment = (px, py, ax, ay, bx, by) => {
+  const dx = bx - ax;
+  const dy = by - ay;
+  const lengthSquared = dx * dx + dy * dy;
+  if (lengthSquared <= SMALL_NUMBER) {
+    return { x: ax, y: ay, t: 0 };
+  }
+  const rawT = ((px - ax) * dx + (py - ay) * dy) / lengthSquared;
+  const t = clampFraction(rawT);
+  return {
+    x: ax + dx * t,
+    y: ay + dy * t,
+    t,
+  };
+};
+
+const closestPointsBetweenSegments = (ax, ay, bx, by, cx, cy, dx, dy) => {
+  const ux = bx - ax;
+  const uy = by - ay;
+  const vx = dx - cx;
+  const vy = dy - cy;
+  const wx = ax - cx;
+  const wy = ay - cy;
+
+  const a = ux * ux + uy * uy;
+  const b = ux * vx + uy * vy;
+  const c = vx * vx + vy * vy;
+  const d = ux * wx + uy * wy;
+  const e = vx * wx + vy * wy;
+
+  const denom = a * c - b * b;
+
+  const lengthUSquared = a;
+  const lengthVSquared = c;
+
+  if (lengthUSquared <= SMALL_NUMBER && lengthVSquared <= SMALL_NUMBER) {
+    const distance = Math.hypot(ax - cx, ay - cy);
+    return {
+      distance,
+      t1: 0,
+      t2: 0,
+      point1: { x: ax, y: ay },
+      point2: { x: cx, y: cy },
+    };
+  }
+
+  if (lengthUSquared <= SMALL_NUMBER) {
+    const projection = projectPointToSegment(ax, ay, cx, cy, dx, dy);
+    const distance = Math.hypot(ax - projection.x, ay - projection.y);
+    return {
+      distance,
+      t1: 0,
+      t2: projection.t,
+      point1: { x: ax, y: ay },
+      point2: { x: projection.x, y: projection.y },
+    };
+  }
+
+  if (lengthVSquared <= SMALL_NUMBER) {
+    const projection = projectPointToSegment(cx, cy, ax, ay, bx, by);
+    const distance = Math.hypot(projection.x - cx, projection.y - cy);
+    return {
+      distance,
+      t1: projection.t,
+      t2: 0,
+      point1: { x: projection.x, y: projection.y },
+      point2: { x: cx, y: cy },
+    };
+  }
+
+  let sNumerator = denom;
+  let tNumerator = denom;
+  let sDenominator = denom;
+  let tDenominator = denom;
+
+  if (Math.abs(denom) <= SMALL_NUMBER) {
+    sNumerator = 0;
+    sDenominator = 1;
+    tNumerator = e;
+    tDenominator = c;
+  } else {
+    sNumerator = b * e - c * d;
+    tNumerator = a * e - b * d;
+
+    if (sNumerator < 0) {
+      sNumerator = 0;
+      tNumerator = e;
+      tDenominator = c;
+    } else if (sNumerator > sDenominator) {
+      sNumerator = sDenominator;
+      tNumerator = e + b;
+      tDenominator = c;
+    }
+  }
+
+  if (tNumerator < 0) {
+    tNumerator = 0;
+    if (-d < 0) {
+      sNumerator = 0;
+      sDenominator = 1;
+    } else if (-d > a) {
+      sNumerator = sDenominator;
+    } else {
+      sNumerator = -d;
+      sDenominator = a;
+    }
+  } else if (tNumerator > tDenominator) {
+    tNumerator = tDenominator;
+    if (-d + b < 0) {
+      sNumerator = 0;
+      sDenominator = 1;
+    } else if (-d + b > a) {
+      sNumerator = sDenominator;
+    } else {
+      sNumerator = -d + b;
+      sDenominator = a;
+    }
+  }
+
+  const s = sDenominator === 0 ? 0 : sNumerator / sDenominator;
+  const t = tDenominator === 0 ? 0 : tNumerator / tDenominator;
+
+  const clampedS = clampFraction(s);
+  const clampedT = clampFraction(t);
+
+  const closestPoint1 = {
+    x: ax + ux * clampedS,
+    y: ay + uy * clampedS,
+  };
+  const closestPoint2 = {
+    x: cx + vx * clampedT,
+    y: cy + vy * clampedT,
+  };
+
+  return {
+    distance: Math.hypot(closestPoint1.x - closestPoint2.x, closestPoint1.y - closestPoint2.y),
+    t1: clampedS,
+    t2: clampedT,
+    point1: closestPoint1,
+    point2: closestPoint2,
+  };
+};
+
+const buildAnchorSegments = (boxes = [], lines = []) => {
+  const segments = [];
+
+  lines.forEach((line, index) => {
+    if (!line) {
+      return;
+    }
+    segments.push({
+      type: 'line',
+      id: line.id,
+      index,
+      ax: normaliseValue(line.x1),
+      ay: normaliseValue(line.y1),
+      bx: normaliseValue(line.x2),
+      by: normaliseValue(line.y2),
+    });
+  });
+
+  boxes.forEach((box, index) => {
+    if (!box) {
+      return;
+    }
+    const minX = normaliseValue(box.x);
+    const minY = normaliseValue(box.y);
+    const maxX = normaliseValue(box.x + box.width);
+    const maxY = normaliseValue(box.y + box.height);
+
+    segments.push({
+      type: 'box',
+      id: box.id,
+      index,
+      edge: 'top',
+      ax: minX,
+      ay: minY,
+      bx: maxX,
+      by: minY,
+    });
+    segments.push({
+      type: 'box',
+      id: box.id,
+      index,
+      edge: 'bottom',
+      ax: minX,
+      ay: maxY,
+      bx: maxX,
+      by: maxY,
+    });
+    segments.push({
+      type: 'box',
+      id: box.id,
+      index,
+      edge: 'left',
+      ax: minX,
+      ay: minY,
+      bx: minX,
+      by: maxY,
+    });
+    segments.push({
+      type: 'box',
+      id: box.id,
+      index,
+      edge: 'right',
+      ax: maxX,
+      ay: minY,
+      bx: maxX,
+      by: maxY,
+    });
+  });
+
+  return segments;
+};
+
+const findClosestAnchorForDoor = (doorRect, anchorSegments) => {
+  if (!doorRect || !Array.isArray(anchorSegments) || anchorSegments.length === 0) {
+    return null;
+  }
+
+  const rectEdges = [
+    { ax: doorRect.minX, ay: doorRect.minY, bx: doorRect.maxX, by: doorRect.minY },
+    { ax: doorRect.maxX, ay: doorRect.minY, bx: doorRect.maxX, by: doorRect.maxY },
+    { ax: doorRect.minX, ay: doorRect.maxY, bx: doorRect.maxX, by: doorRect.maxY },
+    { ax: doorRect.minX, ay: doorRect.minY, bx: doorRect.minX, by: doorRect.maxY },
+  ];
+
+  let best = null;
+
+  anchorSegments.forEach((segment) => {
+    rectEdges.forEach((edge) => {
+      const result = closestPointsBetweenSegments(segment.ax, segment.ay, segment.bx, segment.by, edge.ax, edge.ay, edge.bx, edge.by);
+      if (!Number.isFinite(result.distance)) {
+        return;
+      }
+      if (!best || result.distance < best.distance - SMALL_NUMBER) {
+        best = {
+          distance: result.distance,
+          x: result.point1.x,
+          y: result.point1.y,
+          t: clampFraction(result.t1),
+          segment,
+        };
+      }
+    });
+  });
+
+  return best;
+};
+
+const createDoorPointsFromCandidates = (candidates, boxes, lines) => {
+  if (!Array.isArray(candidates) || candidates.length === 0) {
+    return [];
+  }
+
+  const anchorSegments = buildAnchorSegments(boxes, lines);
+
+  return candidates.map((candidate, index) => {
+    const minX = normaliseValue(candidate.x);
+    const minY = normaliseValue(candidate.y);
+    const maxX = normaliseValue(candidate.x + candidate.width);
+    const maxY = normaliseValue(candidate.y + candidate.height);
+
+    const anchorMatch = findClosestAnchorForDoor(
+      {
+        minX,
+        minY,
+        maxX,
+        maxY,
+      },
+      anchorSegments
+    );
+
+    let x = normaliseValue(candidate.centerX);
+    let y = normaliseValue(candidate.centerY);
+    let anchor;
+
+    if (anchorMatch) {
+      const { segment } = anchorMatch;
+      const isHorizontal = Math.abs(segment.ay - segment.by) <= SMALL_NUMBER;
+      const isVertical = Math.abs(segment.ax - segment.bx) <= SMALL_NUMBER;
+
+      if (isHorizontal) {
+        const segmentMinX = Math.min(segment.ax, segment.bx);
+        const segmentMaxX = Math.max(segment.ax, segment.bx);
+        x = clampToRange(x, segmentMinX, segmentMaxX);
+        y = normaliseValue(segment.ay);
+        const span = segment.bx - segment.ax;
+        const resolvedT = span === 0 ? 0 : clampFraction((x - segment.ax) / span);
+        if (segment.type === 'line') {
+          anchor = {
+            type: 'line',
+            id: segment.id,
+            index: segment.index,
+            t: resolvedT,
+          };
+        } else if (segment.type === 'box') {
+          anchor = {
+            type: 'box',
+            id: segment.id,
+            index: segment.index,
+            edge: segment.edge,
+            t: resolvedT,
+          };
+        }
+      } else if (isVertical) {
+        const segmentMinY = Math.min(segment.ay, segment.by);
+        const segmentMaxY = Math.max(segment.ay, segment.by);
+        y = clampToRange(y, segmentMinY, segmentMaxY);
+        x = normaliseValue(segment.ax);
+        const span = segment.by - segment.ay;
+        const resolvedT = span === 0 ? 0 : clampFraction((y - segment.ay) / span);
+        if (segment.type === 'line') {
+          anchor = {
+            type: 'line',
+            id: segment.id,
+            index: segment.index,
+            t: resolvedT,
+          };
+        } else if (segment.type === 'box') {
+          anchor = {
+            type: 'box',
+            id: segment.id,
+            index: segment.index,
+            edge: segment.edge,
+            t: resolvedT,
+          };
+        }
+      } else {
+        x = normaliseValue(anchorMatch.x);
+        y = normaliseValue(anchorMatch.y);
+        if (segment.type === 'line') {
+          anchor = {
+            type: 'line',
+            id: segment.id,
+            index: segment.index,
+            t: anchorMatch.t,
+          };
+        } else if (segment.type === 'box') {
+          anchor = {
+            type: 'box',
+            id: segment.id,
+            index: segment.index,
+            edge: segment.edge,
+            t: anchorMatch.t,
+          };
+        }
+      }
+    }
+
+    const point = {
+      id: `door-${index}`,
+      type: 'point',
+      labelId: DOOR_LABEL_ID,
+      x,
+      y,
+    };
+
+    if (anchor) {
+      point.anchor = anchor;
+    }
+
+    return point;
+  });
+};
+
 const serialiseBoxesToYoloText = (boxes) => {
   if (!Array.isArray(boxes)) {
     return '';
@@ -144,7 +599,7 @@ const parseDoorPoints = (text, boxes, lines) => {
       if (isPointLabel(labelId)) {
         cursor += 1;
       } else {
-        labelId = '0';
+        labelId = DOOR_LABEL_ID;
       }
 
       const xValue = parts[cursor];
@@ -252,7 +707,7 @@ const serialisePointsToDoorText = (points, boxes, lines) => {
     .filter((annotation) => annotation.type === 'point')
     .map((annotation) => {
       const { labelId, x, y, anchor } = annotation;
-      const prefix = isPointLabel(labelId) && labelId !== '0' ? `${labelId} ` : '';
+      const prefix = isPointLabel(labelId) && labelId !== DOOR_LABEL_ID ? `${labelId} ` : '';
       if (anchor?.type === 'line') {
         const lineIndex =
           Number.isInteger(anchor.index) && anchor.index >= 0
@@ -277,21 +732,15 @@ const serialisePointsToDoorText = (points, boxes, lines) => {
 export const uploadFloorPlan = async (file) => {
   await delay(2000);
 
-  const [yoloResponse, wallResponse, doorResponse] = await Promise.all([
-    fetch(yoloTxtPath),
-    fetch(wallTxtPath),
-    fetch(doorTxtPath),
-  ]);
-  const [yoloText, wallText, doorText] = await Promise.all([
-    yoloResponse.text(),
-    wallResponse.text(),
-    doorResponse.text(),
-  ]);
+  const [yoloResponse, wallResponse] = await Promise.all([fetch(yoloTxtPath), fetch(wallTxtPath)]);
+  const [yoloText, wallText] = await Promise.all([yoloResponse.text(), wallResponse.text()]);
 
   const boxes = parseYoloBoxes(yoloText);
+  const doorCandidates = parseDoorCandidatesFromYolo(yoloText);
   const rawLines = parseWallLines(wallText);
   const lines = subtractBoxesFromLines(rawLines, boxes);
-  const points = parseDoorPoints(doorText, boxes, lines);
+  const points = createDoorPointsFromCandidates(doorCandidates, boxes, lines);
+  const doorText = serialisePointsToDoorText(points, boxes, lines);
   const imageUrl = await readFileAsDataUrl(file);
 
   return {
