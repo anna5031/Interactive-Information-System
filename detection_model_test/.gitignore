@@ -1,0 +1,21 @@
+# 가상환경 폴더
+venv/
+
+# 파이썬 캐시 파일
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Intellij
+/.idea/*
+
+# VS Code
+/.vscode/*
+
+# Mac
+.DS_Store
+.AppleDouble
+.LSOverride
+
+/model/*
