@@ -22,7 +22,8 @@ import {
 } from './utils/canvasGeometry';
 
 const MIN_BOX_SIZE = 0.01;
-const MIN_LINE_LENGTH = 0.01;
+// const MIN_LINE_LENGTH = 0.01;
+const MIN_LINE_LENGTH = 0;
 const getLabel = (labelId) => getLabelById(labelId) || LABEL_CONFIG[0];
 
 const AnnotationCanvas = ({
@@ -221,63 +222,48 @@ const AnnotationCanvas = ({
     onSelect?.({ type, id });
   };
 
-  const snapDrawingPosition = (x, y, options = {}) =>
-    snapPosition({ x, y, snapPoints, snapSegments, ...options });
+  const snapDrawingPosition = (x, y, options = {}) => snapPosition({ x, y, snapPoints, snapSegments, ...options });
 
-  const getAnchorForPoint = (x, y) =>
-    findAnchorForPoint(x, y, lines, boxes, LINE_SNAP_THRESHOLD);
+  const getAnchorForPoint = (x, y) => findAnchorForPoint(x, y, lines, boxes, LINE_SNAP_THRESHOLD);
 
   const applyAxisLock = (line) => applyAxisLockToLine(line, AXIS_LOCK_TOLERANCE);
 
-  const snapLineWithState = (line, excludeId) =>
-    snapLineEndpoints({ line, snapPoints, snapSegments, excludeId });
+  const snapLineWithState = (line, excludeId) => snapLineEndpoints({ line, snapPoints, snapSegments, excludeId });
 
   const snapLineEndpointWithState = (line, endpoint, excludeId) =>
     snapSpecificLineEndpoint({ line, endpoint, snapPoints, snapSegments, excludeId });
 
+  const { handleBoxPointerDown, handleBoxPointerMove, handleBoxResizePointerDown, handleBoxResizePointerMove } =
+    useBoxInteractions({
+      addMode,
+      pointerStateRef,
+      boxesMap,
+      hiddenLabelIds,
+      normalisePointer,
+      snapDrawingPosition,
+      onUpdateBox,
+      setSelection,
+      clamp,
+      minBoxSize: MIN_BOX_SIZE,
+      anchoredPointIdsByBox,
+    });
 
-  const {
-    handleBoxPointerDown,
-    handleBoxPointerMove,
-    handleBoxResizePointerDown,
-    handleBoxResizePointerMove,
-  } = useBoxInteractions({
-    addMode,
-    pointerStateRef,
-    boxesMap,
-    hiddenLabelIds,
-    normalisePointer,
-    snapDrawingPosition,
-    onUpdateBox,
-    setSelection,
-    clamp,
-    minBoxSize: MIN_BOX_SIZE,
-    anchoredPointIdsByBox,
-  });
+  const { handleLinePointerDown, handleLinePointerMove, handleLineHandlePointerDown, handleLineResizeMove } =
+    useLineInteractions({
+      addMode,
+      pointerStateRef,
+      linesMap,
+      hiddenLabelIds,
+      normalisePointer,
+      clamp,
+      applyAxisLock,
+      snapLineWithState,
+      snapLineEndpointWithState,
+      onUpdateLine,
+      setSelection,
+    });
 
-  const {
-    handleLinePointerDown,
-    handleLinePointerMove,
-    handleLineHandlePointerDown,
-    handleLineResizeMove,
-  } = useLineInteractions({
-    addMode,
-    pointerStateRef,
-    linesMap,
-    hiddenLabelIds,
-    normalisePointer,
-    clamp,
-    applyAxisLock,
-    snapLineWithState,
-    snapLineEndpointWithState,
-    onUpdateLine,
-    setSelection,
-  });
-
-  const {
-    handlePointPointerDown,
-    handlePointPointerMove,
-  } = usePointInteractions({
+  const { handlePointPointerDown, handlePointPointerMove } = usePointInteractions({
     pointerStateRef,
     normalisePointer,
     getAnchorForPoint,
@@ -285,7 +271,6 @@ const AnnotationCanvas = ({
     setSelection,
     addMode,
   });
-
 
   const handlePointerUp = (event) => {
     const state = pointerStateRef.current;
