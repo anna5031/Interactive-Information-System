@@ -1,0 +1,20 @@
+:global(html),
+:global(body),
+:global(#root) {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background-color: #000;
+  color: #e6edf7;
+  font-family: 'Segoe UI', Roboto, sans-serif;
+}
+
+:global(*),
+:global(*::before),
+:global(*::after) {
+  box-sizing: border-box;
+}
+
+.app {
+  min-height: 100vh;
+}

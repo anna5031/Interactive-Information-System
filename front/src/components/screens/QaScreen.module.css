@@ -1,0 +1,18 @@
+.qaContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2.75rem;
+  text-align: center;
+}
+
+.promptBody {
+  margin: 0;
+  max-width: min(72vw, 860px);
+  font-size: clamp(1.4rem, 3.2vw, 2.6rem);
+  line-height: 1.6;
+  color: #eaf1ff;
+  font-weight: 500;
+  white-space: pre-line;
+  word-break: keep-all;
+}

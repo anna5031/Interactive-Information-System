@@ -1,0 +1,267 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  min-width: 220px;
+}
+
+.figure {
+  position: relative;
+  width: 220px;
+  height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.figureIdle,
+.figureListening,
+.figureThinking,
+.figureSpeaking {
+  /* placeholder classes for variant specific adjustments */
+}
+
+.circle {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.95), #ffffff 70%);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  transform: translate3d(0, 0, 0) scale(0.5);
+  transition:
+    transform 0.8s ease,
+    opacity 0.6s ease,
+    width 0.6s ease,
+    height 0.6s ease;
+}
+
+.circleTail {
+  display: none;
+}
+
+.figure[data-variant='idle'] .circleOne {
+  width: 110px;
+  height: 110px;
+  opacity: 0.2;
+  transform: scale(0.95);
+}
+
+.figure[data-variant='listening'] .circleOne {
+  width: 180px;
+  height: 180px;
+  opacity: 0.96;
+  animation: pulse 2.6s ease-in-out infinite;
+}
+
+.figure[data-variant='listening'] .circleTwo {
+  width: 220px;
+  height: 220px;
+  opacity: 0.12;
+  animation: pulseOuter 3.2s ease-in-out infinite;
+}
+
+.figure[data-variant='thinking'] .circle {
+  opacity: 1;
+  position: absolute;
+  width: 190px;
+  height: 190px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: none;
+  transform: translate(-50%, -50%);
+}
+
+.figure[data-variant='thinking'] .circleOne {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) translate(0, -120px);
+}
+
+.figure[data-variant='thinking'] .circleTwo {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) translate(86px, -58px);
+}
+
+.figure[data-variant='thinking'] .circleThree {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) translate(53px, 43px);
+}
+
+.figure[data-variant='thinking'] .circleFour {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) translate(-53px, 43px);
+}
+
+.figure[data-variant='thinking'] .circleFive {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) translate(-86px, -58px);
+}
+
+.tailDot {
+  position: absolute;
+  border-radius: 50%;
+  background: #ffffff;
+}
+
+.figure[data-variant='thinking'] .tailDotLarge {
+  width: 60px;
+  height: 60px;
+  top: calc(50% + 160px);
+  left: calc(50% - 160px);
+  transform: translate(-50%, -50%);
+  animation: tailBubble 2.6s ease-in-out infinite;
+}
+
+.figure[data-variant='thinking'] .tailDotSmall {
+  width: 28px;
+  height: 28px;
+  top: calc(50% + 200px);
+  left: calc(50% - 200px);
+  transform: translate(-50%, -50%);
+  animation: tailBubble 2.2s ease-in-out infinite reverse;
+}
+.figure[data-variant='speaking'] .circleOne,
+.figure[data-variant='speaking'] .circleTwo,
+.figure[data-variant='speaking'] .circleThree,
+.figure[data-variant='speaking'] .circleFour {
+  animation: speakBeat 1.2s ease-in-out infinite;
+}
+
+.figure[data-variant='speaking'] .circleOne {
+  width: 70px;
+  height: 70px;
+  opacity: 0.92;
+  --base-x: -90;
+  animation-delay: 0s;
+}
+
+.figure[data-variant='speaking'] .circleTwo {
+  width: 56px;
+  height: 56px;
+  opacity: 0.82;
+  --base-x: -30;
+  animation-delay: 0.18s;
+}
+
+.figure[data-variant='speaking'] .circleThree {
+  width: 48px;
+  height: 48px;
+  opacity: 0.78;
+  --base-x: 30;
+  animation-delay: 0.36s;
+}
+
+.figure[data-variant='speaking'] .circleFour {
+  width: 38px;
+  height: 38px;
+  opacity: 0.72;
+  --base-x: 90;
+  animation-delay: 0.54s;
+}
+
+.figure[data-variant='awaiting_listening'] .circleOne {
+  width: 140px;
+  height: 140px;
+  opacity: 0.35;
+  animation: pulse 3s ease-in-out infinite;
+}
+
+.figure[data-variant='awaiting_listening'] .circleTwo {
+  width: 90px;
+  height: 90px;
+  opacity: 0.2;
+  animation: pulse 3s ease-in-out infinite;
+  animation-delay: 0.4s;
+}
+
+.message {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.6;
+  text-align: center;
+  max-width: 420px;
+  color: #e2f1ff;
+  white-space: pre-line;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(0.94);
+  }
+  50% {
+    transform: scale(1);
+  }
+}
+
+@keyframes pulseOuter {
+  0%,
+  100% {
+    transform: scale(0.9) translate(0, 0);
+  }
+  50% {
+    transform: scale(1.05) translate(5px, -5px);
+  }
+}
+
+@keyframes lobeDrift {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) translate(var(--tx), var(--ty)) scale(0.98);
+  }
+  45% {
+    transform: translate(-50%, -50%) translate(calc(var(--tx) + 4px), calc(var(--ty) + 4px)) scale(1.02);
+  }
+  70% {
+    transform: translate(-50%, -50%) translate(calc(var(--tx) - 2px), calc(var(--ty) - 2px)) scale(1);
+  }
+}
+
+@keyframes tailPulse {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) translate(-122px, 104px) scale(0.94);
+    opacity: 0.9;
+  }
+  50% {
+    transform: translate(-50%, -50%) translate(-118px, 100px) scale(1.05);
+    opacity: 1;
+  }
+}
+
+@keyframes speakBeat {
+  0%,
+  100% {
+    transform: translate(calc(var(--base-x, 0) * 1px), 0) scale(0.75);
+    opacity: 0.55;
+  }
+  25% {
+    transform: translate(calc(var(--base-x, 0) * 1px), -8px) scale(1.15);
+    opacity: 1;
+  }
+  50% {
+    transform: translate(calc(var(--base-x, 0) * 1px), 0) scale(0.85);
+    opacity: 0.7;
+  }
+  75% {
+    transform: translate(calc(var(--base-x, 0) * 1px), 6px) scale(0.95);
+    opacity: 0.85;
+  }
+}
+
+@keyframes tailBubble {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(0.85);
+    opacity: 0.75;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.15);
+    opacity: 1;
+  }
+}

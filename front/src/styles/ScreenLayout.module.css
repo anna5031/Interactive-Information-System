@@ -1,0 +1,56 @@
+.screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 3rem;
+  background: #000;
+}
+
+.content {
+  max-width: 960px;
+  width: 100%;
+  text-align: center;
+}
+
+.contentWide {
+  max-width: 1200px;
+}
+
+.title {
+  margin: 0 0 1rem;
+  font-size: clamp(2.5rem, 5vw, 3.5rem);
+  letter-spacing: 0.04em;
+}
+
+.status,
+.hint,
+.message,
+.sub {
+  margin: 0.75rem 0;
+  font-size: clamp(1rem, 2.5vw, 1.5rem);
+  opacity: 0.9;
+}
+
+.hint {
+  opacity: 0.7;
+}
+
+.message {
+  font-weight: 500;
+}
+
+.data {
+  margin: 2rem auto 0;
+  padding: 1.5rem;
+  background: rgba(13, 17, 27, 0.8);
+  border: 1px solid rgba(230, 237, 247, 0.1);
+  border-radius: 12px;
+  text-align: left;
+  max-height: 50vh;
+  overflow: auto;
+  font-family: 'Fira Code', 'Courier New', monospace;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: #d3d9e4;
+}
