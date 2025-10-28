@@ -7,7 +7,7 @@ import layoutStyles from './MainPage.module.css';
 
 const AdminEditorPage = () => {
   const navigate = useNavigate();
-  const { state, setStage, updateBoxes, updateLines, updatePoints, setSavedTexts, resetWorkflow } = useFloorPlan();
+  const { state, setStage, updateBoxes, updateLines, updatePoints, setStepOneResult, resetWorkflow } = useFloorPlan();
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState(null);
 
@@ -56,8 +56,18 @@ const AdminEditorPage = () => {
       updateBoxes(boxes);
       updateLines(lines);
       updatePoints(points);
-      const { savedYoloText, savedWallText, savedDoorText } = await saveAnnotations({ boxes, lines, points });
-      setSavedTexts({ yolo: savedYoloText, wall: savedWallText, door: savedDoorText });
+      const stepOneResult = await saveAnnotations({
+        fileName: state.fileName,
+        imageUrl: state.imageUrl,
+        boxes,
+        lines,
+        points,
+        rawYoloText: state.rawYoloText,
+        rawWallText: state.rawWallText,
+        rawDoorText: state.rawDoorText,
+        sourceOriginalId: state.stepOneOriginalId,
+      });
+      setStepOneResult(stepOneResult);
       setStage('review');
       navigate('/admin/review');
     } catch (saveError) {
@@ -66,18 +76,6 @@ const AdminEditorPage = () => {
     } finally {
       setIsSaving(false);
     }
-  };
-
-  const handleBoxesChange = (nextBoxes) => {
-    updateBoxes(nextBoxes);
-  };
-
-  const handleLinesChange = (nextLines) => {
-    updateLines(nextLines);
-  };
-
-  const handlePointsChange = (nextPoints) => {
-    updatePoints(nextPoints);
   };
 
   return (
@@ -91,9 +89,9 @@ const AdminEditorPage = () => {
         onCancel={handleCancel}
         onSubmit={handleSubmit}
         isSaving={isSaving}
-        onBoxesChange={handleBoxesChange}
-        onLinesChange={handleLinesChange}
-        onPointsChange={handlePointsChange}
+        onBoxesChange={updateBoxes}
+        onLinesChange={updateLines}
+        onPointsChange={updatePoints}
         errorMessage={error}
       />
     </div>

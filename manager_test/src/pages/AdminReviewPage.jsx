@@ -8,15 +8,15 @@ const AdminReviewPage = () => {
   const navigate = useNavigate();
   const { state, setStage, resetWorkflow } = useFloorPlan();
 
-  const hasSavedOutput = Boolean(state.savedYoloText || state.savedWallText || state.savedDoorText);
+  const hasResult = Boolean(state.stepOneResult);
 
   useEffect(() => {
-    if (hasSavedOutput) {
+    if (hasResult) {
       setStage('review');
     }
-  }, [setStage, hasSavedOutput]);
+  }, [setStage, hasResult]);
 
-  if (!hasSavedOutput) {
+  if (!hasResult) {
     if (state.imageUrl) {
       return <Navigate to='/admin/editor' replace />;
     }
@@ -35,13 +35,7 @@ const AdminReviewPage = () => {
 
   return (
     <div className={layoutStyles.fillContainer}>
-      <AnnotationReviewPage
-        savedYoloText={state.savedYoloText}
-        savedWallText={state.savedWallText}
-        savedDoorText={state.savedDoorText}
-        onBack={handleBack}
-        onFinish={handleFinish}
-      />
+      <AnnotationReviewPage stepOneResult={state.stepOneResult} onBack={handleBack} onFinish={handleFinish} />
     </div>
   );
 };
