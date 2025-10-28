@@ -40,6 +40,7 @@ const AnnotationCanvas = ({
   activeLabelId,
   onAddShape,
   hiddenLabelIds,
+  isReadOnly = false,
 }) => {
   const containerRef = useRef(null);
   const imageRef = useRef(null);
@@ -48,6 +49,7 @@ const AnnotationCanvas = ({
 
   const [imageBox, setImageBox] = useState({ offsetX: 0, offsetY: 0, width: 0, height: 0 });
   const [draftShape, setDraftShape] = useState(null);
+  const effectiveAddMode = addMode && !isReadOnly;
 
   const visibleBoxes = useMemo(() => {
     if (!hiddenLabelIds || hiddenLabelIds.size === 0) {
@@ -235,7 +237,8 @@ const AnnotationCanvas = ({
 
   const { handleBoxPointerDown, handleBoxPointerMove, handleBoxResizePointerDown, handleBoxResizePointerMove } =
     useBoxInteractions({
-      addMode,
+      addMode: effectiveAddMode,
+      readOnly: isReadOnly,
       pointerStateRef,
       boxesMap,
       hiddenLabelIds,
@@ -250,7 +253,8 @@ const AnnotationCanvas = ({
 
   const { handleLinePointerDown, handleLinePointerMove, handleLineHandlePointerDown, handleLineResizeMove } =
     useLineInteractions({
-      addMode,
+      addMode: effectiveAddMode,
+      readOnly: isReadOnly,
       pointerStateRef,
       linesMap,
       hiddenLabelIds,
@@ -269,7 +273,8 @@ const AnnotationCanvas = ({
     getAnchorForPoint,
     onUpdatePoint,
     setSelection,
-    addMode,
+    addMode: effectiveAddMode,
+    readOnly: isReadOnly,
   });
 
   const handlePointerUp = (event) => {
@@ -307,10 +312,18 @@ const AnnotationCanvas = ({
   };
 
   const handleCanvasPointerDown = (event) => {
+    if (isReadOnly) {
+      const { isInside } = normalisePointer(event);
+      if (!isInside) {
+        onSelect?.(null);
+      }
+      return;
+    }
+
     const labelIsLine = isLineLabel(activeLabelId);
     const labelIsPoint = isPointLabel(activeLabelId);
 
-    if (!addMode) {
+    if (!effectiveAddMode) {
       const { isInside } = normalisePointer(event);
       if (!isInside) {
         onSelect?.(null);
@@ -380,6 +393,10 @@ const AnnotationCanvas = ({
   };
 
   const handleCanvasPointerMove = (event) => {
+    if (isReadOnly) {
+      return;
+    }
+
     const state = pointerStateRef.current;
     if (!state || (state.type !== 'add-box' && state.type !== 'add-line')) {
       return;
@@ -493,7 +510,7 @@ const AnnotationCanvas = ({
   return (
     <div
       ref={containerRef}
-      className={`${styles.canvas} ${addMode ? styles.adding : ''}`}
+      className={`${styles.canvas} ${effectiveAddMode ? styles.adding : ''}`}
       onPointerDown={handleCanvasPointerDown}
       onPointerMove={handleCanvasPointerMove}
       onPointerUp={handlePointerUp}
@@ -597,6 +614,7 @@ AnnotationCanvas.propTypes = {
   activeLabelId: PropTypes.string,
   onAddShape: PropTypes.func,
   hiddenLabelIds: PropTypes.instanceOf(Set),
+  isReadOnly: PropTypes.bool,
 };
 
 AnnotationCanvas.defaultProps = {
@@ -609,6 +627,7 @@ AnnotationCanvas.defaultProps = {
   activeLabelId: LABEL_CONFIG[0]?.id ?? '0',
   onAddShape: undefined,
   hiddenLabelIds: undefined,
+  isReadOnly: false,
 };
 
 export default AnnotationCanvas;

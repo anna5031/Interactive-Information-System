@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 
 const useBoxInteractions = ({
   addMode,
+  readOnly = false,
   pointerStateRef,
   boxesMap,
   hiddenLabelIds,
@@ -32,6 +33,10 @@ const useBoxInteractions = ({
 
       setSelection('box', box.id);
 
+      if (readOnly) {
+        return;
+      }
+
       const { x, y } = normalisePointer(event);
 
       pointerStateRef.current = {
@@ -44,11 +49,15 @@ const useBoxInteractions = ({
 
       handlePointerCapture(event);
     },
-    [addMode, normalisePointer, pointerStateRef, setSelection]
+    [addMode, normalisePointer, pointerStateRef, readOnly, setSelection]
   );
 
   const handleBoxPointerMove = useCallback(
     (event) => {
+      if (readOnly) {
+        return;
+      }
+
       const state = pointerStateRef.current;
       if (!state || state.type !== 'move-box') {
         return;
@@ -124,6 +133,7 @@ const useBoxInteractions = ({
       onUpdateBox,
       pointerStateRef,
       snapDrawingPosition,
+      readOnly,
     ]
   );
 
@@ -136,6 +146,10 @@ const useBoxInteractions = ({
       event.preventDefault();
       event.stopPropagation();
 
+      if (readOnly) {
+        return;
+      }
+
       pointerStateRef.current = {
         type: 'resize-box',
         id: box.id,
@@ -146,11 +160,15 @@ const useBoxInteractions = ({
 
       handlePointerCapture(event);
     },
-    [addMode, pointerStateRef]
+    [addMode, pointerStateRef, readOnly]
   );
 
   const handleBoxResizePointerMove = useCallback(
     (event) => {
+      if (readOnly) {
+        return;
+      }
+
       const state = pointerStateRef.current;
       if (!state || state.type !== 'resize-box') {
         return;
@@ -215,7 +233,7 @@ const useBoxInteractions = ({
         height: nextHeight,
       });
     },
-    [clamp, minBoxSize, normalisePointer, onUpdateBox, pointerStateRef, snapDrawingPosition]
+    [clamp, minBoxSize, normalisePointer, onUpdateBox, pointerStateRef, readOnly, snapDrawingPosition]
   );
 
   return {

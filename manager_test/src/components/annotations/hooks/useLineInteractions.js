@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 
 const useLineInteractions = ({
   addMode,
+  readOnly = false,
   pointerStateRef,
   linesMap,
   hiddenLabelIds,
@@ -32,6 +33,10 @@ const useLineInteractions = ({
 
       setSelection('line', line.id);
 
+      if (readOnly) {
+        return;
+      }
+
       const { x, y } = normalisePointer(event);
 
       pointerStateRef.current = {
@@ -45,11 +50,15 @@ const useLineInteractions = ({
 
       handlePointerCapture(event);
     },
-    [addMode, normalisePointer, pointerStateRef, setSelection]
+    [addMode, normalisePointer, pointerStateRef, readOnly, setSelection]
   );
 
   const handleLinePointerMove = useCallback(
     (event) => {
+      if (readOnly) {
+        return;
+      }
+
       const state = pointerStateRef.current;
       if (!state || state.type !== 'move-line') {
         return;
@@ -78,7 +87,7 @@ const useLineInteractions = ({
 
       onUpdateLine?.(line.id, next);
     },
-    [applyAxisLock, clamp, hiddenLabelIds, linesMap, normalisePointer, onUpdateLine, pointerStateRef, snapLineWithState]
+    [applyAxisLock, clamp, hiddenLabelIds, linesMap, normalisePointer, onUpdateLine, pointerStateRef, readOnly, snapLineWithState]
   );
 
   const handleLineHandlePointerDown = useCallback(
@@ -90,6 +99,10 @@ const useLineInteractions = ({
       event.preventDefault();
       event.stopPropagation();
 
+      if (readOnly) {
+        return;
+      }
+
       pointerStateRef.current = {
         type: 'resize-line',
         id: line.id,
@@ -100,11 +113,15 @@ const useLineInteractions = ({
 
       handlePointerCapture(event);
     },
-    [addMode, pointerStateRef]
+    [addMode, pointerStateRef, readOnly]
   );
 
   const handleLineResizeMove = useCallback(
     (event) => {
+      if (readOnly) {
+        return;
+      }
+
       const state = pointerStateRef.current;
       if (!state || state.type !== 'resize-line') {
         return;
@@ -130,7 +147,7 @@ const useLineInteractions = ({
 
       onUpdateLine?.(id, next);
     },
-    [applyAxisLock, clamp, normalisePointer, onUpdateLine, pointerStateRef, snapLineEndpointWithState]
+    [applyAxisLock, clamp, normalisePointer, onUpdateLine, pointerStateRef, readOnly, snapLineEndpointWithState]
   );
 
   return {

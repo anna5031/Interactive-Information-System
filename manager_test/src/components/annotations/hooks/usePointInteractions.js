@@ -7,6 +7,7 @@ const usePointInteractions = ({
   onUpdatePoint,
   setSelection,
   addMode,
+  readOnly = false,
 }) => {
   const handlePointerCapture = (event) => {
     try {
@@ -23,7 +24,7 @@ const usePointInteractions = ({
 
       setSelection('point', point.id);
 
-      if (addMode) {
+      if (addMode || readOnly) {
         return;
       }
 
@@ -34,11 +35,15 @@ const usePointInteractions = ({
 
       handlePointerCapture(event);
     },
-    [addMode, pointerStateRef, setSelection]
+    [addMode, pointerStateRef, readOnly, setSelection]
   );
 
   const handlePointPointerMove = useCallback(
     (event) => {
+      if (readOnly) {
+        return;
+      }
+
       const state = pointerStateRef.current;
       if (!state || state.type !== 'move-point') {
         return;
@@ -61,7 +66,7 @@ const usePointInteractions = ({
         anchor: anchor.anchor,
       });
     },
-    [getAnchorForPoint, normalisePointer, onUpdatePoint, pointerStateRef]
+    [getAnchorForPoint, normalisePointer, onUpdatePoint, pointerStateRef, readOnly]
   );
 
   return {
