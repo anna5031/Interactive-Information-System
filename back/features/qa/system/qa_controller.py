@@ -4,7 +4,7 @@ import asyncio
 import logging
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import AsyncIterator, Iterable, Optional, Union
+from typing import AsyncIterator, Iterable, Optional, Union, Callable
 
 from app.events import CommandEvent, MotorStateEvent, VisionResultEvent
 from ..managers import STTManager, VoiceInterfaceManager
@@ -155,17 +155,25 @@ class SessionFlowCoordinator:
         self,
         qa_controller: QAController,
         landing_script: Iterable[QAIntroSpec],
+        initial_script: Optional[Iterable[QAIntroSpec]] = None,
         qa_entry: Optional[QAIntroSpec] = None,
-        detection_hold_seconds: float = 5.0,
+        detection_hold_seconds: float = 0.0,
         alignment_hold_seconds: float = 2.0,
         alignment_tolerance_deg: float = 3.0,
+        qa_start_delay_seconds: float = 5.0,
+        on_enter_qa: Optional[Callable[[], None]] = None,
+        on_exit_qa: Optional[Callable[[], None]] = None,
     ) -> None:
         self.qa_controller = qa_controller
         self.landing_script = list(landing_script)
+        self.initial_script = list(initial_script or [])
         self.qa_entry = qa_entry
         self.detection_hold_seconds = detection_hold_seconds
         self.alignment_hold_seconds = alignment_hold_seconds
         self.alignment_tolerance_deg = alignment_tolerance_deg
+        self.qa_start_delay_seconds = qa_start_delay_seconds
+        self._on_enter_qa = on_enter_qa
+        self._on_exit_qa = on_exit_qa
 
         self._command_queue: asyncio.Queue[Union[CommandEvent, object]] = asyncio.Queue()
         self._phase = self.Phase.SCANNING
@@ -174,6 +182,10 @@ class SessionFlowCoordinator:
         self._first_detected_at: Optional[float] = None
         self._alignment_started_at: Optional[float] = None
         self._pending_intro_prompt: Optional[str] = None
+        self._initial_script_sent = False
+        self._qa_timer_handle: Optional[asyncio.TimerHandle] = None
+
+        self._enqueue_initial_script()
 
     def process_vision(self, vision_event: VisionResultEvent) -> None:
         if self._phase == self.Phase.AWAIT_RESET:
@@ -206,22 +218,7 @@ class SessionFlowCoordinator:
             self._begin_landing()
 
     def process_motor(self, motor_event: MotorStateEvent) -> None:
-        if self._phase != self.Phase.LANDING:
-            self._alignment_started_at = None
-            return
-
-        if not motor_event.has_target or not self._is_aligned(motor_event):
-            self._alignment_started_at = None
-            return
-
-        if self._alignment_started_at is None:
-            self._alignment_started_at = motor_event.timestamp
-            logger.debug("정렬 유지 시작: %.2f", motor_event.timestamp)
-            return
-
-        hold_time = motor_event.timestamp - self._alignment_started_at
-        if hold_time >= self.alignment_hold_seconds:
-            self._trigger_qa_phase()
+        return
 
     async def command_stream(self) -> AsyncIterator[CommandEvent]:
         while True:
@@ -230,11 +227,13 @@ class SessionFlowCoordinator:
             if item is self._RUN_QA:
                 self._phase = self.Phase.QA_ACTIVE
                 logger.info("QA 컨트롤러 실행 시작.")
+                self._notify_enter_qa()
                 try:
                     async for command_event in self.qa_controller.run_once(self._pending_intro_prompt):
                         yield command_event
                 finally:
                     logger.info("QA 컨트롤러 종료. 탐색 재개 대기.")
+                    self._notify_exit_qa()
                     self._phase = self.Phase.AWAIT_RESET
                     self._landing_enqueued = False
                     self._qa_trigger_enqueued = False
@@ -261,12 +260,15 @@ class SessionFlowCoordinator:
             self._command_queue.put_nowait(self._RUN_QA)
             self._qa_trigger_enqueued = True
             logger.info("Landing 단계 스크립트가 없어 QA를 즉시 실행합니다.")
+            self._schedule_qa_timer(cancel_existing=False)
             return
 
         for spec in self.landing_script:
             event = self._spec_to_event(spec)
             self._command_queue.put_nowait(event)
             logger.debug("Landing 명령 큐잉: %s", spec.action)
+
+        self._schedule_qa_timer(cancel_existing=True)
 
     def _trigger_qa_phase(self) -> None:
         if self._qa_trigger_enqueued:
@@ -290,6 +292,7 @@ class SessionFlowCoordinator:
         self._qa_trigger_enqueued = True
         self._alignment_started_at = None
         logger.info("모터 정렬 완료. QA 단계 대기열에 추가.")
+        self._cancel_qa_timer()
 
     def _reset_to_scanning(self) -> None:
         self._phase = self.Phase.SCANNING
@@ -298,6 +301,18 @@ class SessionFlowCoordinator:
         self._pending_intro_prompt = None
         self._first_detected_at = None
         self._alignment_started_at = None
+        self._cancel_qa_timer()
+
+    def _enqueue_initial_script(self) -> None:
+        if self._initial_script_sent or not self.initial_script:
+            return
+
+        for spec in self.initial_script:
+            event = self._spec_to_event(spec)
+            self._command_queue.put_nowait(event)
+            logger.debug("초기 명령 큐잉: %s", spec.action)
+
+        self._initial_script_sent = True
 
     def _is_aligned(self, motor_event: MotorStateEvent) -> bool:
         return (
@@ -313,3 +328,40 @@ class SessionFlowCoordinator:
             requires_completion=spec.requires_completion,
             message={},
         )
+
+    def _schedule_qa_timer(self, cancel_existing: bool = True) -> None:
+        if cancel_existing:
+            self._cancel_qa_timer()
+
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            return
+
+        def _delayed_trigger() -> None:
+            self._qa_timer_handle = None
+            if self._qa_trigger_enqueued:
+                return
+            self._trigger_qa_phase()
+
+        self._qa_timer_handle = loop.call_later(self.qa_start_delay_seconds, _delayed_trigger)
+
+    def _cancel_qa_timer(self) -> None:
+        handle = self._qa_timer_handle
+        if handle is not None:
+            handle.cancel()
+            self._qa_timer_handle = None
+
+    def _notify_enter_qa(self) -> None:
+        if self._on_enter_qa is not None:
+            try:
+                self._on_enter_qa()
+            except Exception as exc:  # pragma: no cover
+                logger.warning("on_enter_qa callback failed: %s", exc)
+
+    def _notify_exit_qa(self) -> None:
+        if self._on_exit_qa is not None:
+            try:
+                self._on_exit_qa()
+            except Exception as exc:  # pragma: no cover
+                logger.warning("on_exit_qa callback failed: %s", exc)

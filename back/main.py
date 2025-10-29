@@ -14,12 +14,14 @@ from websocket.server import WebSocketServer
 # LOG_MOTOR = True  # 주석 처리하면 로그 비활성화
 # LOG_HOMOGRAPHY = True  # 주석 처리하면 로그 비활성화
 LOG_COMMANDS = True  # 주석 처리하면 로그 비활성화
+SHOW_EXPLORATION_OVERLAY = True  # 주석 처리하면 화면 오버레이 비활성화
 
 # 위 라인을 주석 처리했을 때 기본값 False로 설정
 LOG_EXPLORATION = bool(globals().get("LOG_EXPLORATION", False))
 LOG_MOTOR = bool(globals().get("LOG_MOTOR", False))
 LOG_HOMOGRAPHY = bool(globals().get("LOG_HOMOGRAPHY", False))
 LOG_COMMANDS = bool(globals().get("LOG_COMMANDS", False))
+SHOW_EXPLORATION_OVERLAY = bool(globals().get("SHOW_EXPLORATION_OVERLAY", False))
 
 
 async def main_async() -> None:
@@ -33,6 +35,7 @@ async def main_async() -> None:
         log_motor=LOG_MOTOR,
         log_homography=LOG_HOMOGRAPHY,
         log_commands=LOG_COMMANDS,
+        show_exploration_overlay=SHOW_EXPLORATION_OVERLAY,
     )
 
     application = Application(debug=debug_config)

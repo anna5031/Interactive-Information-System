@@ -5,8 +5,15 @@ import styles from './NudgeScreen.module.css';
 import NudgeArrows from '../nudge/NudgeArrows';
 import { homographyToCssMatrix, IDENTITY_MATRIX3D } from '../../utils/homography';
 
+const detectionLabelMap = {
+  assistance: '도움이 필요한 사람을 안내하는 중입니다.',
+  guidance: '목적지 안내를 시작합니다.',
+  scanning: '도움이 필요한 사람을 찾는 중입니다.',
+  idle: '시스템이 대기 상태입니다.',
+};
+
 function NudgeScreen() {
-  const { latestHomography, currentScreenCommand } = useAppState();
+  const { latestHomography, currentScreenCommand, detectionState } = useAppState();
 
   const displayPayload = useMemo(() => {
     if (!latestHomography) {
@@ -22,10 +29,19 @@ function NudgeScreen() {
     return homographyToCssMatrix(latestHomography.matrix) ?? IDENTITY_MATRIX3D;
   }, [latestHomography]);
 
+  const overlayHeading = useMemo(() => {
+    if (!detectionState) {
+      return '안내 준비 중';
+    }
+    return detectionLabelMap[detectionState.status] ?? '안내 준비 중';
+  }, [detectionState]);
+
+  const showArrows = detectionState?.status === 'assistance' || detectionState?.status === 'guidance' || detectionState?.status === 'scanning';
+
   return (
     <div className={layout.screen}>
       <div className={`${layout.content} ${layout.contentWide}`}>
-        <h1 className={layout.title}>넛지 안내 모드</h1>
+        <h1 className={layout.title}>프로젝터 안내 모드</h1>
         {currentScreenCommand?.context?.target && (
           <p className={layout.sub}>목적지: {currentScreenCommand.context.target}</p>
         )}
@@ -35,13 +51,13 @@ function NudgeScreen() {
             <div className={styles.frame}>
               <div className={styles.canvas} style={{ transform: transformValue }}>
                 <div className={styles.overlay}>
-                  <NudgeArrows />
+                  {showArrows && <NudgeArrows />}
                   <div className={styles.label}>
                     <div className={styles.infoIcon} aria-hidden="true">
                       <span>i</span>
                     </div>
                     <div className={styles.infoText}>
-                      <span className={styles.infoHeading}>Information</span>
+                      <span className={styles.infoHeading}>{overlayHeading}</span>
                     </div>
                   </div>
                 </div>

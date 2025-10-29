@@ -28,7 +28,7 @@ def load_config() -> AppConfig:
     command_resend_interval = float(
         os.getenv("BACKEND_COMMAND_RESEND_INTERVAL", "1.0")
     )
-    detection_hold_seconds = float(os.getenv("BACKEND_DETECTION_HOLD_SECONDS", "5.0"))
+    detection_hold_seconds = float(os.getenv("BACKEND_DETECTION_HOLD_SECONDS", "0.0"))
     return AppConfig(
         websocket=WebSocketConfig(host=ws_host, port=ws_port),
         homography_interval=homography_interval,

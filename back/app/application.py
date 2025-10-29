@@ -6,7 +6,12 @@ from typing import Optional, Any, AsyncIterator
 
 from app.config import AppConfig, load_config
 from app.events import CommandEvent
-from features.exploration.stub import ExplorationStub, ExplorationStubConfig
+from features.exploration import (
+    ExplorationPipeline,
+    ExplorationStub,
+    ExplorationStubConfig,
+    load_exploration_config,
+)
 from features.homography.stub import HomographyStub
 from features.motor.stub import MotorStub, MotorStubConfig
 from features.qa import (
@@ -28,12 +33,13 @@ class DebugConfig:
     log_motor: bool = False
     log_homography: bool = False
     log_commands: bool = False
+    show_exploration_overlay: bool = False
 
 
 @dataclass(slots=True)
 class SessionDependencies:
     config: AppConfig
-    exploration: ExplorationStub
+    exploration: Any
     motor: MotorStub
     homography: HomographyStub
     flow: Any
@@ -68,12 +74,10 @@ class Application:
         self.debug = debug or DebugConfig()
 
     def create_session(self) -> SessionDependencies:
-        exploration = ExplorationStub(
-            ExplorationStubConfig(interval=self.config.vision_interval)
-        )
+        exploration = self._create_exploration()
         motor = MotorStub(MotorStubConfig())
-        homography = HomographyStub()
-        flow = self._create_qa_pipeline()
+        homography = HomographyStub(debug_logs=self.debug.log_homography)
+        flow = self._create_qa_pipeline(exploration)
         return SessionDependencies(
             config=self.config,
             exploration=exploration,
@@ -83,7 +87,22 @@ class Application:
             debug=self.debug,
         )
 
-    def _create_qa_pipeline(self) -> Any:
+    def _create_exploration(self) -> Any:
+        try:
+            exploration_config = load_exploration_config()
+            exploration_config.debug_display = self.debug.show_exploration_overlay
+            pipeline = ExplorationPipeline(
+                exploration_config, log_details=self.debug.log_exploration
+            )
+            logger.info("Exploration pipeline initialised (device=%s)", pipeline.device)
+            return pipeline
+        except Exception as exc:
+            logger.warning("Exploration pipeline init failed. Falling back to stub: %s", exc)
+            return ExplorationStub(
+                ExplorationStubConfig(interval=self.config.vision_interval)
+            )
+
+    def _create_qa_pipeline(self, exploration: Any) -> Any:
         try:
             voice_manager = VoiceInterfaceManager()
             stt_manager = SpeechToTextManager()
@@ -93,12 +112,14 @@ class Application:
                 stt_manager=stt_manager,
             )
 
-            landing_script = [
+            initial_script = [
                 QAIntroSpec(
                     action="start_landing",
                     context={"message": "시스템 준비 중입니다."},
                     requires_completion=True,
-                ),
+                )
+            ]
+            landing_script = [
                 QAIntroSpec(action="start_nudge", context={}),
             ]
             qa_entry = QAIntroSpec(
@@ -110,10 +131,14 @@ class Application:
             flow = SessionFlowCoordinator(
                 qa_controller=qa_controller,
                 landing_script=landing_script,
+                initial_script=initial_script,
                 qa_entry=qa_entry,
                 detection_hold_seconds=self.config.detection_hold_seconds,
                 alignment_hold_seconds=2.0,
                 alignment_tolerance_deg=2.5,
+                qa_start_delay_seconds=5.0,
+                on_enter_qa=getattr(exploration, "suspend", None),
+                on_exit_qa=getattr(exploration, "resume", None),
             )
             logger.info("QAController 초기화 완료")
             return flow
