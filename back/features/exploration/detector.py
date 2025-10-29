@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Dict, List, Optional
 
 import numpy as np
@@ -40,10 +41,34 @@ class PoseDetector:
     model: YOLO | None = field(init=False, default=None)
 
     def __post_init__(self) -> None:
-        logger.info("Loading YOLO pose model from %s", self.model_config.model_path)
-        model = YOLO(str(self.model_config.model_path))
-        model.to(self.device)
-        self.model = model
+        path = str(self.model_config.model_path)
+        logger.info("Loading YOLO pose model from %s", path)
+
+        requested_device = self.device
+        prefer_engine = path.endswith(".engine")
+        device_to_use = "cuda:0" if prefer_engine else requested_device
+
+        try:
+            model = YOLO(path)
+            model.to(device_to_use)
+            self.device = device_to_use
+            self.model = model
+            if prefer_engine:
+                logger.info("TensorRT engine loaded on %s", device_to_use)
+        except Exception as exc:
+            fallback_path = str(self.model_config.model_path.with_suffix(".pt"))
+            if prefer_engine and Path(fallback_path).exists():
+                logger.warning(
+                    "TensorRT 엔진 로드 실패(%s). 파이토치 가중치로 대체합니다: %s",
+                    exc,
+                    fallback_path,
+                )
+                model = YOLO(fallback_path)
+                model.to(requested_device)
+                self.device = requested_device
+                self.model = model
+            else:
+                raise
 
     def predict(self, frame: np.ndarray) -> List[Detection]:
         if self.model is None:
