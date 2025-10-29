@@ -7,6 +7,7 @@ from enum import Enum, auto
 from typing import AsyncIterator, Iterable, Optional, Union
 
 from app.events import CommandEvent, MotorStateEvent, VisionResultEvent
+from rag_test_fin import QAServiceResult, RAGQAService
 from ..managers import STTManager, VoiceInterfaceManager
 
 
@@ -28,10 +29,15 @@ class QAController:
         voice_manager: VoiceInterfaceManager,
         stt_manager: STTManager,
         default_response: str = "더미 답변입니다.",
+        qa_service: Optional[RAGQAService] = None,
+        stream_processing_log: bool = False,
     ) -> None:
         self.voice_manager = voice_manager
         self.stt_manager = stt_manager
         self._default_response = default_response
+        self.qa_service = qa_service or RAGQAService()
+        self._stream_processing_log = stream_processing_log
+        self._last_result: Optional[QAServiceResult] = None
 
     async def run_once(
         self, intro_message: Optional[str] = None
@@ -95,7 +101,15 @@ class QAController:
 
         yield self._thinking_event("답변을 준비 중입니다...")
 
-        response_text = self._build_response(transcription)
+        response_text, rag_result = await self._generate_response(transcription)
+
+        if rag_result is not None:
+            logger.debug(
+                "RAG sources=%d navigation=%s",
+                len(rag_result.sources),
+                rag_result.needs_navigation,
+            )
+
         async for event in self._speak(response_text):
             yield event
 
@@ -135,9 +149,33 @@ class QAController:
             message={},
         )
 
-    def _build_response(self, transcription: str) -> str:
-        _ = transcription
-        return self._default_response
+    async def _generate_response(self, transcription: str) -> tuple[str, Optional[QAServiceResult]]:
+        try:
+            result = await self.qa_service.query(
+                transcription,
+                emit_processing_log=self._stream_processing_log,
+            )
+        except Exception as exc:
+            logger.exception("RAG 응답 생성 실패: %s", exc)
+            self._last_result = None
+            return self._default_response, None
+
+        self._last_result = result
+
+        if not result.is_safe:
+            logger.warning("RAG 응답이 필터에 의해 제한되었습니다: %s", result.summary())
+        else:
+            logger.info("RAG 응답 생성 완료: %s", result.summary())
+
+        response_text = result.answer.strip() if result.answer else ""
+        if not response_text:
+            response_text = self._default_response
+
+        return response_text, result
+
+    @property
+    def last_result(self) -> Optional[QAServiceResult]:
+        return self._last_result
 
 
 class SessionFlowCoordinator:

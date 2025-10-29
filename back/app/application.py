@@ -17,6 +17,7 @@ from features.qa import (
     SpeechToTextManager,
     VoiceInterfaceManager,
 )
+from rag_test_fin import RAGQAService
 
 
 logger = logging.getLogger(__name__)
@@ -66,6 +67,7 @@ class Application:
     ) -> None:
         self.config = config or load_config()
         self.debug = debug or DebugConfig()
+        self._qa_service: Optional[RAGQAService] = None
 
     def create_session(self) -> SessionDependencies:
         exploration = ExplorationStub(
@@ -88,9 +90,14 @@ class Application:
             voice_manager = VoiceInterfaceManager()
             stt_manager = SpeechToTextManager()
 
+            if self._qa_service is None:
+                self._qa_service = RAGQAService()
+
             qa_controller = QAController(
                 voice_manager=voice_manager,
                 stt_manager=stt_manager,
+                qa_service=self._qa_service,
+                stream_processing_log=self.debug.log_commands,
             )
 
             landing_script = [
