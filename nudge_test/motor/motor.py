@@ -1,7 +1,7 @@
 # motor.py
 import numpy as np
 from config_loader import load_config
-from serial_comm import SimpleSerialMotor
+from nudge.motor.serial_comm import SimpleSerialMotor
 import time
 
 # ── config 로드 ─────────────────────────────────────────────

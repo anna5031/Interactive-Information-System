@@ -17,6 +17,7 @@ class AppConfig:
     vision_interval: float
     command_resend_interval: float
     detection_hold_seconds: float
+    motor_backend: str = "stub"
 
 
 def load_config() -> AppConfig:
@@ -29,10 +30,12 @@ def load_config() -> AppConfig:
         os.getenv("BACKEND_COMMAND_RESEND_INTERVAL", "1.0")
     )
     detection_hold_seconds = float(os.getenv("BACKEND_DETECTION_HOLD_SECONDS", "0.0"))
+    motor_backend = os.getenv("BACKEND_MOTOR_BACKEND", "stub")
     return AppConfig(
         websocket=WebSocketConfig(host=ws_host, port=ws_port),
         homography_interval=homography_interval,
         vision_interval=vision_interval,
         command_resend_interval=command_resend_interval,
         detection_hold_seconds=detection_hold_seconds,
+        motor_backend=motor_backend,
     )

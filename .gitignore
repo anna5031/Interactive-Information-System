@@ -12,3 +12,6 @@
 # Python cache
 *.pyc
 __pycache__/
+
+# Ignore checkboard images used for calibration
+/nudge_test/vision/checkboard/*

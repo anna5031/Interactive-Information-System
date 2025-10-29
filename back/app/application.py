@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
@@ -75,7 +75,7 @@ class Application:
 
     def create_session(self) -> SessionDependencies:
         exploration = self._create_exploration()
-        motor = MotorStub(MotorStubConfig())
+        motor = self._create_motor()
         homography = HomographyStub(debug_logs=self.debug.log_homography)
         flow = self._create_qa_pipeline(exploration)
         return SessionDependencies(
@@ -144,4 +144,11 @@ class Application:
             return flow
         except Exception as exc:
             logger.warning("QA 파이프라인 초기화 실패. 스텁으로 대체합니다: %s", exc)
-            return QAStubFlowAdapter(QAStub())
+            return QAStubFlowAdapter(QAStub())
+
+    def _create_motor(self) -> MotorStub:
+        backend = getattr(self.config, "motor_backend", "stub").lower()
+        if backend == "stub":
+            return MotorStub(MotorStubConfig())
+        raise ValueError(f"Unsupported motor backend: {backend}")
+

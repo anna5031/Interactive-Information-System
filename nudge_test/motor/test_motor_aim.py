@@ -3,10 +3,10 @@
 
 import pygame, sys
 from display import draw_circle
-from motor import move_to
+from nudge.motor.motor import move_to
 
 # ▶ 여기 target 좌표 하나만 수정하세요
-TARGET = (5000, 0, 2540)
+TARGET = (10000, 0, 2540)
 
 def main():
     print("=== Single Target Circle Test ===")

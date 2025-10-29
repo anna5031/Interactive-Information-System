@@ -19,7 +19,7 @@
 ## 3. 실행/테스트 방법
 ```bash
 # venv 활성화
-source /Users/jaehyeon/Developer/Interactive-Information-System/back/.venv/bin/activate
+source /Users/jaehyeon/Developer/Interactive-Information-System/back/.venv/bin/activate\
 
 # 백엔드 실행
 python main.py

@@ -1,7 +1,7 @@
 # config.yaml
 geometry:
   z_offset: 150   # tilt 회전축 ~ 빔프로젝터 거리 mm
-  H: 848          # 바닥 ~ tilt 축 거리 mm
+  H: 1200          # 바닥 ~ tilt 축 거리 mm
   scale_factor: 1328   # 빔프로젝터 화면 크기 일정 보정 factor mm
 serial:
   port: COM5
