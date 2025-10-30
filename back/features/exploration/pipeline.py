@@ -156,6 +156,9 @@ class ExplorationPipeline:
         gaze_vector = None
         head_position = None
         foot_position = None
+        target_pixel = None
+        head_pixel = None
+        foot_pixel = None
         direction_label = _direction_label(decision.track.angle_deg if decision.track else None)
 
         if decision.detection is not None:
@@ -176,6 +179,9 @@ class ExplorationPipeline:
             target_position = _normalize_point(center, crop_offset, width, height)
             head_position = _normalize_point(head_point, crop_offset, width, height)
             foot_position = _normalize_point(foot_point, crop_offset, width, height)
+            target_pixel = _frame_point(center, crop_offset)
+            head_pixel = _frame_point(head_point, crop_offset)
+            foot_pixel = _frame_point(foot_point, crop_offset)
             confidence = float(detection.get("conf", 0.0))
 
             if target_position is not None:
@@ -188,6 +194,9 @@ class ExplorationPipeline:
             )
             if target_position is not None:
                 gaze_vector = _compute_gaze_vector(*target_position)
+            target_pixel = _denormalize_point(target_position, frame_width, frame_height)
+            head_pixel = _denormalize_point(head_position, frame_width, frame_height)
+            foot_pixel = _denormalize_point(foot_position, frame_width, frame_height)
 
         if self._log_details and decision.needs_assistance:
             logger.info(
@@ -206,6 +215,11 @@ class ExplorationPipeline:
             needs_assistance=decision.needs_assistance,
             head_position=head_position,
             foot_position=foot_position,
+            frame_width=int(frame_width) if frame_width else None,
+            frame_height=int(frame_height) if frame_height else None,
+            target_pixel=target_pixel,
+            head_pixel=head_pixel,
+            foot_pixel=foot_pixel,
             direction_label=direction_label,
             stationary_duration=decision.stationary_duration,
         )
@@ -278,6 +292,31 @@ def _normalize_point(
     x_clamped = max(0.0, min(1.0, x))
     y_clamped = max(0.0, min(1.0, y))
     return (x_clamped, y_clamped)
+
+
+def _frame_point(
+    point: Optional[np.ndarray],
+    offset: Tuple[int, int],
+) -> Optional[Tuple[float, float]]:
+    if point is None:
+        return None
+    return (
+        float(point[0]) + offset[0],
+        float(point[1]) + offset[1],
+    )
+
+
+def _denormalize_point(
+    point: Optional[Tuple[float, float]],
+    width: Optional[float],
+    height: Optional[float],
+) -> Optional[Tuple[float, float]]:
+    if point is None or width in (None, 0) or height in (None, 0):
+        return None
+    return (
+        float(point[0]) * float(width),
+        float(point[1]) * float(height),
+    )
 
 
 def _direction_label(angle_deg: Optional[float]) -> Optional[str]:

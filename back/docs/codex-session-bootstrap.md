@@ -12,7 +12,7 @@
 - 핵심 구성:
   - `app/application.py`: 세션별 의존성 생성 (`SessionFlowCoordinator`, Stubs 등)
   - `websocket/server.py` & `websocket/session.py`: WebSocket 서버 및 세션 루프
-  - `features/exploration/motor/homography/.../qa`: 각 기능 모듈 (현재는 더미 스텁 중심)
+  - `features/exploration/motor/homography/.../qa`: 각 기능 모듈 (실장/더미를 런타임 토글로 전환 가능)
   - `docs/backend-architecture.md`: 백엔드 설계 상세 문서 (항상 최신 변경 반영)
 - 프런트 문맥: `/Users/jaehyeon/Developer/Interactive-Information-System/front/docs/projector-ui-design.md`
 
@@ -24,6 +24,7 @@ source /Users/jaehyeon/Developer/Interactive-Information-System/back/.venv/bin/a
 # 백엔드 실행
 python main.py
 ```
+- 기본 실행은 실 모터/호모그래피 경로를 사용한다. 개발 중 더미로 강제하려면 `main.py` 상단의 `USE_DUMMY_*` 라인을 주석 해제하고, QA 자동 진입 테스트 시 `SKIP_TO_QA_AUTO` 토글을 활용한다.
 - QA 오디오 파이프라인 수동 점검:
   - `tests/test_voice_interface_manager.py` (단위/통합 테스트)
   - `tests/manual_voice_roundtrip.py` (마이크→STT→TTS 순환 수동 검증)
@@ -41,10 +42,12 @@ python main.py
 
 ## 5. 현재 QA 플로우 핵심
 - `SessionFlowCoordinator`가 Vision/모터 이벤트를 감시해 상태를 전환:
-  1. 탐지 신호가 `BACKEND_DETECTION_HOLD_SECONDS` 동안 지속되면 Landing 명령(`start_landing`, `start_nudge`) 큐잉.
-  2. 모터가 허용 오차(`alignment_tolerance_deg`) 내에서 `alignment_hold_seconds` 유지되면 `start_qa` 발행.
-  3. `start_qa`에 포함된 `context.initialPrompt`는 QA 컨트롤러가 듣기 단계에 들어가기 전에 TTS로 재생된다.
-  4. `run_once` 흐름: `start_listening` → STT → `start_thinking` → TTS 출력(`start_speaking`/`stop_speaking`) → `stop_all`.
+1. 탐지 신호가 `BACKEND_DETECTION_HOLD_SECONDS` 동안 지속되면 Landing 명령(`start_landing`, `start_nudge`) 큐잉.
+2. 사람-프로젝터 거리가 `BACKEND_ENGAGEMENT_DISTANCE_MM` 이하로 줄어들면 `start_qa`를 발행한다. 접근이 `BACKEND_ENGAGEMENT_APPROACH_TIMEOUT_S` 내에 `BACKEND_ENGAGEMENT_APPROACH_DELTA_MM`만큼 발생하지 않으면 타겟을 해제한다.
+3. `SKIP_TO_QA_AUTO=True`일 때는 타겟을 잡은 뒤 `BACKEND_ENGAGEMENT_QA_AUTO_DELAY_S` 후 자동으로 QA를 실행한다.
+4. `start_qa`에 포함된 `context.initialPrompt`는 QA 컨트롤러가 듣기 단계에 들어가기 전에 TTS로 재생된다.
+5. `run_once` 흐름: `start_listening` → STT → `start_thinking` → TTS 출력(`start_speaking`/`stop_speaking`) → `stop_all`.
+- 타겟이 잠시 화면에서 사라져도 `BACKEND_ENGAGEMENT_LOST_TARGET_GRACE_S` 안에서는 Landing 상태를 유지하며 추적을 계속하고, 그레이스 시간을 초과하거나 완전히 사라지면 탐색으로 초기화한다.
 - QA 완료 후에는 Vision이 타겟을 잃어버렸을 때만 다음 세션이 준비되어 반복 QA가 중첩되지 않는다.
 
 ## 6. 더미 Exploration 시나리오
@@ -68,11 +71,18 @@ python main.py
    - docs/codex-session-bootstrap.md (본 문서)
    - front/docs/projector-ui-design.md
 3) 현재 요구사항 요약:
-   - SessionFlowCoordinator가 탐색→Landing→QA를 관리
+   - SessionFlowCoordinator가 탐색→Landing→QA를 관리하며 거리/접근 속도를 활용함
    - QA 시작 전 initialPrompt를 음성으로 재생해야 함
    - 테스트는 tests/test_voice_interface_manager.py 또는 manual_voice_roundtrip.py로 수행
-4) 실행 커맨드: source .venv/bin/activate && python main.py
+   - 실장 시 `BACKEND_ENGAGEMENT_*`, `BACKEND_PROJECTOR_*`, 캘리브레이션 `.npz` 파일 구성을 확인
+4) 실행 커맨드: source .venv/bin/activate && python main.py (필요 시 USE_DUMMY_* / SKIP_TO_QA_AUTO 토글)
 ```
 
 ---
 필요 시 본 문서를 업데이트하고, 변경 사실을 `docs/backend-architecture.md`에도 함께 기록한다.
+
+## 9. 실장 캘리브레이션 요약
+1. 체커보드 이미지를 촬영하고 `nudge_test/vision/calibration.py`를 실행해 `camera_calib.npz`를 생성한다.
+2. 기준 사각형 4점의 픽셀 좌표를 클릭(`vision/reference_point.py`)하고, `vision/camera_pose.py`로 SolvePnP를 수행해 `camera_extrinsics.npz`를 만든다.
+3. 생성된 두 `.npz` 파일을 `back/features/homography/calibration/`(또는 `BACKEND_CALIB_DIR`)에 배치한다.
+4. 프로젝터 위치(`BACKEND_PROJECTOR_POS_*`), 거리 임계값(`BACKEND_ENGAGEMENT_*`) 등을 현장에 맞게 설정한 뒤 `main.py`를 실행한다.

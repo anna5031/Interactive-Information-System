@@ -163,6 +163,12 @@ class SessionFlowCoordinator:
         qa_start_delay_seconds: float = 5.0,
         on_enter_qa: Optional[Callable[[], None]] = None,
         on_exit_qa: Optional[Callable[[], None]] = None,
+        distance_threshold_mm: float = 800.0,
+        approach_timeout_seconds: float = 10.0,
+        approach_delta_min_mm: float = 100.0,
+        skip_to_qa_auto: bool = False,
+        qa_auto_delay_seconds: float = 5.0,
+        lost_target_grace_seconds: float = 2.0,
     ) -> None:
         self.qa_controller = qa_controller
         self.landing_script = list(landing_script)
@@ -174,6 +180,12 @@ class SessionFlowCoordinator:
         self.qa_start_delay_seconds = qa_start_delay_seconds
         self._on_enter_qa = on_enter_qa
         self._on_exit_qa = on_exit_qa
+        self.distance_threshold_mm = distance_threshold_mm
+        self.approach_timeout_seconds = approach_timeout_seconds
+        self.approach_delta_min_mm = approach_delta_min_mm
+        self.skip_to_qa_auto = skip_to_qa_auto
+        self.qa_auto_delay_seconds = qa_auto_delay_seconds
+        self.lost_target_grace_seconds = lost_target_grace_seconds
 
         self._command_queue: asyncio.Queue[Union[CommandEvent, object]] = asyncio.Queue()
         self._phase = self.Phase.SCANNING
@@ -184,6 +196,13 @@ class SessionFlowCoordinator:
         self._pending_intro_prompt: Optional[str] = None
         self._initial_script_sent = False
         self._qa_timer_handle: Optional[asyncio.TimerHandle] = None
+        self._landing_started_at: Optional[float] = None
+        self._initial_distance_mm: Optional[float] = None
+        self._last_distance_mm: Optional[float] = None
+        self._last_distance_timestamp: Optional[float] = None
+        self._has_distance_progress: bool = False
+        self._qa_auto_armed: bool = False
+        self._last_seen_timestamp: Optional[float] = None
 
         self._enqueue_initial_script()
 
@@ -197,12 +216,25 @@ class SessionFlowCoordinator:
             return
 
         if not vision_event.has_target:
+            if (
+                self._phase == self.Phase.LANDING
+                and self._last_seen_timestamp is not None
+                and vision_event.timestamp - self._last_seen_timestamp <= self.lost_target_grace_seconds
+            ):
+                logger.debug(
+                    "타겟 일시 미검출 %.2fs 이내. Landing을 유지합니다.",
+                    vision_event.timestamp - self._last_seen_timestamp,
+                )
+                return
             self._first_detected_at = None
             self._alignment_started_at = None
+            self._last_seen_timestamp = None
             if self._phase == self.Phase.LANDING:
                 logger.info("타겟을 잃어 Landing 단계를 취소합니다.")
                 self._reset_to_scanning()
             return
+
+        self._last_seen_timestamp = vision_event.timestamp
 
         if self._phase != self.Phase.SCANNING:
             return
@@ -215,10 +247,50 @@ class SessionFlowCoordinator:
         elapsed = vision_event.timestamp - self._first_detected_at
         if elapsed >= self.detection_hold_seconds:
             logger.info("타겟 고정 %.2fs 경과. Landing 단계 진입.", elapsed)
-            self._begin_landing()
+            self._begin_landing(vision_event.timestamp)
 
     def process_motor(self, motor_event: MotorStateEvent) -> None:
-        return
+        if self._phase != self.Phase.LANDING:
+            return
+
+        distance = motor_event.distance_to_projector
+        if distance is None:
+            return
+
+        if self._initial_distance_mm is None:
+            self._initial_distance_mm = distance
+            self._last_distance_mm = distance
+            self._last_distance_timestamp = motor_event.timestamp
+            return
+
+        self._last_distance_timestamp = motor_event.timestamp
+        self._last_distance_mm = distance
+
+        progress = self._initial_distance_mm - distance
+        if progress >= self.approach_delta_min_mm:
+            if not self._has_distance_progress:
+                logger.debug("타겟이 빔 방향으로 %.1fmm 접근했습니다.", progress)
+            self._has_distance_progress = True
+
+        if (
+            not self.skip_to_qa_auto
+            and not self._has_distance_progress
+            and self._landing_started_at is not None
+            and motor_event.timestamp - self._landing_started_at >= self.approach_timeout_seconds
+        ):
+            logger.info(
+                "타겟이 %.1fs 동안 빔 방향으로 이동하지 않아 세션을 초기화합니다.",
+                motor_event.timestamp - self._landing_started_at,
+            )
+            self._reset_to_scanning()
+            return
+
+        if distance <= self.distance_threshold_mm:
+            logger.info(
+                "타겟이 프로젝터에서 %.1fmm 거리로 접근했습니다. QA 전환을 준비합니다.",
+                distance,
+            )
+            self._trigger_qa_phase()
 
     async def command_stream(self) -> AsyncIterator[CommandEvent]:
         while True:
@@ -240,11 +312,19 @@ class SessionFlowCoordinator:
                     self._pending_intro_prompt = None
                     self._first_detected_at = None
                     self._alignment_started_at = None
+                    self._landing_started_at = None
+                    self._initial_distance_mm = None
+                    self._last_distance_mm = None
+                    self._last_distance_timestamp = None
+                    self._has_distance_progress = False
+                    self._qa_auto_armed = False
+                    self._last_seen_timestamp = None
+                    self._cancel_qa_timer()
                 continue
 
             yield item
 
-    def _begin_landing(self) -> None:
+    def _begin_landing(self, start_timestamp: float) -> None:
         if self._landing_enqueued:
             return
 
@@ -254,13 +334,22 @@ class SessionFlowCoordinator:
         self._pending_intro_prompt = None
         self._first_detected_at = None
         self._alignment_started_at = None
+        self._landing_started_at = start_timestamp
+        self._initial_distance_mm = None
+        self._last_distance_mm = None
+        self._last_distance_timestamp = None
+        self._has_distance_progress = False
+        self._qa_auto_armed = False
+        self._last_seen_timestamp = start_timestamp
+        self._cancel_qa_timer()
 
         if not self.landing_script and self.qa_entry is None:
             self._pending_intro_prompt = None
             self._command_queue.put_nowait(self._RUN_QA)
             self._qa_trigger_enqueued = True
             logger.info("Landing 단계 스크립트가 없어 QA를 즉시 실행합니다.")
-            self._schedule_qa_timer(cancel_existing=False)
+            if self.skip_to_qa_auto:
+                self._schedule_qa_timer(cancel_existing=False)
             return
 
         for spec in self.landing_script:
@@ -268,7 +357,8 @@ class SessionFlowCoordinator:
             self._command_queue.put_nowait(event)
             logger.debug("Landing 명령 큐잉: %s", spec.action)
 
-        self._schedule_qa_timer(cancel_existing=True)
+        if self.skip_to_qa_auto:
+            self._schedule_qa_timer(cancel_existing=True)
 
     def _trigger_qa_phase(self) -> None:
         if self._qa_trigger_enqueued:
@@ -301,6 +391,13 @@ class SessionFlowCoordinator:
         self._pending_intro_prompt = None
         self._first_detected_at = None
         self._alignment_started_at = None
+        self._landing_started_at = None
+        self._initial_distance_mm = None
+        self._last_distance_mm = None
+        self._last_distance_timestamp = None
+        self._has_distance_progress = False
+        self._qa_auto_armed = False
+        self._last_seen_timestamp = None
         self._cancel_qa_timer()
 
     def _enqueue_initial_script(self) -> None:
@@ -330,6 +427,8 @@ class SessionFlowCoordinator:
         )
 
     def _schedule_qa_timer(self, cancel_existing: bool = True) -> None:
+        if not self.skip_to_qa_auto:
+            return
         if cancel_existing:
             self._cancel_qa_timer()
 
@@ -344,13 +443,15 @@ class SessionFlowCoordinator:
                 return
             self._trigger_qa_phase()
 
-        self._qa_timer_handle = loop.call_later(self.qa_start_delay_seconds, _delayed_trigger)
+        self._qa_timer_handle = loop.call_later(self.qa_auto_delay_seconds, _delayed_trigger)
+        self._qa_auto_armed = True
 
     def _cancel_qa_timer(self) -> None:
         handle = self._qa_timer_handle
         if handle is not None:
             handle.cancel()
             self._qa_timer_handle = None
+        self._qa_auto_armed = False
 
     def _notify_enter_qa(self) -> None:
         if self._on_enter_qa is not None:
