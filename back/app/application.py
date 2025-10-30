@@ -31,6 +31,8 @@ from features.qa import (
     SpeechToTextManager,
     VoiceInterfaceManager,
 )
+from rag_service import RAGQAService
+
 
 logger = logging.getLogger(__name__)
 
@@ -93,6 +95,7 @@ class Application:
     ) -> None:
         self.config = config or load_config()
         self.debug = debug or DebugConfig()
+        self._qa_service: Optional[RAGQAService] = None
         self.overrides = overrides or RuntimeOverrides()
 
     def create_session(self) -> SessionDependencies:
@@ -161,9 +164,14 @@ class Application:
             voice_manager = VoiceInterfaceManager()
             stt_manager = SpeechToTextManager()
 
+            if self._qa_service is None:
+                self._qa_service = RAGQAService()
+
             qa_controller = QAController(
                 voice_manager=voice_manager,
                 stt_manager=stt_manager,
+                qa_service=self._qa_service,
+                stream_processing_log=self.debug.log_commands,
             )
 
             initial_script = [
@@ -212,7 +220,8 @@ class Application:
         except Exception as exc:
             logger.warning("QA 파이프라인 초기화 실패. 스텁으로 대체합니다: %s", exc)
             return QAStubFlowAdapter(QAStub())
-
+
+
     def _create_motor(
         self,
         mapper: Optional[PixelToWorldMapper],
