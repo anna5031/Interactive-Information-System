@@ -1,7 +1,7 @@
 # motor.py
 import numpy as np
 from config_loader import load_config
-from nudge_test.motor.serial_comm import SimpleSerialMotor
+from serial_comm import SimpleSerialMotor
 import time
 
 # ── config 로드 ─────────────────────────────────────────────
@@ -74,5 +74,5 @@ def move_to(target):
 
 # ── 테스트 ─────────────────────────────────────────────────
 if __name__ == "__main__":
-    _setMotor(110, 0)
+    _setMotor(70, 20)
     time.sleep(1)

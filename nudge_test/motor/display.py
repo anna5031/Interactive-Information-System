@@ -1,5 +1,5 @@
 # display.py
-from config_loader import load_config
+from nudge_test.motor.config_loader import load_config
 import pygame, sys
 
 config = load_config()
