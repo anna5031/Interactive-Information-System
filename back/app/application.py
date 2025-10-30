@@ -229,13 +229,36 @@ class Application:
         backend = getattr(self.config.motor, "backend", "stub").lower()
         if self.overrides.force_dummy_motor:
             logger.info("Motor controller forced to stub via override.")
-            return MotorStub(MotorStubConfig()), None
+            return (
+                MotorStub(
+                    MotorStubConfig(),
+                    motor_config=self.config.motor,
+                    homography_config=self.config.homography,
+                    mapper=mapper,
+                ),
+                None,
+            )
         if backend == "stub":
-            return MotorStub(MotorStubConfig()), None
+            return (
+                MotorStub(
+                    MotorStubConfig(),
+                    motor_config=self.config.motor,
+                    homography_config=self.config.homography,
+                    mapper=mapper,
+                ),
+                None,
+            )
         if backend == "serial":
             if mapper is None:
                 logger.warning("Motor backend=serial but calibration unavailable. Falling back to stub.")
-                return MotorStub(MotorStubConfig()), None
+                return (
+                    MotorStub(
+                        MotorStubConfig(),
+                        motor_config=self.config.motor,
+                        homography_config=self.config.homography,
+                    ),
+                    None,
+                )
             controller = RealMotorController(
                 motor_config=self.config.motor,
                 homography_config=self.config.homography,
@@ -265,4 +288,3 @@ class Application:
         except Exception as exc:
             logger.warning("Homography calculator init failed. Falling back to stub: %s", exc)
             return HomographyStub(debug_logs=self.debug.log_homography)
-

@@ -22,6 +22,11 @@ if TYPE_CHECKING:  # pragma: no cover
     from app.config import HomographyConfig, MotorConfig
 
 
+CEILING_TARGET_OFFSET_MM = 160.0
+CEILING_TARGET_TILT_DEG = 20.0
+GAZE_SAMPLE_STEP_PX = 80.0
+
+
 @dataclass
 class RealMotorController:
     motor_config: "MotorConfig"
@@ -48,6 +53,10 @@ class RealMotorController:
         )
 
     async def update(self, vision: VisionResultEvent) -> MotorStateEvent:
+        if self._lock.locked():
+            logger.debug("Motor controller busy; skipping update.")
+            return self._snapshot_state(vision, has_target=vision.has_target)
+
         async with self._lock:
             return await self._update_locked(vision)
 
@@ -58,6 +67,7 @@ class RealMotorController:
     async def _update_locked(self, vision: VisionResultEvent) -> MotorStateEvent:
         await self._ensure_driver_ready()
 
+        # Prefer feet data, then target/body pixels; skip work if nothing is detectable.
         target_pixel = (
             vision.foot_pixel
             or vision.target_pixel
@@ -66,6 +76,7 @@ class RealMotorController:
         if target_pixel is None:
             return self._snapshot_state(vision, has_target=False)
 
+        # Convert the selected pixel into world-space coordinates on the floor plane.
         foot_world = self.mapper.pixel_to_world(
             target_pixel,
             plane_z=self.homography_config.floor_z_mm,
@@ -75,7 +86,13 @@ class RealMotorController:
             return self._snapshot_state(vision, has_target=False)
 
         foot_world_arr = np.array(foot_world, dtype=float)
-        aim_world = self._compute_projection_target(foot_world_arr.copy())
+        #forward_direction = self._compute_forward_direction(vision, foot_world_arr)
+
+        # Offset the aim point so the projection lands slightly ahead of the user's feet.
+        #aim_world = self._compute_projection_target(foot_world_arr.copy(), forward_direction)
+        aim_world = foot_world_arr # aim at human foot
+
+        # Determine the pan/tilt adjustments required to hit the aim point.
         tilt_raw, pan_raw = self._compute_angles(aim_world)
         tilt_cmd = _clip(
             self.motor_config.limits.tilt_init_deg + tilt_raw,
@@ -93,6 +110,7 @@ class RealMotorController:
         distance = float(np.linalg.norm(foot_world_arr - self._projector))
         approach_velocity = None
         is_approaching = None
+        # Track simple approach velocity so downstream logic can react to movement trends.
         if self._last_distance is not None and self._last_distance_timestamp is not None:
             delta_time = vision.timestamp - self._last_distance_timestamp
             if delta_time > 1e-3:
@@ -143,19 +161,80 @@ class RealMotorController:
             logger.info("Motor ping response: %s", response)
         self._driver_ready = True
 
-    def _compute_projection_target(self, foot_world: np.ndarray) -> np.ndarray:
-        vector = foot_world - self._projector
-        vector[2] = 0.0
-        norm = np.linalg.norm(vector[:2])
+    def _compute_forward_direction(
+        self,
+        vision: VisionResultEvent,
+        foot_world: np.ndarray,
+    ) -> Optional[np.ndarray]:
+        gaze = vision.gaze_vector
+        foot_pixel = vision.foot_pixel
+        if gaze is None or foot_pixel is None:
+            return None
+
+        sample_pixel = (
+            foot_pixel[0] + gaze[0] * GAZE_SAMPLE_STEP_PX,
+            foot_pixel[1] + gaze[1] * GAZE_SAMPLE_STEP_PX,
+        )
+        sample_world = self.mapper.pixel_to_world(
+            sample_pixel,
+            plane_z=self.homography_config.floor_z_mm,
+        )
+        if sample_world is None:
+            return None
+
+        direction = np.array(sample_world, dtype=float) - foot_world
+        direction[2] = 0.0
+        norm = np.linalg.norm(direction[:2])
         if norm < 1e-6:
-            vector = np.array([0.0, 1.0, 0.0])
+            return None
+        direction[:2] = direction[:2] / norm
+        return direction
+
+    def _compute_projection_target(
+        self,
+        foot_world: np.ndarray,
+        forward_direction: Optional[np.ndarray],
+    ) -> np.ndarray:
+        if forward_direction is not None:
+            direction = forward_direction.copy()
         else:
-            vector[:2] = vector[:2] / norm
-        offset = vector * self.motor_config.geometry.projection_ahead_mm
-        target = foot_world.copy()
-        target[2] = self.homography_config.floor_z_mm
-        target[:2] = target[:2] + offset[:2]
-        return target
+            direction = foot_world - self._projector  # Direction from projector to the detected foot position.
+            direction[2] = 0.0  # Flatten the vector so we only keep the horizontal (XY) components.
+            norm = np.linalg.norm(direction[:2])  # Measure horizontal distance to avoid dividing by zero.
+            if norm < 1e-6:
+                direction = np.array([0.0, 1.0, 0.0])  # Default to projecting straight ahead if the foot is centred.
+            else:
+                direction[:2] = direction[:2] / norm  # Normalize the XY direction so we can scale it cleanly.
+        target_plane = getattr(self.homography_config, "target_plane", "floor").lower()
+        if target_plane == "ceiling":
+            start = foot_world.copy()
+            start[2] += CEILING_TARGET_OFFSET_MM
+            theta = math.radians(CEILING_TARGET_TILT_DEG)
+            horizontal_scale = math.cos(theta)
+            aim_vector = np.array(
+                [
+                    direction[0] * horizontal_scale,
+                    direction[1] * horizontal_scale,
+                    math.sin(theta),
+                ],
+                dtype=float,
+            )
+            ceiling_z = float(self.homography_config.projector_position_mm[2])
+            dz = ceiling_z - float(start[2])
+            if dz <= 0.0 or abs(aim_vector[2]) < 1e-6:
+                target = start
+                target[2] = ceiling_z
+                return target
+            scale = dz / aim_vector[2]
+            target = start + aim_vector * scale
+            target[2] = ceiling_z
+            return target
+
+        offset = direction * self.motor_config.geometry.projection_ahead_mm  # Step forward by the configured distance.
+        target = foot_world.copy()  # Start targeting at the foot location.
+        target[2] = self.homography_config.floor_z_mm  # Force the Z coordinate to the floor plane.
+        target[:2] = target[:2] + offset[:2]  # Shift the XY position forward to land slightly ahead of the feet.
+        return target  # Return the final world-space aim point for the laser/projected graphic.
 
     def _compute_angles(self, target: np.ndarray) -> Tuple[float, float]:
         x, y, z = map(float, target)

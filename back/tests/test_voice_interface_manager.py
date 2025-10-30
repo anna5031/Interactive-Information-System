@@ -16,6 +16,9 @@ class StubMicrophoneManager:
         self.is_listening = False
         self.preferred_device_name = "Stub Mic"
         self.input_device_index = 1
+        self.RATE = 16000
+        self._stream_rate = 16000
+        self._fallback = False
 
     def setup_microphone(self, device_index=None) -> bool:  # noqa: ANN001
         self.setup_called = True
@@ -43,6 +46,12 @@ class StubMicrophoneManager:
 
     def cleanup(self) -> None:
         self.test_calls.append(("cleanup",))
+
+    def get_stream_sample_rate(self) -> float:
+        return float(self._stream_rate)
+
+    def has_samplerate_fallback(self) -> bool:
+        return bool(self._fallback)
 
 
 class StubTTSManager:
