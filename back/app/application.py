@@ -17,7 +17,7 @@ from features.qa import (
     SpeechToTextManager,
     VoiceInterfaceManager,
 )
-from rag_test_fin import RAGQAService
+from rag_service import RAGQAService
 
 
 logger = logging.getLogger(__name__)

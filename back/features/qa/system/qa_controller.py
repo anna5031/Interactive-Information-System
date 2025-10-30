@@ -7,7 +7,7 @@ from enum import Enum, auto
 from typing import AsyncIterator, Iterable, Optional, Union
 
 from app.events import CommandEvent, MotorStateEvent, VisionResultEvent
-from rag_test_fin import QAServiceResult, RAGQAService
+from rag_service import QAServiceResult, RAGQAService
 from ..managers import STTManager, VoiceInterfaceManager
 
 
