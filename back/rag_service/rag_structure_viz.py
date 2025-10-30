@@ -1,8 +1,17 @@
 from __future__ import annotations
 
 from pathlib import Path
+import sys
+from importlib import import_module
 
-from .info_system import UniversityMEInfoSystem
+if __package__ in (None, ""):
+    current_dir = Path(__file__).resolve().parent
+    parent_dir = current_dir.parent
+    if str(parent_dir) not in sys.path:
+        sys.path.insert(0, str(parent_dir))
+    UniversityMEInfoSystem = import_module("rag_service.info_system").UniversityMEInfoSystem
+else:
+    from .info_system import UniversityMEInfoSystem
 
 
 def _build_workflow_without_dependencies():
@@ -10,6 +19,7 @@ def _build_workflow_without_dependencies():
     dummy = object.__new__(UniversityMEInfoSystem)
     dummy.use_guardrail = False
     dummy.enable_intent_rewrite = False
+    dummy.log_retrieved_facts = False
     return UniversityMEInfoSystem._create_workflow(dummy)
 
 
