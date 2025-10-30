@@ -27,20 +27,30 @@ class WebSocketServer:
             config.websocket.host,
             config.websocket.port,
         )
+        await self.application.start_background_services()
         self._server = await websockets.serve(
             self._handle_client,
             config.websocket.host,
             config.websocket.port,
         )
-        await self._stop_event.wait()
+        try:
+            await self._stop_event.wait()
+        finally:
+            await self.application.stop_background_services()
 
     async def stop(self) -> None:
         server = self._server
         if server is not None:
             logger.info("Stopping WebSocket server.")
+            # Close active client sockets first so their background tasks unwind cleanly.
+            websockets_to_close = list(getattr(server, "websockets", []))
+            await asyncio.gather(
+                *[ws.close(code=1001, reason="Server shutdown") for ws in websockets_to_close],
+                return_exceptions=True,
+            )
             server.close()
             await server.wait_closed()
-            self._stop_event.set()
+        self._stop_event.set()
 
     async def _handle_client(
         self, websocket: WebSocketServerProtocol, path: str | None = None

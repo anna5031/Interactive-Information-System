@@ -40,11 +40,18 @@ class MotorGeometryConfig:
 
 
 @dataclass(slots=True)
+class MotorPoseConfig:
+    standby_pan_deg: float
+    standby_tilt_deg: float
+
+
+@dataclass(slots=True)
 class MotorConfig:
     backend: str
     serial: MotorSerialConfig
     limits: MotorLimitsConfig
     geometry: MotorGeometryConfig
+    poses: MotorPoseConfig
     ping_on_startup: bool
     command_retry_delay: float
 
@@ -106,6 +113,18 @@ def _get_float_env(name: str, default: float) -> float:
         return float(default)
 
 
+def _get_float_env_alias(names: tuple[str, ...], default: float) -> float:
+    for name in names:
+        value = os.getenv(name)
+        if value is None:
+            continue
+        try:
+            return float(value)
+        except ValueError:
+            continue
+    return float(default)
+
+
 def load_config() -> AppConfig:
     """Load configuration from environment variables."""
     ws_host = os.getenv("BACKEND_WS_HOST", "0.0.0.0")
@@ -130,6 +149,14 @@ def load_config() -> AppConfig:
     tilt_max_deg = _get_float_env("BACKEND_MOTOR_TILT_MAX", motor_settings.TILT_MAX_DEG)
     tilt_init_deg = _get_float_env(
         "BACKEND_MOTOR_TILT_INIT", motor_settings.TILT_INIT_DEG
+    )
+    standby_pan_deg = _get_float_env_alias(
+        ("BACKEND_MOTOR_STANDBY_PAN", "BACKEND_MOTOR_QA_PAN"),
+        motor_settings.STANDBY_PAN_DEG,
+    )
+    standby_tilt_deg = _get_float_env_alias(
+        ("BACKEND_MOTOR_STANDBY_TILT", "BACKEND_MOTOR_QA_TILT"),
+        motor_settings.STANDBY_TILT_DEG,
     )
     tilt_axis_height_mm = _get_float_env(
         "BACKEND_MOTOR_TILT_AXIS_HEIGHT", motor_settings.TILT_AXIS_HEIGHT_MM
@@ -187,7 +214,7 @@ def load_config() -> AppConfig:
     )
 
     engagement_distance_mm = _get_float_env(
-        "BACKEND_ENGAGEMENT_DISTANCE_MM", 500.0
+        "BACKEND_ENGAGEMENT_DISTANCE_MM", 1600.0
     )
     engagement_timeout_s = _get_float_env(
         "BACKEND_ENGAGEMENT_APPROACH_TIMEOUT_S", 10.0
@@ -224,6 +251,10 @@ def load_config() -> AppConfig:
             tilt_axis_height_mm=tilt_axis_height_mm,
             projector_offset_mm=projector_offset_mm,
             projection_ahead_mm=projection_ahead_mm,
+        ),
+        poses=MotorPoseConfig(
+            standby_pan_deg=standby_pan_deg,
+            standby_tilt_deg=standby_tilt_deg,
         ),
         ping_on_startup=ping_on_startup,
         command_retry_delay=command_retry_delay,

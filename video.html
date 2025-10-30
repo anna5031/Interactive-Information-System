@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Exploration Stream Viewer</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #101418;
+      --fg: #f5f7fa;
+      --accent: #3a7afe;
+      --border: rgba(255, 255, 255, 0.15);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--fg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+      padding: 2rem 1.5rem 3rem;
+      box-sizing: border-box;
+    }
+    h1 {
+      font-size: 1.8rem;
+      margin: 0;
+      text-align: center;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.8rem;
+      align-items: center;
+      justify-content: center;
+    }
+    label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.95rem;
+      background: rgba(0, 0, 0, 0.2);
+      padding: 0.5rem 0.75rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+    }
+    input[type="text"] {
+      border: none;
+      outline: none;
+      background: transparent;
+      color: inherit;
+      width: 16rem;
+      font-size: 0.95rem;
+    }
+    button {
+      cursor: pointer;
+      font-size: 0.95rem;
+      padding: 0.55rem 1.25rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(58, 122, 254, 0.18);
+      color: var(--fg);
+      transition: background 0.2s ease, transform 0.15s ease;
+    }
+    button:hover {
+      background: rgba(58, 122, 254, 0.32);
+    }
+    button:active {
+      transform: scale(0.97);
+    }
+    #status {
+      font-size: 0.95rem;
+      min-height: 1.2rem;
+      text-align: center;
+    }
+    .viewer {
+      width: min(92vw, 960px);
+      aspect-ratio: 16 / 9;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+    .viewer img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #000;
+    }
+    .viewer::before {
+      content: "Waiting for stream";
+      position: absolute;
+      color: rgba(255, 255, 255, 0.35);
+      font-size: 1rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      transition: opacity 0.2s ease;
+    }
+    .viewer.showing::before {
+      opacity: 0;
+    }
+    .log-container {
+      width: min(92vw, 960px);
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .log-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 1.05rem;
+    }
+    .log-list {
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+      max-height: 280px;
+      overflow-y: auto;
+      font-family: "Fira Code", "SFMono-Regular", Consolas, monospace;
+      font-size: 0.85rem;
+      line-height: 1.4;
+    }
+    .log-line {
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: rgba(255, 255, 255, 0.85);
+    }
+    .log-line span.level {
+      font-weight: 600;
+      color: #ffb74d;
+    }
+    .log-line span.level.error {
+      color: #ff6b6b;
+    }
+    .log-line span.level.debug {
+      color: #64b5f6;
+    }
+    .log-line span.level.info {
+      color: #81c784;
+    }
+    .log-line span.time {
+      color: rgba(255, 255, 255, 0.55);
+      margin-right: 0.5rem;
+    }
+    .log-line span.logger {
+      color: rgba(255, 255, 255, 0.7);
+      margin-right: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Exploration Stream Viewer</h1>
+  <div class="controls">
+    <label>
+      ws://
+      <input id="ws-host" type="text" placeholder="jetson-ip" />
+    </label>
+    <button id="connect-btn">Connect</button>
+    <button id="disconnect-btn" disabled>Disconnect</button>
+  </div>
+  <div id="status"></div>
+  <div id="viewer" class="viewer">
+    <img id="stream" alt="exploration stream" />
+  </div>
+  <div class="log-container">
+    <div class="log-header">
+      <span>실시간 백엔드 로그</span>
+      <button id="clear-logs" type="button">Clear</button>
+    </div>
+    <div id="log-list" class="log-list"></div>
+  </div>
+
+  <script>
+    const WS_PORT = 9100;
+    const DEFAULT_HOST = window.location.hostname || "jetson-ip";
+    const hostField = document.getElementById("ws-host");
+    const connectBtn = document.getElementById("connect-btn");
+    const disconnectBtn = document.getElementById("disconnect-btn");
+    const statusField = document.getElementById("status");
+    const streamImg = document.getElementById("stream");
+    const viewer = document.getElementById("viewer");
+    const logList = document.getElementById("log-list");
+    const clearLogsBtn = document.getElementById("clear-logs");
+
+    const MAX_LOG_LINES = 500;
+
+    let socket = null;
+    let lastFrameAt = 0;
+    let frameTimer = null;
+
+    hostField.value = DEFAULT_HOST;
+
+    function updateStatus(message, isError = false) {
+      statusField.textContent = message;
+      statusField.style.color = isError ? "#ff7373" : "";
+    }
+
+    function clearTimer() {
+      if (frameTimer) {
+        clearTimeout(frameTimer);
+        frameTimer = null;
+      }
+    }
+
+    function handleFrameTimeout() {
+      if (Date.now() - lastFrameAt > 3000) {
+        viewer.classList.remove("showing");
+        streamImg.removeAttribute("src");
+        updateStatus("No frames in the last 3 seconds.");
+      } else {
+        frameTimer = setTimeout(handleFrameTimeout, 1000);
+      }
+    }
+
+    function connect() {
+      if (socket) {
+        socket.close();
+      }
+
+      const raw = hostField.value.trim() || DEFAULT_HOST;
+      let url;
+      if (raw.startsWith("ws://") || raw.startsWith("wss://")) {
+        url = raw;
+      } else {
+        const host = raw.replace(/^\/*/, "");
+        url = `ws://${host}:${WS_PORT}`;
+      }
+
+      try {
+        socket = new WebSocket(url);
+      } catch (err) {
+        updateStatus(`Invalid WebSocket URL: ${err}`, true);
+        return;
+      }
+
+      updateStatus(`Connecting to ${url} …`);
+      connectBtn.disabled = true;
+      disconnectBtn.disabled = false;
+
+      socket.onopen = () => {
+        updateStatus(`Connected to ${url}`);
+      };
+
+      socket.onclose = (event) => {
+        updateStatus(`Disconnected (${event.code})`);
+        viewer.classList.remove("showing");
+        streamImg.removeAttribute("src");
+        connectBtn.disabled = false;
+        disconnectBtn.disabled = true;
+        clearTimer();
+        socket = null;
+      };
+
+      socket.onerror = (event) => {
+        updateStatus(`Socket error: ${event.message || "unknown"}`, true);
+      };
+
+      socket.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data);
+          if (payload.type === "exploration_frame") {
+            streamImg.src = `data:image/jpeg;base64,${payload.image_jpeg}`;
+            viewer.classList.add("showing");
+            lastFrameAt = Date.now();
+            clearTimer();
+            frameTimer = setTimeout(handleFrameTimeout, 1500);
+          } else if (payload.type === "log_entry") {
+            appendLogLine(payload);
+          }
+        } catch (err) {
+          updateStatus(`Failed to decode frame: ${err}`, true);
+        }
+      };
+    }
+
+    function disconnect() {
+      if (socket) {
+        socket.close(1000, "Client disconnect");
+      }
+    }
+
+    connectBtn.addEventListener("click", connect);
+    disconnectBtn.addEventListener("click", disconnect);
+    clearLogsBtn.addEventListener("click", () => {
+      logList.textContent = "";
+    });
+
+    window.addEventListener("beforeunload", disconnect);
+
+    function appendLogLine({ level, logger, message, timestamp }) {
+      const div = document.createElement("div");
+      div.className = "log-line";
+
+      const levelClass = level ? level.toLowerCase() : "info";
+
+      const timeSpan = document.createElement("span");
+      timeSpan.className = "time";
+      timeSpan.textContent = formatTimestamp(timestamp);
+
+      const levelSpan = document.createElement("span");
+      levelSpan.className = `level ${levelClass}`;
+      levelSpan.textContent = level || "INFO";
+
+      const loggerSpan = document.createElement("span");
+      loggerSpan.className = "logger";
+      loggerSpan.textContent = logger || "";
+
+      const msgSpan = document.createElement("span");
+      msgSpan.textContent = message;
+
+      div.append(timeSpan, levelSpan, loggerSpan, msgSpan);
+      logList.append(div);
+
+      while (logList.childElementCount > MAX_LOG_LINES) {
+        logList.firstChild?.remove();
+      }
+
+      logList.scrollTop = logList.scrollHeight;
+    }
+
+    function formatTimestamp(value) {
+      if (!value) return "";
+      try {
+        return new Date(value).toLocaleTimeString();
+      } catch (e) {
+        return value;
+      }
+    }
+  </script>
+</body>
+</html>
