@@ -87,7 +87,7 @@ back/
 - **전환 규칙 (현재 구현)**  
   1. `Idle` → `Exploration`: 클라이언트 접속 후 `start_landing` 명령이 전달되면 탐색 루프가 시작된다.  
   2. `Exploration` → `Landing`: Vision 이벤트에서 `has_target=True` 상태가 `BACKEND_DETECTION_HOLD_SECONDS` 이상 유지되면 `SessionFlowCoordinator`가 Landing 스크립트를 큐잉한다 (`start_landing` → `start_nudge`).  
-  3. `Landing` → `QA`: 모터 상태가 팬/틸트 모두 허용 오차(`alignment_tolerance_deg`) 이내로 `alignment_hold_seconds` 동안 유지되면 `start_qa` 명령과 함께 QA 파이프라인을 기동한다. `initialPrompt`는 QA 시작 전에 음성으로 재생된다.  
+  3. `Landing` → `QA`: 사람-프로젝터 간 거리가 `BACKEND_ENGAGEMENT_DISTANCE_MM` 이하로 줄어들면 `start_qa` 명령과 함께 QA 파이프라인을 기동한다. 사람이 `BACKEND_ENGAGEMENT_APPROACH_TIMEOUT_S` 이내에 `BACKEND_ENGAGEMENT_APPROACH_DELTA_MM` 이상 가까워지지 않으면 타겟을 해제하고 탐색 단계로 복귀한다. 개발 편의를 위해 `SKIP_TO_QA_AUTO=True`면 타겟 고정 후 `BACKEND_ENGAGEMENT_QA_AUTO_DELAY_S` 뒤 QA를 자동 실행한다.  
   4. `QA` → `Exploration`: QA 컨트롤러가 `stop_all` 명령을 발행하고 ACK가 완료되면 `SessionFlowCoordinator`가 재탐색을 허용한다 (새로운 타겟이 일정 시간 사라져야 재진입).
 - `SessionFlowCoordinator`는 Vision/모터 신호를 기반으로 Landing·QA 조건을 평가하며, `CommandManager`는 각 명령의 ACK를 추적한다.
 
@@ -106,10 +106,12 @@ back/
 - 더미 `ExplorationStub`은 `SCANNING → TRACKING → COOLDOWN` 상태 머신으로 동작하여 실서비스 전환 시나리오(탐지 지연, 추적 유지, 재탐색)를 재현한다.
 
 ## 8. 모터 제어 및 Homography
-- `MotorController`는 하드웨어 추상화(`MotorDriver`)를 사용해 각도 명령을 비동기 전송.
-- `MotorDriver`는 실제 장치 혹은 시뮬레이터에 대응하는 인터페이스. 개발 초기에는 더미 구현으로 로그만 기록.
-- `HomographyGenerator`는 현재 모터 각도, 카메라-프로젝터 캘리브레이션 데이터, 타겟 좌표를 입력받아 3×3 행렬을 산출.
-- 행렬 업데이트는 최소 10Hz를 유지하도록 스케줄링하며, 변경 없을 때도 keepalive 용으로 주기 전송.
+- `MotorController`는 하드웨어 추상화(`MotorDriver`)를 사용해 각도 명령을 비동기 전송한다. 실장 모드에서 직렬 드라이버(`features/motor/controller.py`)는 `foot_world`, `world_target`, `distance_to_projector` 값을 계산해 호모그래피 및 세션 로직에 제공한다.
+- `MotorDriver`는 실제 장치 혹은 시뮬레이터에 대응하는 인터페이스. `USE_DUMMY_MOTOR=True`로 실행했을 때도 호모그래피 계산이 끊기지 않도록 스텁이 프로젝터 기준의 가상 월드 좌표를 생성해 준다.
+- `HomographyCalculator`는 현재 모터 상태와 캘리브레이션 데이터를 이용해 3×3 행렬을 산출하고, EMA 기반 스무딩(`BACKEND_HOMOGRAPHY_SMOOTHING_ALPHA`)을 적용한다.
+- 행렬 업데이트는 최소 10Hz를 유지하도록 스케줄링하며, 변경이 없어도 keepalive용으로 주기 전송한다.
+- `MotorStateEvent`에는 `distance_to_projector`, `approach_velocity_mm_s`, `is_approaching` 정보가 포함되어 `SessionFlowCoordinator`가 사용자의 접근 여부를 판단한다. 카메라 흔들림/포즈 인식 노이즈가 큰 환경에서는 거리 값이 프레임마다 요동칠 수 있으므로 가중 이동 평균(EMA) 등의 필터를 추가하는 방안을 고려한다.
+- 타겟 미검출이 잠시 발생하더라도 `BACKEND_ENGAGEMENT_LOST_TARGET_GRACE_S` 이내라면 Landing 단계를 유지해 빔이 대상자를 계속 추적한다. 검출이 완전히 사라지거나 그레이스 시간을 초과하면 타겟을 해제하고 탐색을 재개한다.
 
 ## 9. QA 파이프라인
 - `QAController`는 다음 서브 모듈을 조율:
@@ -146,6 +148,14 @@ back/
    - 순차적으로 YOLO 모델, 모터 API, ASR/LLM/TTS 교체.
 7. **관측/신뢰성 강화**
    - 에러 핸들링, 재시도, 타임아웃, 모니터링 보강.
+
+## 12. 캘리브레이션 및 설치 절차 (실장 환경)
+1. **카메라 내부 파라미터 추정**: 체커보드 이미지를 촬영해 `nudge_test/vision/calibration.py`를 실행하면 `camera_calib.npz`가 생성된다.
+2. **카메라 외부 파라미터 추정**: 설치 장소 바닥의 4점 실측 좌표와 해당 픽셀 좌표를 입력해 `vision/camera_pose.py`(SolvePnP)를 실행하면 `camera_extrinsics.npz`가 생성된다.
+3. **파일 배치**: 생성된 두 `.npz` 파일을 백엔드가 참조하는 디렉터리(`features/homography/calibration/` 또는 `BACKEND_CALIB_DIR`)에 복사한다.
+4. **프로젝터/모터 설정**: `features/homography/settings.py`에서 `PROJECTOR_POSITION_MM`, `FLOOR_Z_MM`, `FOOTPRINT_*` 값을 현장 기준으로 맞춰 주고, 필요 시 환경 변수(`BACKEND_PROJECTOR_POS_*`, `BACKEND_FOOTPRINT_*`)로 덮어쓴다.
+5. **런타임 토글**: `main.py`에서 `USE_DUMMY_MOTOR`, `USE_DUMMY_HOMOGRAPHY` 주석을 그대로 두면 실장 모드가 활성화된다. 개발용 자동 QA는 `SKIP_TO_QA_AUTO`로 제어한다.
+6. **검증**: `LOG_MOTOR`, `LOG_HOMOGRAPHY` 로그를 켜서 거리 변화 및 호모그래피 행렬이 정상적으로 출력되는지 확인하고, `BACKEND_ENGAGEMENT_*` 파라미터를 현장에 맞게 튜닝한다.
 
 ## 12. 미해결 논의 사항
 - YOLO 추론을 GPU 환경에서 실행할지, 외부 서비스로 위임할지 결정 필요.

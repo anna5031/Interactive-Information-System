@@ -1,0 +1,11 @@
+.statusMessage {
+  margin-top: 2rem;
+  font-size: 1.05rem;
+  color: rgba(255, 255, 255, 0.75);
+  text-align: center;
+}
+@media (max-width: 720px) {
+  .statusMessage {
+    font-size: 0.95rem;
+  }
+}

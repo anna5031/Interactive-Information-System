@@ -24,6 +24,10 @@ AppStateProvider.propTypes = {
     connectionStatus: PropTypes.string.isRequired,
     latestHomography: PropTypes.object,
     currentScreenCommand: PropTypes.object,
+    detectionState: PropTypes.shape({
+      status: PropTypes.string.isRequired,
+      lastCommandId: PropTypes.string,
+    }).isRequired,
     qaState: PropTypes.shape({
       status: PropTypes.string.isRequired,
       initialPrompt: PropTypes.string,

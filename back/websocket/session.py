@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import inspect
 from typing import Any
 
 from websockets import ConnectionClosed
@@ -58,6 +59,7 @@ class ClientSession:
                     task.cancel()
             await asyncio.gather(*self._tasks, return_exceptions=True)
             await self.command_manager.shutdown()
+            await self._run_cleanup()
             logger.info("Client session finished.")
 
     async def _send_sync(self) -> None:
@@ -68,7 +70,11 @@ class ClientSession:
 
     async def _homography_loop(self) -> None:
         async for vision_event in self.deps.exploration.stream():
-            motor_state = self.deps.motor.update(vision_event)
+            motor_candidate = self.deps.motor.update(vision_event)
+            if inspect.isawaitable(motor_candidate):
+                motor_state = await motor_candidate
+            else:
+                motor_state = motor_candidate
             homography_event = self.deps.homography.build(motor_state)
 
             if self.debug.log_exploration:
@@ -148,6 +154,18 @@ class ClientSession:
     async def _send_json(self, payload: dict[str, Any]) -> None:
         data = json.dumps(payload, ensure_ascii=False)
         await self.websocket.send(data)
+
+    async def _run_cleanup(self) -> None:
+        callbacks = getattr(self.deps, "cleanup", ())
+        for callback in callbacks:
+            if callback is None:
+                continue
+            try:
+                result = callback()
+                if inspect.isawaitable(result):
+                    await result
+            except Exception:
+                logger.warning("Session cleanup callback failed.", exc_info=True)
 
 
 def _safe_tuple(value: Any) -> Any:

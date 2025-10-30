@@ -2,6 +2,7 @@ import yoloTxtPath from '../dummy/yolo.txt';
 import wallTxtPath from '../dummy/wall.txt';
 import { isBoxLabel, isPointLabel } from '../config/annotationConfig';
 import { subtractBoxesFromLines } from '../utils/wallTrimmer';
+import { saveStepOneResult } from './stepOneResults';
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -581,123 +582,6 @@ const serialiseLinesToWallText = (lines) => {
     .join('\n');
 };
 
-const parseDoorPoints = (text, boxes, lines) => {
-  return text
-    .split('\n')
-    .map((line, index) => {
-      const trimmed = line.trim();
-      if (!trimmed) {
-        return null;
-      }
-      const parts = trimmed.split(/\s+/);
-      if (parts.length < 2) {
-        return null;
-      }
-
-      let cursor = 0;
-      let labelId = parts[cursor];
-      if (isPointLabel(labelId)) {
-        cursor += 1;
-      } else {
-        labelId = DOOR_LABEL_ID;
-      }
-
-      const xValue = parts[cursor];
-      const yValue = parts[cursor + 1];
-      const rest = parts.slice(cursor + 2);
-
-      if (!Number.isFinite(Number.parseFloat(xValue)) || !Number.isFinite(Number.parseFloat(yValue))) {
-        return null;
-      }
-
-      const x = normaliseValue(Number.parseFloat(xValue));
-      const y = normaliseValue(Number.parseFloat(yValue));
-
-      const point = {
-        id: `door-${index}`,
-        type: 'point',
-        labelId,
-        x,
-        y,
-      };
-
-      if (rest.length > 0) {
-        const [anchorType, ...anchorRest] = rest;
-        if (anchorType === 'line' && anchorRest.length >= 2) {
-          let lineIndex = -1;
-          let lineId;
-          let tValue;
-
-          if (anchorRest.length >= 3) {
-            const [indexToken, idToken, tToken] = anchorRest;
-            lineIndex = Number.parseInt(indexToken, 10);
-            lineId = idToken;
-            tValue = Number.parseFloat(tToken);
-          } else {
-            const [idToken, tToken] = anchorRest;
-            lineId = idToken;
-            tValue = Number.parseFloat(tToken);
-          }
-
-          if (Number.isFinite(tValue)) {
-            const normalisedIndex = Number.isInteger(lineIndex) ? lineIndex : -1;
-            const lineRef =
-              normalisedIndex >= 0 && normalisedIndex < lines.length
-                ? lines[normalisedIndex]
-                : lines.find((candidate) => candidate.id === lineId);
-            const resolvedId = lineRef?.id || lineId;
-            if (resolvedId) {
-              point.anchor = {
-                type: 'line',
-                id: resolvedId,
-                index: lineRef ? normalisedIndex : undefined,
-                t: normaliseValue(tValue),
-              };
-            }
-          }
-        } else if (anchorType === 'box' && anchorRest.length >= 3) {
-          let boxIndex = -1;
-          let boxId;
-          let edge;
-          let tValue;
-
-          if (anchorRest.length >= 4) {
-            const [indexToken, idToken, edgeToken, tToken] = anchorRest;
-            boxIndex = Number.parseInt(indexToken, 10);
-            boxId = idToken;
-            edge = edgeToken;
-            tValue = Number.parseFloat(tToken);
-          } else {
-            const [idToken, edgeToken, tToken] = anchorRest;
-            boxId = idToken;
-            edge = edgeToken;
-            tValue = Number.parseFloat(tToken);
-          }
-
-          if (Number.isFinite(tValue) && edge) {
-            const normalisedIndex = Number.isInteger(boxIndex) ? boxIndex : -1;
-            const boxRef =
-              normalisedIndex >= 0 && normalisedIndex < boxes.length
-                ? boxes[normalisedIndex]
-                : boxes.find((candidate) => candidate.id === boxId);
-            const resolvedId = boxRef?.id || boxId;
-            if (resolvedId) {
-              point.anchor = {
-                type: 'box',
-                id: resolvedId,
-                index: boxRef ? normalisedIndex : undefined,
-                edge,
-                t: normaliseValue(tValue),
-              };
-            }
-          }
-        }
-      }
-
-      return point;
-    })
-    .filter(Boolean);
-};
 const serialisePointsToDoorText = (points, boxes, lines) => {
   if (!Array.isArray(points)) {
     return '';
@@ -729,6 +613,12 @@ const serialisePointsToDoorText = (points, boxes, lines) => {
     .join('\n');
 };
 
+const cloneBox = (box) => ({ ...box });
+
+const cloneLine = (line) => ({ ...line });
+
+const clonePoint = (point) => ({ ...point, anchor: point?.anchor ? { ...point.anchor } : undefined });
+
 export const uploadFloorPlan = async (file) => {
   await delay(2000);
 
@@ -755,16 +645,47 @@ export const uploadFloorPlan = async (file) => {
   };
 };
 
-export const saveAnnotations = async ({ boxes, lines, points }) => {
+export const saveAnnotations = async ({
+  fileName,
+  imageUrl,
+  boxes,
+  lines,
+  points,
+  rawYoloText,
+  rawWallText,
+  rawDoorText,
+  sourceOriginalId,
+}) => {
   await delay(2000);
 
-  const savedYoloText = serialiseBoxesToYoloText(boxes);
-  const savedWallText = serialiseLinesToWallText(lines);
-  const savedDoorText = serialisePointsToDoorText(points, boxes, lines);
+  const clonedBoxes = Array.isArray(boxes) ? boxes.map(cloneBox) : [];
+  const clonedLines = Array.isArray(lines) ? lines.map(cloneLine) : [];
+  const clonedPoints = Array.isArray(points) ? points.map(clonePoint) : [];
 
-  return {
-    savedYoloText,
-    savedWallText,
-    savedDoorText,
-  };
+  const savedYoloText = serialiseBoxesToYoloText(clonedBoxes);
+  const savedWallText = serialiseLinesToWallText(clonedLines);
+  const savedDoorText = serialisePointsToDoorText(clonedPoints, clonedBoxes, clonedLines);
+
+  return saveStepOneResult({
+    yolo: {
+      raw: rawYoloText ?? '',
+      text: savedYoloText,
+      boxes: clonedBoxes,
+    },
+    wall: {
+      raw: rawWallText ?? '',
+      text: savedWallText,
+      lines: clonedLines,
+    },
+    door: {
+      raw: rawDoorText ?? '',
+      text: savedDoorText,
+      points: clonedPoints,
+    },
+    metadata: {
+      fileName: fileName ?? 'floor-plan.png',
+      imageUrl: imageUrl ?? null,
+    },
+    sourceOriginalId: sourceOriginalId ?? null,
+  });
 };

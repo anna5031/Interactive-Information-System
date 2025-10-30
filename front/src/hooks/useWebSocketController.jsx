@@ -27,6 +27,7 @@ export default function useWebSocketController({ onNavigate }) {
   const [currentScreenCommand, setCurrentScreenCommand] = useState(null);
   const [commandForNavigation, setCommandForNavigation] = useState(null);
   const [qaState, setQaState] = useState(() => createInitialQaState());
+  const [detectionState, setDetectionState] = useState({ status: 'idle', lastCommandId: null });
 
   const socketRef = useRef(null);
   const shouldReconnectRef = useRef(true);
@@ -183,12 +184,22 @@ export default function useWebSocketController({ onNavigate }) {
           }));
           break;
         case 'start_nudge':
+          setDetectionState({ status: 'assistance', lastCommandId: commandId });
+          setQaState(() => createInitialQaState());
+          break;
         case 'start_guidance':
+          setDetectionState({ status: 'guidance', lastCommandId: commandId });
+          setQaState(() => createInitialQaState());
+          break;
         case 'start_landing':
+          setDetectionState({ status: 'scanning', lastCommandId: commandId });
+          setQaState(() => createInitialQaState());
+          break;
         case 'stop_all':
         case 'enter_idle':
         case 'start_idle':
           setQaState(() => createInitialQaState());
+          setDetectionState({ status: 'idle', lastCommandId: commandId });
           break;
         default:
           break;
@@ -322,9 +333,12 @@ export default function useWebSocketController({ onNavigate }) {
       return;
     }
 
+    const { action, route } = commandForNavigation;
+    const shouldNavigate = action !== 'start_landing' && !!route;
+
     const completionTimer = setTimeout(() => {
-      if (commandForNavigation.route) {
-        onNavigateRef.current?.(commandForNavigation.route);
+      if (shouldNavigate) {
+        onNavigateRef.current?.(route);
       }
       completeCommand(commandForNavigation);
     }, 0);
@@ -334,14 +348,27 @@ export default function useWebSocketController({ onNavigate }) {
     };
   }, [commandForNavigation, completeCommand]);
 
+  useEffect(() => {
+    if (!detectionState) {
+      return;
+    }
+
+    if (detectionState.status === 'assistance' || detectionState.status === 'guidance' || detectionState.status === 'scanning') {
+      onNavigateRef.current?.('/nudge');
+    } else if (detectionState.status === 'idle') {
+      onNavigateRef.current?.('/');
+    }
+  }, [detectionState]);
+
   const state = useMemo(
     () => ({
       connectionStatus,
       latestHomography,
       currentScreenCommand,
+      detectionState,
       qaState,
     }),
-    [connectionStatus, currentScreenCommand, latestHomography, qaState],
+    [connectionStatus, currentScreenCommand, latestHomography, detectionState, qaState],
   );
 
   return state;

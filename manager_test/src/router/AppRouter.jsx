@@ -7,6 +7,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import AdminUploadPage from '../pages/AdminUploadPage';
 import AdminEditorPage from '../pages/AdminEditorPage';
 import AdminReviewPage from '../pages/AdminReviewPage';
+import AdminStepTwoPage from '../pages/AdminStepTwoPage';
 import styles from './AppRouter.module.css';
 
 const AppRouter = () => {
@@ -35,6 +36,7 @@ const AppRouter = () => {
             <Route path='upload' element={<AdminUploadPage />} />
             <Route path='editor' element={<AdminEditorPage />} />
             <Route path='review' element={<AdminReviewPage />} />
+            <Route path='step-two/:stepOneId' element={<AdminStepTwoPage />} />
             <Route path='*' element={<Navigate to='upload' replace />} />
           </Route>
           <Route path='*' element={<Navigate to='/admin/upload' replace />} />

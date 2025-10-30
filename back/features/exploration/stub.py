@@ -36,6 +36,12 @@ class ExplorationStub:
             yield event
             await asyncio.sleep(self._config.interval)
 
+    def suspend(self) -> None:  # no-op for stub
+        return
+
+    def resume(self) -> None:  # no-op for stub
+        return
+
     def _next_event(self) -> VisionResultEvent:
         now_monotonic = time.monotonic()
         self._update_state(now_monotonic)
