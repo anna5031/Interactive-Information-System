@@ -90,7 +90,8 @@ class RealMotorController:
 
         # Offset the aim point so the projection lands slightly ahead of the user's feet.
         #aim_world = self._compute_projection_target(foot_world_arr.copy(), forward_direction)
-        aim_world = foot_world_arr # aim at human foot
+        aim_world = foot_world_arr.copy()
+        aim_world[2] += 2650.0  # aim at user head ~265 cm above floor
 
         # Determine the pan/tilt adjustments required to hit the aim point.
         tilt_raw, pan_raw = self._compute_angles(aim_world)
@@ -107,7 +108,7 @@ class RealMotorController:
 
         await self._send_command(tilt_cmd, pan_cmd)
 
-        distance = float(np.linalg.norm(foot_world_arr - self._projector))
+        distance = float(np.linalg.norm(foot_world_arr[:2]))
         approach_velocity = None
         is_approaching = None
         # Track simple approach velocity so downstream logic can react to movement trends.

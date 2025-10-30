@@ -12,7 +12,7 @@ from websocket.server import WebSocketServer
 # 디버그 로그 토글 (라인을 주석 처리해 on/off 조절)
 LOG_EXPLORATION = True  # 주석 처리하면 로그 비활성화
 # LOG_MOTOR = True  # 주석 처리하면 로그 비활성화
-LOG_HOMOGRAPHY = True  # 주석 처리하면 로그 비활성화
+# LOG_HOMOGRAPHY = True  # 주석 처리하면 로그 비활성화
 LOG_COMMANDS = True  # 주석 처리하면 로그 비활성화
 SHOW_EXPLORATION_OVERLAY = True  # 주석 처리하면 화면 오버레이 비활성화
 # USE_DUMMY_EXPLORATION = True  # 주석 처리하면 실제 파이프라인 사용

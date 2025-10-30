@@ -295,6 +295,12 @@ class SessionFlowCoordinator:
         if distance is None:
             return
 
+        logger.info(
+            "타겟-프로젝터 거리 %.1fmm (phase=%s)",
+            distance,
+            self._phase.name,
+        )
+
         if self._initial_distance_mm is None:
             self._initial_distance_mm = distance
             self._last_distance_mm = distance

@@ -11,6 +11,7 @@ CAMERA_SOURCE = 0
 CAMERA_FRAME_SIZE = (1280, 720)  # (width, height) 또는 None
 CAMERA_FOURCC = "MJPG"  # 예: "MJPG", "YUYV", None
 CAMERA_TARGET_FPS = None  # float 또는 None
+CAMERA_REFERENCE_IMAGE = "back/features/homography/calibration/sts_hallway.jpg"  # reference image for pose calibration (or None)
 
 # Model thresholds
 # 우선 TensorRT 엔진을 시도하고, 실패 시 파이토치 가중치(.pt)를 사용합니다.

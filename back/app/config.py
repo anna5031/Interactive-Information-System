@@ -187,7 +187,7 @@ def load_config() -> AppConfig:
     )
 
     engagement_distance_mm = _get_float_env(
-        "BACKEND_ENGAGEMENT_DISTANCE_MM", 800.0
+        "BACKEND_ENGAGEMENT_DISTANCE_MM", 500.0
     )
     engagement_timeout_s = _get_float_env(
         "BACKEND_ENGAGEMENT_APPROACH_TIMEOUT_S", 10.0

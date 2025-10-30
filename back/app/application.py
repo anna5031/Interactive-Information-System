@@ -250,14 +250,8 @@ class Application:
             )
         if backend == "serial":
             if mapper is None:
-                logger.warning("Motor backend=serial but calibration unavailable. Falling back to stub.")
-                return (
-                    MotorStub(
-                        MotorStubConfig(),
-                        motor_config=self.config.motor,
-                        homography_config=self.config.homography,
-                    ),
-                    None,
+                raise RuntimeError(
+                    "Motor backend 'serial' requires calibration assets, but none were loaded."
                 )
             controller = RealMotorController(
                 motor_config=self.config.motor,
