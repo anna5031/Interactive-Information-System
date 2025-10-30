@@ -16,6 +16,7 @@ from .defense_layers import SandwichDefense, SeparateLLMEvaluation, detect_infor
 from .filtering import AdvancedFilteringSystem
 from .intent_classifier import IntentClassifier
 from .navigation import PathNavigationSystem
+from .navigation_payload import build_navigation_payload
 from .state import UniversityMEState
 from .vector_store import MechanicalEngineeringRAG
 
@@ -93,11 +94,13 @@ class UniversityMEInfoSystem:
         data_path: Optional[Path] = None,
         enable_intent_rewrite: bool = False,
         use_guardrail: bool = False,
+        log_retrieved_facts: bool = False,
     ):
         default_data = Path(__file__).resolve().parents[0] / "n7_professor_lectures_seminar.json"
         self.data_path = data_path or default_data
         self.enable_intent_rewrite = enable_intent_rewrite
         self.use_guardrail = use_guardrail
+        self.log_retrieved_facts = log_retrieved_facts
 
         self.initialization_error: Optional[str] = None
         self.rag_system = MechanicalEngineeringRAG(auto_initialize=False)
@@ -659,77 +662,77 @@ JSON으로만 답변:
                 state["navigation_info"]["destination_room"] = destination_room.strip()
             return state
 
-        def policy_regex_check_node(state: UniversityMEState) -> UniversityMEState:
-            state["processing_log"].append("Running policy regex checks on response...")
-            response_text = state.get("llm_response", "") or ""
-
-            filter_checks = state.setdefault("filter_checks", {})
-            leak_result = detect_information_leakage(response_text)
-            filter_checks["policy_regex_leakage"] = leak_result
-
-            blocked = False
-            blocked_reasons: List[str] = []
-
-            if leak_result.get("has_leakage"):
-                blocked = True
-                blocked_reasons.append("policy_regex_leakage")
-
-            keyword_matches = [kw for kw in RESPONSE_POLICY_KEYWORDS if kw.lower() in response_text.lower()]
-            filter_checks["policy_keyword_scan"] = {"matches": keyword_matches}
-            if keyword_matches:
-                blocked = True
-                blocked_reasons.append("policy_keyword_scan")
-
-            if blocked:
-                state["processing_log"].append(
-                    "Policy regex checks flagged response issues: " + ", ".join(blocked_reasons)
-                )
-                state["abort_message"] = UNSAFE_RESPONSE_MESSAGE
-                filter_results = state.setdefault("filter_results", {"is_safe": True, "blocked_by": []})
-                filter_results["is_safe"] = False
-                filter_results.setdefault("blocked_by", [])
-                blocked_by = set(filter_results.get("blocked_by") or [])
-                blocked_by.update(blocked_reasons)
-                filter_results["blocked_by"] = list(blocked_by)
-            else:
-                state["processing_log"].append("Policy regex checks passed.")
-            print("regex blocked: ", blocked)  # --- IGNORE ---
-            return state
-
-        def llm_evaluation_dispatch_node(state: UniversityMEState) -> UniversityMEState:
-            state["processing_log"].append("Dispatching LLM evaluations...")
-            return state
-
-        async def llm_security_eval_node(state: UniversityMEState) -> UniversityMEState:
-            state["processing_log"].append("Security evaluation in progress...")
-            result = await self.llm_evaluation.security_evaluation(state["user_query"], state["llm_response"])
-            parts = state.setdefault("llm_evaluation", {})
-            parts["security"] = result
-            return state
-
-        async def llm_content_eval_node(state: UniversityMEState) -> UniversityMEState:
-            state["processing_log"].append("Content evaluation in progress...")
-            context = "\n".join(state["retrieved_documents"])
-            result = await self.llm_evaluation.content_evaluation(state["user_query"], state["llm_response"], context)
-            parts = state.setdefault("llm_evaluation", {})
-            parts["content"] = result
-            return state
-
-        def llm_evaluation_merge_node(state: UniversityMEState) -> UniversityMEState:
-            parts = state.get("llm_evaluation", {})
-            required_keys = {"security", "content"}
-            if not required_keys.issubset(parts):
-                return state
-            security_result = parts["security"]
-            content_result = parts["content"]
-            
-            combined = self.llm_evaluation.combine_evaluations([security_result, content_result])
-            state["llm_evaluation"] = combined
-            state["processing_log"].append("LLM evaluation merged across security/content checks.")
-            action = combined.get("recommended_action", "allow")
-            if action not in {"allow", "noop"} or not combined.get("is_safe", True):
-                state["abort_message"] = UNSAFE_RESPONSE_MESSAGE
-            return state
+        # def policy_regex_check_node(state: UniversityMEState) -> UniversityMEState:
+        #     state["processing_log"].append("Running policy regex checks on response...")
+        #     response_text = state.get("llm_response", "") or ""
+        #
+        #     filter_checks = state.setdefault("filter_checks", {})
+        #     leak_result = detect_information_leakage(response_text)
+        #     filter_checks["policy_regex_leakage"] = leak_result
+        #
+        #     blocked = False
+        #     blocked_reasons: List[str] = []
+        #
+        #     if leak_result.get("has_leakage"):
+        #         blocked = True
+        #         blocked_reasons.append("policy_regex_leakage")
+        #
+        #     keyword_matches = [kw for kw in RESPONSE_POLICY_KEYWORDS if kw.lower() in response_text.lower()]
+        #     filter_checks["policy_keyword_scan"] = {"matches": keyword_matches}
+        #     if keyword_matches:
+        #         blocked = True
+        #         blocked_reasons.append("policy_keyword_scan")
+        #
+        #     if blocked:
+        #         state["processing_log"].append(
+        #             "Policy regex checks flagged response issues: " + ", ".join(blocked_reasons)
+        #         )
+        #         state["abort_message"] = UNSAFE_RESPONSE_MESSAGE
+        #         filter_results = state.setdefault("filter_results", {"is_safe": True, "blocked_by": []})
+        #         filter_results["is_safe"] = False
+        #         filter_results.setdefault("blocked_by", [])
+        #         blocked_by = set(filter_results.get("blocked_by") or [])
+        #         blocked_by.update(blocked_reasons)
+        #         filter_results["blocked_by"] = list(blocked_by)
+        #     else:
+        #         state["processing_log"].append("Policy regex checks passed.")
+        #     print("regex blocked: ", blocked)  # --- IGNORE ---
+        #     return state
+        #
+        # def llm_evaluation_dispatch_node(state: UniversityMEState) -> UniversityMEState:
+        #     state["processing_log"].append("Dispatching LLM evaluations...")
+        #     return state
+        #
+        # async def llm_security_eval_node(state: UniversityMEState) -> UniversityMEState:
+        #     state["processing_log"].append("Security evaluation in progress...")
+        #     result = await self.llm_evaluation.security_evaluation(state["user_query"], state["llm_response"])
+        #     parts = state.setdefault("llm_evaluation", {})
+        #     parts["security"] = result
+        #     return state
+        #
+        # async def llm_content_eval_node(state: UniversityMEState) -> UniversityMEState:
+        #     state["processing_log"].append("Content evaluation in progress...")
+        #     context = "\n".join(state["retrieved_documents"])
+        #     result = await self.llm_evaluation.content_evaluation(state["user_query"], state["llm_response"], context)
+        #     parts = state.setdefault("llm_evaluation", {})
+        #     parts["content"] = result
+        #     return state
+        #
+        # def llm_evaluation_merge_node(state: UniversityMEState) -> UniversityMEState:
+        #     parts = state.get("llm_evaluation", {})
+        #     required_keys = {"security", "content"}
+        #     if not required_keys.issubset(parts):
+        #         return state
+        #     security_result = parts["security"]
+        #     content_result = parts["content"]
+        #
+        #     combined = self.llm_evaluation.combine_evaluations([security_result, content_result])
+        #     state["llm_evaluation"] = combined
+        #     state["processing_log"].append("LLM evaluation merged across security/content checks.")
+        #     action = combined.get("recommended_action", "allow")
+        #     if action not in {"allow", "noop"} or not combined.get("is_safe", True):
+        #         state["abort_message"] = UNSAFE_RESPONSE_MESSAGE
+        #     return state
 
         def navigation_check_node(state: UniversityMEState) -> UniversityMEState:
             state["processing_log"].append("Checking navigation requirements...")
@@ -776,34 +779,50 @@ JSON으로만 답변:
 
             retrieved_facts = structured.get("retrieved_facts") or []
             if retrieved_facts:
-                formatted = "\n".join(f"- {fact}" for fact in retrieved_facts[:5])
-                supplemental_sections.append(f"📚 근거 메모\n{formatted}")
+                preview_lines = "\n".join(f"- {fact}" for fact in retrieved_facts[:5])
+                if self.log_retrieved_facts:
+                    supplemental_sections.append(f"📚 근거 메모\n{preview_lines}")
+                else:
+                    log_message = (
+                        "Retrieved facts (attachment disabled) for query '%s':\n%s"
+                        % (state["user_query"], preview_lines)
+                    )
+                    logger.info(log_message)
+                    print(f"[RAG][facts] {log_message}")
 
-            destination_room = (structured.get("destination_room") or "").strip()
-            if destination_room:
-                supplemental_sections.append(f"🗂️ 목적지: {destination_room}")
+            nav_info = dict(state.get("navigation_info") or {})
+            if state.get("needs_navigation"):
+                destination_room = (structured.get("destination_room") or "").strip()
+                if destination_room:
+                    supplemental_sections.append(f"🗂️ 목적지: {destination_room}")
 
-            nav_info = (state.get("navigation_info") or {}).copy()
-            if nav_info.get("success"):
-                map_lines = []
-                message = (nav_info.get("message") or "").strip()
-                if message:
-                    map_lines.append(message)
-                map_path = (nav_info.get("map_path") or "").strip()
-                if map_path:
-                    map_lines.append(f"지도 파일: {map_path}")
-                if map_lines:
-                    supplemental_sections.append("🗺️ 경로 안내\n" + "\n".join(map_lines))
-            elif nav_info:
-                failure_message = (nav_info.get("message") or "지도 생성 중 오류가 발생했습니다.").strip()
-                supplemental_sections.append(f"❌ 지도 생성에 실패했습니다: {failure_message}")
+                destination_for_payload = (
+                    nav_info.get("destination_room") or destination_room or state.get("effective_query", "")
+                )
+                if destination_for_payload:
+                    nav_info.setdefault(
+                        "navigation_payload",
+                        build_navigation_payload(destination_for_payload),
+                    )
+
+                if nav_info.get("success"):
+                    map_lines = []
+                    message = (nav_info.get("message") or "").strip()
+                    if message:
+                        map_lines.append(message)
+                    map_path = (nav_info.get("map_path") or "").strip()
+                    if map_path:
+                        map_lines.append(f"지도 파일: {map_path}")
+                    if map_lines:
+                        supplemental_sections.append("🗺️ 경로 안내\n" + "\n".join(map_lines))
+                elif nav_info:
+                    failure_message = (nav_info.get("message") or "지도 생성 중 오류가 발생했습니다.").strip()
+                    supplemental_sections.append(f"❌ 지도 생성에 실패했습니다: {failure_message}")
 
             if supplemental_sections:
                 final_response = f"{final_response}\n\n" + "\n\n".join(supplemental_sections)
 
-            if state.get("needs_navigation") and not nav_info.get("success"):
-                final_response += "\n\n📍 위치 찾기에 도움이 필요하시면 '경로 안내해주세요'라고 말씀해주세요!"
-
+            state["navigation_info"] = nav_info
             state["final_output"] = final_response
             state["processing_log"].append("Final response generated")
             return state
@@ -815,6 +834,7 @@ JSON으로만 답변:
             if destination:
                 nav_result = self.navigation_system.generate_navigation_map(destination)
                 nav_result["destination_room"] = destination
+                nav_result["navigation_payload"] = build_navigation_payload(destination)
                 state["navigation_info"] = nav_result
                 if nav_result["success"]:
                     state["processing_log"].append("Navigation map generated successfully.")
@@ -823,6 +843,10 @@ JSON으로만 답변:
                         f"Navigation map generation failed: {nav_result.get('message', 'unknown reason')}."
                     )
             else:
+                state.setdefault("navigation_info", {})
+                state["navigation_info"]["success"] = False
+                state["navigation_info"]["message"] = "Navigation destination not provided; skipping map generation."
+                state["navigation_info"]["navigation_payload"] = build_navigation_payload("")
                 state["processing_log"].append("Navigation destination not provided; skipping map generation.")
 
             return state
@@ -854,17 +878,17 @@ JSON으로만 답변:
                 if state.get("retry_mode") == "add_docs":
                     return "llm_generation"
                 return "retry_router"
-            return "policy_regex_check"
-
-        def should_proceed_after_policy_regex(state: UniversityMEState) -> str:
-            if state.get("abort_message"):
-                return "final_response"
-            return "llm_evaluation_dispatch"
-
-        def should_proceed_after_evaluation(state: UniversityMEState) -> str:
-            if state.get("abort_message"):
-                return "final_response"
             return "navigation_check"
+
+        # def should_proceed_after_policy_regex(state: UniversityMEState) -> str:
+        #     if state.get("abort_message"):
+        #         return "final_response"
+        #     return "llm_evaluation_dispatch"
+
+        # def should_proceed_after_evaluation(state: UniversityMEState) -> str:
+        #     if state.get("abort_message"):
+        #         return "final_response"
+        #     return "navigation_check"
 
         def should_generate_navigation(state: UniversityMEState) -> str:
             destination_present = bool((state.get("navigation_info", {}) or {}).get("destination_room"))
@@ -888,11 +912,11 @@ JSON으로만 답변:
         workflow.add_node("retry_router", retry_router_node)
         workflow.add_node("rag_retrieval", rag_retrieval_node)
         workflow.add_node("llm_generation", llm_generation_node)
-        workflow.add_node("policy_regex_check", policy_regex_check_node)
-        workflow.add_node("llm_evaluation_dispatch", llm_evaluation_dispatch_node)
-        workflow.add_node("llm_security_eval", llm_security_eval_node)
-        workflow.add_node("llm_content_eval", llm_content_eval_node)
-        workflow.add_node("llm_evaluation_merge", llm_evaluation_merge_node)
+        # workflow.add_node("policy_regex_check", policy_regex_check_node)
+        # workflow.add_node("llm_evaluation_dispatch", llm_evaluation_dispatch_node)
+        # workflow.add_node("llm_security_eval", llm_security_eval_node)
+        # workflow.add_node("llm_content_eval", llm_content_eval_node)
+        # workflow.add_node("llm_evaluation_merge", llm_evaluation_merge_node)
         workflow.add_node("navigation_check", navigation_check_node)
         workflow.add_node("navigation_generation", navigation_generation_node)
         workflow.add_node("final_response", final_response_node)
@@ -954,30 +978,30 @@ JSON으로만 답변:
             {
                 "retry_router": "retry_router",
                 "llm_generation": "llm_generation",
-                "policy_regex_check": "policy_regex_check",
-                "final_response": "final_response",
-            },
-        )
-        workflow.add_conditional_edges(
-            "policy_regex_check",
-            should_proceed_after_policy_regex,
-            {
-                "llm_evaluation_dispatch": "llm_evaluation_dispatch",
-                "final_response": "final_response",
-            },
-        )
-        workflow.add_edge("llm_evaluation_dispatch", "llm_security_eval")
-        workflow.add_edge("llm_evaluation_dispatch", "llm_content_eval")
-        workflow.add_edge("llm_content_eval", "llm_evaluation_merge")
-        workflow.add_edge("llm_security_eval", "llm_evaluation_merge")
-        workflow.add_conditional_edges(
-            "llm_evaluation_merge",
-            should_proceed_after_evaluation,
-            {
                 "navigation_check": "navigation_check",
                 "final_response": "final_response",
             },
         )
+        # workflow.add_conditional_edges(
+        #     "policy_regex_check",
+        #     should_proceed_after_policy_regex,
+        #     {
+        #         "llm_evaluation_dispatch": "llm_evaluation_dispatch",
+        #         "final_response": "final_response",
+        #     },
+        # )
+        # workflow.add_edge("llm_evaluation_dispatch", "llm_security_eval")
+        # workflow.add_edge("llm_evaluation_dispatch", "llm_content_eval")
+        # workflow.add_edge("llm_content_eval", "llm_evaluation_merge")
+        # workflow.add_edge("llm_security_eval", "llm_evaluation_merge")
+        # workflow.add_conditional_edges(
+        #     "llm_evaluation_merge",
+        #     should_proceed_after_evaluation,
+        #     {
+        #         "navigation_check": "navigation_check",
+        #         "final_response": "final_response",
+        #     },
+        # )
         workflow.add_conditional_edges(
             "navigation_check",
             should_generate_navigation,

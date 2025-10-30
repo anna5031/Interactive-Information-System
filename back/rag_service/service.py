@@ -40,9 +40,16 @@ class RAGQAService:
         info_system: Optional[UniversityMEInfoSystem] = None,
         *,
         default_emit_processing_log: bool = False,
+        log_retrieved_facts: bool = False,
     ) -> None:
-        self.info_system = info_system or UniversityMEInfoSystem()
+        if info_system is None:
+            self.info_system = UniversityMEInfoSystem(log_retrieved_facts=log_retrieved_facts)
+        else:
+            self.info_system = info_system
+            if log_retrieved_facts and hasattr(self.info_system, "log_retrieved_facts"):
+                self.info_system.log_retrieved_facts = log_retrieved_facts
         self.default_emit_processing_log = default_emit_processing_log
+        self.log_retrieved_facts = getattr(self.info_system, "log_retrieved_facts", log_retrieved_facts)
         self._warmup_lock: asyncio.Lock = asyncio.Lock()
         self._warmed_up: bool = False
 
