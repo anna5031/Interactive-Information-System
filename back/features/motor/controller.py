@@ -2,6 +2,7 @@ from __future__ import annotations
 
 """Real motor controller that converts vision events into hardware commands."""
 
+import argparse
 import asyncio
 import logging
 import math
@@ -167,15 +168,16 @@ class RealMotorController:
         theta_p = math.degrees(math.atan2(y, x))
         return theta_t, theta_p
 
-    async def _send_command(self, tilt_deg: float, pan_deg: float) -> None:
+    async def _send_command(self, tilt_deg: float, pan_deg: float) -> str:
         # NOTE: asyncio.to_thread keeps integration simple, but if command frequency
         # grows significantly the default executor can become a bottleneck. In that
         # case switch to a dedicated ThreadPoolExecutor to control concurrency.
-        await asyncio.to_thread(
+        response = await asyncio.to_thread(
             self._driver.send,
             int(round(tilt_deg)),
             int(round(pan_deg)),
         )
+        return response
 
     def _snapshot_state(self, vision: VisionResultEvent, has_target: bool) -> MotorStateEvent:
         state = MotorStateEvent(
@@ -201,3 +203,80 @@ class RealMotorController:
 
 def _clip(value: float, minimum: float, maximum: float) -> float:
     return max(minimum, min(maximum, value))
+
+
+async def _cli_async(args: "argparse.Namespace") -> int:
+    import sys
+    from types import SimpleNamespace
+
+    try:
+        from app.config import load_config
+    except Exception as exc:  # pragma: no cover - CLI convenience only
+        print(f"Failed to load application config: {exc}", file=sys.stderr)
+        return 1
+
+    config = load_config()
+    motor_config = config.motor
+
+    if args.port:
+        motor_config.serial.port = args.port
+    if args.baudrate is not None:
+        motor_config.serial.baudrate = args.baudrate
+    if args.timeout is not None:
+        motor_config.serial.timeout = args.timeout
+    if args.skip_ping:
+        motor_config.ping_on_startup = False
+
+    dummy_mapper = SimpleNamespace(pixel_to_world=lambda *_, **__: None)
+    controller = RealMotorController(
+        motor_config=motor_config,
+        homography_config=config.homography,
+        mapper=dummy_mapper,  # type: ignore[arg-type]
+    )
+
+    try:
+        await controller._ensure_driver_ready()
+        response = await controller._send_command(args.tilt, args.pan)
+        print(f"Motor response: {response!r}")
+        return 0
+    except Exception as exc:  # pragma: no cover - hardware dependent
+        print(f"Motor command failed: {exc}", file=sys.stderr)
+        return 1
+    finally:
+        await controller.shutdown()
+
+
+def _cli() -> int:
+    import argparse
+    import asyncio
+
+    parser = argparse.ArgumentParser(
+        description="Send a pan/tilt command through RealMotorController for testing.",
+    )
+    parser.add_argument("--tilt", type=float, required=True, help="Tilt angle in degrees.")
+    parser.add_argument("--pan", type=float, required=True, help="Pan angle in degrees.")
+    parser.add_argument(
+        "--port",
+        help="Override serial device path (defaults to BACKEND_MOTOR_SERIAL_PORT or settings).",
+    )
+    parser.add_argument(
+        "--baudrate",
+        type=int,
+        help="Override serial baudrate (defaults to BACKEND_MOTOR_SERIAL_BAUD).",
+    )
+    parser.add_argument(
+        "--timeout",
+        type=float,
+        help="Override serial read timeout in seconds.",
+    )
+    parser.add_argument(
+        "--skip-ping",
+        action="store_true",
+        help="Skip the startup ping before sending the command.",
+    )
+    args = parser.parse_args()
+    return asyncio.run(_cli_async(args))
+
+
+if __name__ == "__main__":  # pragma: no cover - manual motor test harness
+    raise SystemExit(_cli())

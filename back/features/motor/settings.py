@@ -17,7 +17,7 @@ TILT_MAX_DEG = 170.0
 TILT_INIT_DEG = 110.0
 
 # Geometric parameters (millimetres)
-TILT_AXIS_HEIGHT_MM = 1200.0  # Height of the tilt axis from the floor
+TILT_AXIS_HEIGHT_MM = 2600.0  # Height of the tilt axis from the floor
 PROJECTOR_OFFSET_MM = 150.0  # Distance from tilt axis to projector lens along beam
 PROJECTION_AHEAD_MM = 350.0  # Default distance in front of the foot to aim
 
