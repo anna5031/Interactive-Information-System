@@ -25,7 +25,6 @@ __pycache__/
 
 /model/*
 rag_service/.env
-rag_service/*.json
 rag_service/chroma_db/
 rag_service/hf_cache/
 rag_service/onnx_model/
