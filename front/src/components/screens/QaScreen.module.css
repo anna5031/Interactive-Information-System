@@ -7,7 +7,7 @@
 }
 
 .promptBody {
-  margin: 0;
+  margin: clamp(2.2rem, 6vw, 3.6rem) 0 0;
   max-width: min(72vw, 860px);
   font-size: clamp(1.4rem, 3.2vw, 2.6rem);
   line-height: 1.6;

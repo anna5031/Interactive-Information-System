@@ -3,21 +3,21 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1rem;
-  height: 120px;
+  gap: clamp(0.9rem, 3vw, 1.8rem);
+  height: clamp(120px, 22vh, 240px);
 }
 
 .arrow {
   position: relative;
-  width: 80px;
-  height: 80px;
+  width: clamp(68px, 12vw, 120px);
+  height: clamp(68px, 12vw, 120px);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  filter: drop-shadow(0 0 12px rgba(126, 255, 126, 0.9));
-  opacity: 0.15;
-  transform: translateX(-25%);
-  animation: nudgeChevronPulse 1.6s infinite ease-out;
+  filter: drop-shadow(0 0 18px rgba(126, 255, 176, 0.9));
+  opacity: 0.12;
+  transform: translateX(-22%);
+  animation: nudgeChevronPulse 1.6s ease-out infinite;
   animation-delay: var(--delay, 0s);
 }
 
@@ -28,7 +28,7 @@
   height: 100%;
   background: linear-gradient(135deg, #6cf77d, #1eff5e);
   clip-path: polygon(0 20%, 55% 20%, 55% 0, 100% 50%, 55% 100%, 55% 80%, 0 80%);
-  border-radius: 6px;
+  border-radius: clamp(6px, 2vw, 14px);
 }
 
 @keyframes nudgeChevronPulse {
@@ -42,7 +42,7 @@
   }
   70% {
     opacity: 0.6;
-    transform: translateX(15%) scale(0.98);
+    transform: translateX(16%) scale(0.98);
   }
   100% {
     opacity: 0.1;
