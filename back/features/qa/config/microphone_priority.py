@@ -5,4 +5,5 @@
 PRIORITY_DEVICE_NAMES = [
     "AirPods",
     "MacBook Pro Microphone",
+    "FIFNE"
 ]

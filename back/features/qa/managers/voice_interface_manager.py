@@ -67,6 +67,13 @@ class VoiceInterfaceManager:
         else:
             print("🎤 마이크: 기본 디바이스")
 
+        effective_rate = int(self.mic_manager.get_stream_sample_rate())
+        target_rate = int(self.mic_manager.RATE)
+        if self.mic_manager.has_samplerate_fallback():
+            print(f"   ↳ 장치 샘플레이트 {effective_rate}Hz → STT {target_rate}Hz (재샘플링)")
+        else:
+            print(f"   ↳ 사용 샘플레이트: {effective_rate}Hz")
+
         # TTS 정보
         tts_info = self.tts_manager.get_current_engine_info()
         if tts_info:
@@ -248,6 +255,9 @@ class VoiceInterfaceManager:
                 "device_index": self.mic_manager.input_device_index,
                 "available_devices": len(mic_devices),
                 "recommended_device": recommended,
+                "target_sample_rate": int(self.mic_manager.RATE),
+                "stream_sample_rate": int(self.mic_manager.get_stream_sample_rate()),
+                "samplerate_fallback": self.mic_manager.has_samplerate_fallback(),
             },
             "tts": {
                 "current_engine": tts_info["name"] if tts_info else None,

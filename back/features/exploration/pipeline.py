@@ -7,7 +7,8 @@ import logging
 import math
 import time
 from dataclasses import dataclass, field
-from typing import AsyncIterator, Optional, Tuple
+from pathlib import Path
+from typing import AsyncIterator, Optional, Tuple, TYPE_CHECKING
 
 import cv2
 
@@ -21,6 +22,9 @@ from .detector import PoseDetector
 from .device import select_device
 from .tracking import CentroidTracker, Track
 from .constants import DIRECTION_LABELS_8
+
+if TYPE_CHECKING:  # pragma: no cover
+    from websocket.frame_broadcaster import FrameBroadcaster
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +58,12 @@ class FPSEstimator:
 class ExplorationPipeline:
     """Produce VisionResultEvent values based on live YOLO pose detection."""
 
-    def __init__(self, config: Optional[ExplorationConfig] = None, log_details: bool = False):
+    def __init__(
+        self,
+        config: Optional[ExplorationConfig] = None,
+        log_details: bool = False,
+        frame_broadcaster: Optional["FrameBroadcaster"] = None,
+    ):
         self.config = config or load_exploration_config()
         self._device = select_device(self.config.device)
         self._detector = PoseDetector(self.config.model, device=self._device)
@@ -63,8 +72,12 @@ class ExplorationPipeline:
         self._display_enabled = self.config.debug_display
         self._window_created = False
         self._log_details = log_details
+        self._frame_broadcaster = frame_broadcaster
         self._active_event = asyncio.Event()
         self._active_event.set()
+        self._reference_image_path = self.config.camera.reference_image_path
+        self._reference_resolution = self._load_reference_resolution(self._reference_image_path)
+        self._resolution_logged = False
 
     @property
     def device(self) -> str:
@@ -99,8 +112,11 @@ class ExplorationPipeline:
                     logger.warning("Camera frame unavailable; stopping stream.")
                     break
 
+                raw_height, raw_width = frame.shape[:2]
                 if frame_width <= 0 or frame_height <= 0:
-                    frame_height, frame_width = frame.shape[:2]
+                    frame_height, frame_width = raw_height, raw_width
+
+                self._ensure_resolution_logged(raw_width, raw_height)
 
                 processed = resize_frame(frame, self.config.camera.frame_size)
                 crop_offset = (0, 0)
@@ -121,8 +137,17 @@ class ExplorationPipeline:
                 frame_idx += 1
 
                 assignments_tuple = tuple(assignments)
-                if self._display_enabled:
-                    self._show_debug_frame(processed, assignments_tuple)
+
+                broadcast_frame = None
+                if self._display_enabled or self._frame_broadcaster is not None:
+                    annotated = self._annotate_frame(processed, assignments_tuple)
+                    if self._display_enabled:
+                        self._show_debug_frame(annotated)
+                    broadcast_frame = annotated
+
+                if self._frame_broadcaster is not None and broadcast_frame is not None:
+                    task = asyncio.create_task(self._frame_broadcaster.publish(broadcast_frame))
+                    task.add_done_callback(self._log_task_exception)
 
                 decision = self._assistance.evaluate(assignments_tuple)
                 event = self._build_event(
@@ -141,6 +166,50 @@ class ExplorationPipeline:
             await loop.run_in_executor(None, capture.close)
             if self._display_enabled and self._window_created:
                 cv2.destroyWindow(self.config.debug_window_name)
+
+    @staticmethod
+    def _load_reference_resolution(path: Optional[Path]) -> Optional[Tuple[int, int]]:
+        if not path:
+            return None
+        image = cv2.imread(str(path))
+        if image is None:
+            logger.warning("Reference image not found or unreadable: %s", path)
+            return None
+        height, width = image.shape[:2]
+        return width, height
+
+    def _ensure_resolution_logged(self, frame_width: int, frame_height: int) -> None:
+        if self._resolution_logged:
+            return
+
+        if self._reference_resolution:
+            ref_width, ref_height = self._reference_resolution
+            matches = frame_width == ref_width and frame_height == ref_height
+            logger.info(
+                "Exploration camera frame: %dx%d. Reference image (%s): %dx%d. Resolution match: %s",
+                frame_width,
+                frame_height,
+                self._reference_image_path if self._reference_image_path else "n/a",
+                ref_width,
+                ref_height,
+                "same" if matches else "different",
+            )
+        else:
+            if self._reference_image_path:
+                logger.info(
+                    "Exploration camera frame: %dx%d. Reference image %s unavailable; unable to compare.",
+                    frame_width,
+                    frame_height,
+                    self._reference_image_path,
+                )
+            else:
+                logger.info(
+                    "Exploration camera frame: %dx%d. No reference image configured.",
+                    frame_width,
+                    frame_height,
+                )
+
+        self._resolution_logged = True
 
     def _build_event(
         self,
@@ -187,16 +256,14 @@ class ExplorationPipeline:
             if target_position is not None:
                 gaze_vector = _compute_gaze_vector(*target_position)
         else:
-            width = max(1.0, float(frame_width))
-            height = max(1.0, float(frame_height))
-            target_position, head_position, foot_position, direction_label = _scanning_focus(
-                frame_timestamp, width, height
-            )
-            if target_position is not None:
-                gaze_vector = _compute_gaze_vector(*target_position)
-            target_pixel = _denormalize_point(target_position, frame_width, frame_height)
-            head_pixel = _denormalize_point(head_position, frame_width, frame_height)
-            foot_pixel = _denormalize_point(foot_position, frame_width, frame_height)
+            target_position = None
+            head_position = None
+            foot_position = None
+            target_pixel = None
+            head_pixel = None
+            foot_pixel = None
+            direction_label = None
+            gaze_vector = None
 
         if self._log_details and decision.needs_assistance:
             logger.info(
@@ -224,22 +291,24 @@ class ExplorationPipeline:
             stationary_duration=decision.stationary_duration,
         )
 
-    def _show_debug_frame(
+    def _annotate_frame(
         self,
         frame: np.ndarray,
         assignments: Tuple[Tuple[Track, dict], ...],
-    ) -> None:
-        if not self._window_created:
-            cv2.namedWindow(self.config.debug_window_name, cv2.WINDOW_NORMAL)
-            self._window_created = True
-
+    ) -> np.ndarray:
         annotated = frame.copy()
+        active_track_id = self._assistance.active_track_id
         for track, detection in assignments:
             bbox = detection.get("bbox")
             if bbox is None:
                 continue
             x1, y1, x2, y2 = [int(v) for v in np.asarray(bbox).tolist()]
-            color = (0, 0, 255) if track.is_stationary else (0, 165, 255)
+            if active_track_id is not None and track.track_id == active_track_id:
+                color = (0, 255, 0)
+            elif track.is_stationary:
+                color = (0, 0, 255)
+            else:
+                color = (0, 165, 255)
             cv2.rectangle(annotated, (x1, y1), (x2, y2), color, 2)
             label = f"ID {track.track_id} {float(detection.get('conf', 0.0)):.2f}"
             cv2.putText(
@@ -264,8 +333,22 @@ class ExplorationPipeline:
                 cv2.LINE_AA,
             )
 
+        return annotated
+
+    def _show_debug_frame(self, annotated: np.ndarray) -> None:
+        if not self._window_created:
+            cv2.namedWindow(self.config.debug_window_name, cv2.WINDOW_NORMAL)
+            self._window_created = True
         cv2.imshow(self.config.debug_window_name, annotated)
         cv2.waitKey(1)
+
+    @staticmethod
+    def _log_task_exception(task: asyncio.Task[object]) -> None:
+        if task.cancelled():
+            return
+        exc = task.exception()
+        if exc is not None:
+            logger.warning("Frame broadcast task failed: %s", exc)
 
 
 def _compute_gaze_vector(x_norm: float, y_norm: float) -> tuple[float, float]:
@@ -306,47 +389,9 @@ def _frame_point(
     )
 
 
-def _denormalize_point(
-    point: Optional[Tuple[float, float]],
-    width: Optional[float],
-    height: Optional[float],
-) -> Optional[Tuple[float, float]]:
-    if point is None or width in (None, 0) or height in (None, 0):
-        return None
-    return (
-        float(point[0]) * float(width),
-        float(point[1]) * float(height),
-    )
-
-
 def _direction_label(angle_deg: Optional[float]) -> Optional[str]:
     if angle_deg is None:
         return None
     normalized = angle_deg % 360.0
     sector = int((normalized + 22.5) // 45) % len(DIRECTION_LABELS_8)
     return DIRECTION_LABELS_8[sector]
-
-
-def _scanning_focus(
-    timestamp: float,
-    width: float,
-    height: float,
-) -> Tuple[Optional[Tuple[float, float]], Optional[Tuple[float, float]], Optional[Tuple[float, float]], Optional[str]]:
-    t = timestamp * 0.35
-    raw_x = 0.5 + 0.2 * math.sin(t)
-    raw_y = 0.5 + 0.18 * math.cos(t * 0.85)
-
-    head_norm_x = max(0.0, min(1.0, raw_x))
-    head_norm_y = max(0.0, min(1.0, raw_y))
-    foot_norm_y = max(0.0, min(1.0, head_norm_y + 0.12))
-
-    head = (head_norm_x * width, head_norm_y * height)
-    target = head
-    foot = (head_norm_x * width, foot_norm_y * height)
-
-    dx_dt = 0.2 * math.cos(t) * 0.35
-    dy_dt = -0.18 * 0.85 * math.sin(t * 0.85) * 0.35
-    angle = math.degrees(math.atan2(-dy_dt, dx_dt))
-    direction = _direction_label(angle)
-
-    return target, head, foot, direction

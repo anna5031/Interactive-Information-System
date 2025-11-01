@@ -1,7 +1,7 @@
 # click_points.py
 import cv2 as cv, numpy as np
 
-img = cv.imread('sts_loby.jpg')  # 좌표를 찍을 이미지
+img = cv.imread('sts_hallway_1280x720.jpg')  # 좌표를 찍을 이미지
 pts = []
 
 def cb(event, x, y, flags, param):

@@ -1,6 +1,9 @@
 ﻿from __future__ import annotations
 
+import asyncio
+import inspect
 import logging
+import os
 from dataclasses import dataclass
 from typing import Any, AsyncIterator, Awaitable, Callable, Optional, Tuple
 
@@ -32,6 +35,7 @@ from features.qa import (
     VoiceInterfaceManager,
 )
 from rag_service import RAGQAService
+from websocket.frame_broadcaster import FrameBroadcaster
 
 
 logger = logging.getLogger(__name__)
@@ -97,6 +101,14 @@ class Application:
         self.debug = debug or DebugConfig()
         self._qa_service: Optional[RAGQAService] = None
         self.overrides = overrides or RuntimeOverrides()
+        stream_host = os.getenv("BACKEND_STREAM_HOST", "0.0.0.0")
+        stream_port = int(os.getenv("BACKEND_STREAM_PORT", "9100"))
+        jpeg_quality = int(os.getenv("BACKEND_STREAM_JPEG_QUALITY", "70"))
+        self.frame_broadcaster = FrameBroadcaster(
+            host=stream_host,
+            port=stream_port,
+            jpeg_quality=jpeg_quality,
+        )
 
     def create_session(self) -> SessionDependencies:
         cleanup_callbacks: list[Callable[[], Awaitable[None] | None]] = []
@@ -126,7 +138,7 @@ class Application:
 
         homography = self._create_homography(calibration_bundle=calibration_bundle)
 
-        flow = self._create_qa_pipeline(exploration)
+        flow = self._create_qa_pipeline(exploration, motor)
 
         return SessionDependencies(
             config=self.config,
@@ -149,7 +161,9 @@ class Application:
             exploration_config = load_exploration_config()
             exploration_config.debug_display = self.debug.show_exploration_overlay
             pipeline = ExplorationPipeline(
-                exploration_config, log_details=self.debug.log_exploration
+                exploration_config,
+                log_details=self.debug.log_exploration,
+                frame_broadcaster=self.frame_broadcaster,
             )
             logger.info("Exploration pipeline initialised (device=%s)", pipeline.device)
             return pipeline
@@ -159,7 +173,15 @@ class Application:
                 ExplorationStubConfig(interval=self.config.vision_interval)
             )
 
-    def _create_qa_pipeline(self, exploration: Any) -> Any:
+    async def start_background_services(self) -> None:
+        if self.frame_broadcaster is not None:
+            await self.frame_broadcaster.start()
+
+    async def stop_background_services(self) -> None:
+        if self.frame_broadcaster is not None:
+            await self.frame_broadcaster.stop()
+
+    def _create_qa_pipeline(self, exploration: Any, motor: Any) -> Any:
         try:
             voice_manager = VoiceInterfaceManager()
             stt_manager = SpeechToTextManager()
@@ -197,6 +219,66 @@ class Application:
                 else self.overrides.skip_to_qa_auto
             )
 
+            suspend_cb = getattr(exploration, "suspend", None)
+            resume_cb = getattr(exploration, "resume", None)
+            motor_pose = self.config.motor.poses
+
+            def _fire_async(result: Any, *, context: str) -> None:
+                if inspect.isawaitable(result):
+                    try:
+                        loop = asyncio.get_running_loop()
+                    except RuntimeError:  # pragma: no cover - should not happen under asyncio
+                        logger.warning("No running event loop to schedule %s task.", context)
+                    else:
+                        loop.create_task(result)
+
+            def _handle_enter_qa() -> None:
+                if suspend_cb is not None:
+                    try:
+                        suspend_cb()
+                    except Exception:  # pragma: no cover - defensive guard
+                        logger.warning("Exploration suspend callback failed during QA entry.", exc_info=True)
+
+                hold_fn = getattr(motor, "set_hold_pose", None)
+                if hold_fn is not None:
+                    try:
+                        hold_result = hold_fn(True)
+                    except Exception:  # pragma: no cover - defensive guard
+                        logger.warning("Motor hold-pose enable failed during QA entry.", exc_info=True)
+                    else:
+                        _fire_async(hold_result, context="motor hold enable")
+
+                move_fn = getattr(motor, "move_to_pose", None)
+                if move_fn is None:
+                    return
+
+                try:
+                    result = move_fn(
+                        pan_deg=motor_pose.standby_pan_deg,
+                        tilt_deg=motor_pose.standby_tilt_deg,
+                    )
+                except Exception:  # pragma: no cover - defensive guard
+                    logger.warning("Motor QA pose command failed to start.", exc_info=True)
+                    return
+
+                _fire_async(result, context="motor QA pose move")
+
+            def _handle_exit_qa() -> None:
+                hold_fn = getattr(motor, "set_hold_pose", None)
+                if hold_fn is not None:
+                    try:
+                        hold_result = hold_fn(False)
+                    except Exception:  # pragma: no cover - defensive guard
+                        logger.warning("Motor hold-pose disable failed during QA exit.", exc_info=True)
+                    else:
+                        _fire_async(hold_result, context="motor hold disable")
+
+                if resume_cb is not None:
+                    try:
+                        resume_cb()
+                    except Exception:  # pragma: no cover - defensive guard
+                        logger.warning("Exploration resume callback failed during QA exit.", exc_info=True)
+
             flow = SessionFlowCoordinator(
                 qa_controller=qa_controller,
                 landing_script=landing_script,
@@ -206,8 +288,8 @@ class Application:
                 alignment_hold_seconds=2.0,
                 alignment_tolerance_deg=2.5,
                 qa_start_delay_seconds=engagement_cfg.qa_auto_delay_seconds,
-                on_enter_qa=getattr(exploration, "suspend", None),
-                on_exit_qa=getattr(exploration, "resume", None),
+                on_enter_qa=_handle_enter_qa,
+                on_exit_qa=_handle_exit_qa,
                 distance_threshold_mm=engagement_cfg.distance_threshold_mm,
                 approach_timeout_seconds=engagement_cfg.approach_timeout_seconds,
                 approach_delta_min_mm=engagement_cfg.approach_delta_min_mm,
@@ -229,13 +311,30 @@ class Application:
         backend = getattr(self.config.motor, "backend", "stub").lower()
         if self.overrides.force_dummy_motor:
             logger.info("Motor controller forced to stub via override.")
-            return MotorStub(MotorStubConfig()), None
+            return (
+                MotorStub(
+                    MotorStubConfig(),
+                    motor_config=self.config.motor,
+                    homography_config=self.config.homography,
+                    mapper=mapper,
+                ),
+                None,
+            )
         if backend == "stub":
-            return MotorStub(MotorStubConfig()), None
+            return (
+                MotorStub(
+                    MotorStubConfig(),
+                    motor_config=self.config.motor,
+                    homography_config=self.config.homography,
+                    mapper=mapper,
+                ),
+                None,
+            )
         if backend == "serial":
             if mapper is None:
-                logger.warning("Motor backend=serial but calibration unavailable. Falling back to stub.")
-                return MotorStub(MotorStubConfig()), None
+                raise RuntimeError(
+                    "Motor backend 'serial' requires calibration assets, but none were loaded."
+                )
             controller = RealMotorController(
                 motor_config=self.config.motor,
                 homography_config=self.config.homography,
@@ -265,4 +364,3 @@ class Application:
         except Exception as exc:
             logger.warning("Homography calculator init failed. Falling back to stub: %s", exc)
             return HomographyStub(debug_logs=self.debug.log_homography)
-

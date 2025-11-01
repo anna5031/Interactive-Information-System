@@ -22,6 +22,7 @@ class CameraConfig:
     frame_size: Optional[Tuple[int, int]]
     fourcc: Optional[str]
     target_fps: Optional[float]
+    reference_image_path: Optional[Path]
 
 
 @dataclass(slots=True)
@@ -71,6 +72,9 @@ DEFAULT_EXPLORATION_CONFIG = ExplorationConfig(
         frame_size=settings.CAMERA_FRAME_SIZE,
         fourcc=settings.CAMERA_FOURCC,
         target_fps=settings.CAMERA_TARGET_FPS,
+        reference_image_path=Path(settings.CAMERA_REFERENCE_IMAGE)
+        if settings.CAMERA_REFERENCE_IMAGE
+        else None,
     ),
     model=ModelConfig(
         model_path=Path(settings.MODEL_PATH),

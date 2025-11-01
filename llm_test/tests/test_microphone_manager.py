@@ -9,16 +9,21 @@ from unittest import mock
 
 def _ensure_stub_modules():
     if "numpy" not in sys.modules:
-        sys.modules["numpy"] = SimpleNamespace(
-            int16="int16",
-            float32="float32",
-            float64="float64",
-            mean=lambda *args, **kwargs: 0.0,
-            max=lambda *args, **kwargs: 0,
-            abs=abs,
-            sqrt=lambda _x: 0.0,
-            ndarray=object,
-        )
+        try:
+            import numpy as _np  # type: ignore
+
+            sys.modules["numpy"] = _np
+        except ImportError:
+            sys.modules["numpy"] = SimpleNamespace(
+                int16="int16",
+                float32="float32",
+                float64="float64",
+                mean=lambda *args, **kwargs: 0.0,
+                max=lambda *args, **kwargs: 0,
+                abs=abs,
+                sqrt=lambda _x: 0.0,
+                ndarray=object,
+            )
 
     if "sounddevice" not in sys.modules:
 

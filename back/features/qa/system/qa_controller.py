@@ -295,6 +295,12 @@ class SessionFlowCoordinator:
         if distance is None:
             return
 
+        logger.info(
+            "타겟-프로젝터 거리 %.1fmm (phase=%s)",
+            distance,
+            self._phase.name,
+        )
+
         if self._initial_distance_mm is None:
             self._initial_distance_mm = distance
             self._last_distance_mm = distance
@@ -342,22 +348,11 @@ class SessionFlowCoordinator:
                     async for command_event in self.qa_controller.run_once(self._pending_intro_prompt):
                         yield command_event
                 finally:
-                    logger.info("QA 컨트롤러 종료. 탐색 재개 대기.")
+                    logger.info("QA 컨트롤러 종료. 초기 탐색 단계로 복귀합니다.")
                     self._notify_exit_qa()
-                    self._phase = self.Phase.AWAIT_RESET
-                    self._landing_enqueued = False
-                    self._qa_trigger_enqueued = False
-                    self._pending_intro_prompt = None
-                    self._first_detected_at = None
-                    self._alignment_started_at = None
-                    self._landing_started_at = None
-                    self._initial_distance_mm = None
-                    self._last_distance_mm = None
-                    self._last_distance_timestamp = None
-                    self._has_distance_progress = False
-                    self._qa_auto_armed = False
-                    self._last_seen_timestamp = None
-                    self._cancel_qa_timer()
+                    self._reset_to_scanning()
+                    self._initial_script_sent = False
+                    self._enqueue_initial_script()
                 continue
 
             yield item

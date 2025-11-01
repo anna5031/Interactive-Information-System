@@ -248,6 +248,9 @@ class VoiceInterfaceManager:
                 "device_index": self.mic_manager.input_device_index,
                 "available_devices": len(mic_devices),
                 "recommended_device": recommended,
+                "target_sample_rate": int(self.mic_manager.RATE),
+                "stream_sample_rate": int(self.mic_manager.get_stream_sample_rate()),
+                "samplerate_fallback": self.mic_manager.has_samplerate_fallback(),
             },
             "tts": {
                 "current_engine": tts_info["name"] if tts_info else None,

@@ -35,8 +35,11 @@ class AssistanceClassifier:
     ) -> AssistanceDecision:
         now = time.monotonic()
         best_candidate: Optional[Tuple[Track, Dict[str, np.ndarray]]] = None
+        active_track: Optional[Tuple[Track, Dict[str, np.ndarray]]] = None
 
         for track, detection in assignments:
+            if self._active_track_id is not None and track.track_id == self._active_track_id:
+                active_track = (track, detection)
             if not track.is_stationary:
                 continue
             if track.stationary_time < self.config.stationary_seconds_required:
@@ -46,6 +49,29 @@ class AssistanceClassifier:
                 or track.stationary_time > best_candidate[0].stationary_time
             ):
                 best_candidate = (track, detection)
+
+        if self._active_track_id is not None:
+            if active_track is not None:
+                track, detection = active_track
+                self._last_positive_at = now
+                self._last_stationary_duration = track.stationary_time
+                return AssistanceDecision(
+                    needs_assistance=True,
+                    track=track,
+                    detection=detection,
+                    reason="tracking",
+                    stationary_duration=track.stationary_time,
+                )
+            if now - self._last_positive_at < self.config.cooldown_seconds:
+                return AssistanceDecision(
+                    needs_assistance=True,
+                    track=None,
+                    detection=None,
+                    reason="cooldown-hold",
+                    stationary_duration=self._last_stationary_duration,
+                )
+            self._active_track_id = None
+            self._last_stationary_duration = 0.0
 
         if best_candidate is not None:
             track, detection = best_candidate
@@ -60,32 +86,8 @@ class AssistanceClassifier:
                 stationary_duration=track.stationary_time,
             )
 
-        if (
-            self._active_track_id is not None
-            and now - self._last_positive_at < self.config.cooldown_seconds
-        ):
-            # Maintain positive state briefly to avoid rapid toggling.
-            for track, detection in assignments:
-                if track.track_id == self._active_track_id:
-                    return AssistanceDecision(
-                        needs_assistance=True,
-                        track=track,
-                        detection=detection,
-                        reason="cooldown-hold",
-                        stationary_duration=track.stationary_time,
-                    )
-            # If the tracked person temporarily disappeared, keep signaling using last data.
-            return AssistanceDecision(
-                needs_assistance=True,
-                track=None,
-                detection=None,
-                reason="cooldown-hold",
-                stationary_duration=self._last_stationary_duration,
-            )
-
-        # Reset if cooldown elapsed or no matches.
-        if self._active_track_id is not None and now - self._last_positive_at >= self.config.cooldown_seconds:
-            self._active_track_id = None
-            self._last_stationary_duration = 0.0
-
         return AssistanceDecision(needs_assistance=False)
+
+    @property
+    def active_track_id(self) -> Optional[int]:
+        return self._active_track_id
