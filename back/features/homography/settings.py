@@ -14,7 +14,7 @@ TARGET_PLANE = "floor" # or ceiling
 FLOOR_Z_MM = 0.0
 
 # Projector pose (world coordinates, millimetres)
-PROJECTOR_POSITION_MM = (0.0, 0.0, 2100.0)
+PROJECTOR_POSITION_MM = (0.0, 0.0, 1620.0)
 
 # Projected footprint (millimetres)
 FOOTPRINT_WIDTH_MM = 1000.0
