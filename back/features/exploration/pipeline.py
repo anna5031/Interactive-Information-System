@@ -8,7 +8,7 @@ import math
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import AsyncIterator, Optional, Tuple
+from typing import AsyncIterator, Optional, Tuple, TYPE_CHECKING
 
 import cv2
 
@@ -22,6 +22,9 @@ from .detector import PoseDetector
 from .device import select_device
 from .tracking import CentroidTracker, Track
 from .constants import DIRECTION_LABELS_8
+
+if TYPE_CHECKING:  # pragma: no cover
+    from websocket.frame_broadcaster import FrameBroadcaster
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +58,12 @@ class FPSEstimator:
 class ExplorationPipeline:
     """Produce VisionResultEvent values based on live YOLO pose detection."""
 
-    def __init__(self, config: Optional[ExplorationConfig] = None, log_details: bool = False):
+    def __init__(
+        self,
+        config: Optional[ExplorationConfig] = None,
+        log_details: bool = False,
+        frame_broadcaster: Optional["FrameBroadcaster"] = None,
+    ):
         self.config = config or load_exploration_config()
         self._device = select_device(self.config.device)
         self._detector = PoseDetector(self.config.model, device=self._device)
@@ -64,6 +72,7 @@ class ExplorationPipeline:
         self._display_enabled = self.config.debug_display
         self._window_created = False
         self._log_details = log_details
+        self._frame_broadcaster = frame_broadcaster
         self._active_event = asyncio.Event()
         self._active_event.set()
         self._reference_image_path = self.config.camera.reference_image_path
@@ -128,8 +137,17 @@ class ExplorationPipeline:
                 frame_idx += 1
 
                 assignments_tuple = tuple(assignments)
-                if self._display_enabled:
-                    self._show_debug_frame(processed, assignments_tuple)
+
+                broadcast_frame = None
+                if self._display_enabled or self._frame_broadcaster is not None:
+                    annotated = self._annotate_frame(processed, assignments_tuple)
+                    if self._display_enabled:
+                        self._show_debug_frame(annotated)
+                    broadcast_frame = annotated
+
+                if self._frame_broadcaster is not None and broadcast_frame is not None:
+                    task = asyncio.create_task(self._frame_broadcaster.publish(broadcast_frame))
+                    task.add_done_callback(self._log_task_exception)
 
                 decision = self._assistance.evaluate(assignments_tuple)
                 event = self._build_event(
@@ -273,15 +291,11 @@ class ExplorationPipeline:
             stationary_duration=decision.stationary_duration,
         )
 
-    def _show_debug_frame(
+    def _annotate_frame(
         self,
         frame: np.ndarray,
         assignments: Tuple[Tuple[Track, dict], ...],
-    ) -> None:
-        if not self._window_created:
-            cv2.namedWindow(self.config.debug_window_name, cv2.WINDOW_NORMAL)
-            self._window_created = True
-
+    ) -> np.ndarray:
         annotated = frame.copy()
         active_track_id = self._assistance.active_track_id
         for track, detection in assignments:
@@ -319,8 +333,22 @@ class ExplorationPipeline:
                 cv2.LINE_AA,
             )
 
+        return annotated
+
+    def _show_debug_frame(self, annotated: np.ndarray) -> None:
+        if not self._window_created:
+            cv2.namedWindow(self.config.debug_window_name, cv2.WINDOW_NORMAL)
+            self._window_created = True
         cv2.imshow(self.config.debug_window_name, annotated)
         cv2.waitKey(1)
+
+    @staticmethod
+    def _log_task_exception(task: asyncio.Task[object]) -> None:
+        if task.cancelled():
+            return
+        exc = task.exception()
+        if exc is not None:
+            logger.warning("Frame broadcast task failed: %s", exc)
 
 
 def _compute_gaze_vector(x_norm: float, y_norm: float) -> tuple[float, float]:

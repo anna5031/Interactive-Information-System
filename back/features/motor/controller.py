@@ -6,7 +6,7 @@ import argparse
 import asyncio
 import logging
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Optional, Tuple, TYPE_CHECKING
 
 import numpy as np
@@ -45,6 +45,10 @@ class RealMotorController:
         self._last_distance: Optional[float] = None
         self._last_distance_timestamp: Optional[float] = None
         self._velocity_epsilon = 1e-3
+        self._angle_epsilon = 1e-2
+        self._standby_pan = float(self.motor_config.poses.standby_pan_deg)
+        self._standby_tilt = float(self.motor_config.poses.standby_tilt_deg)
+        self._hold_pose = False
         self._last_state = MotorStateEvent(
             pan=self.motor_config.limits.pan_init_deg,
             tilt=self.motor_config.limits.tilt_init_deg,
@@ -60,12 +64,34 @@ class RealMotorController:
         async with self._lock:
             return await self._update_locked(vision)
 
+    async def move_to_pose(self, *, pan_deg: float, tilt_deg: float) -> None:
+        async with self._lock:
+            await self._ensure_driver_ready()
+            await self._apply_pose_locked(pan_deg, tilt_deg, timestamp=None)
+
+    async def set_hold_pose(self, hold: bool) -> None:
+        async with self._lock:
+            self._hold_pose = hold
+            self._last_distance = None
+            self._last_distance_timestamp = None
+
     async def shutdown(self) -> None:
         await asyncio.to_thread(self._driver.close)
         self._driver_ready = False
 
     async def _update_locked(self, vision: VisionResultEvent) -> MotorStateEvent:
         await self._ensure_driver_ready()
+
+        if self._hold_pose:
+            return self._snapshot_state(vision, has_target=False)
+
+        if not vision.has_target:
+            await self._apply_pose_locked(
+                self._standby_pan,
+                self._standby_tilt,
+                timestamp=vision.timestamp,
+            )
+            return self._snapshot_state(vision, has_target=False)
 
         # Prefer feet data, then target/body pixels; skip work if nothing is detectable.
         target_pixel = (
@@ -260,11 +286,12 @@ class RealMotorController:
         return response
 
     def _snapshot_state(self, vision: VisionResultEvent, has_target: bool) -> MotorStateEvent:
+        timestamp = vision.timestamp if vision.timestamp else getattr(self._last_state, "timestamp", 0.0)
         state = MotorStateEvent(
             pan=self._last_state.pan,
             tilt=self._last_state.tilt,
             has_target=has_target,
-            timestamp=vision.timestamp,
+            timestamp=timestamp,
             head_position=vision.head_position,
             foot_position=vision.foot_position,
             direction_label=vision.direction_label,
@@ -279,6 +306,47 @@ class RealMotorController:
         )
         self._last_state = state
         return state
+
+    async def _apply_pose_locked(self, pan_deg: float, tilt_deg: float, *, timestamp: Optional[float]) -> None:
+        tilt_cmd = _clip(
+            tilt_deg,
+            self.motor_config.limits.tilt_min_deg,
+            self.motor_config.limits.tilt_max_deg,
+        )
+        pan_cmd = _clip(
+            pan_deg,
+            self.motor_config.limits.pan_min_deg,
+            self.motor_config.limits.pan_max_deg,
+        )
+
+        loop = asyncio.get_running_loop()
+        timestamp_value = timestamp if timestamp and timestamp > 0.0 else loop.time()
+
+        if (
+            math.isclose(self._last_state.pan, pan_cmd, abs_tol=self._angle_epsilon)
+            and math.isclose(self._last_state.tilt, tilt_cmd, abs_tol=self._angle_epsilon)
+        ):
+            self._last_state = replace(
+                self._last_state,
+                pan=pan_cmd,
+                tilt=tilt_cmd,
+                has_target=False,
+                timestamp=timestamp_value,
+            )
+            self._last_distance = None
+            self._last_distance_timestamp = None
+            return
+
+        await self._send_command(tilt_cmd, pan_cmd)
+        self._last_state = replace(
+            self._last_state,
+            pan=pan_cmd,
+            tilt=tilt_cmd,
+            has_target=False,
+            timestamp=timestamp_value,
+        )
+        self._last_distance = None
+        self._last_distance_timestamp = None
 
 
 def _clip(value: float, minimum: float, maximum: float) -> float:

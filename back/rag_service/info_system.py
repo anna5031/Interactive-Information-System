@@ -40,6 +40,7 @@ STRUCTURED_OUTPUT_GUIDE = f"""
 [Structured Output 규칙]
 - 시스템은 RAGStructuredOutput 스키마(자동 파싱)에 따라 응답합니다.
 - final_answer: 검색된 정보로 답변을 정리합니다. 정보가 부족하면 반드시 다음 문장을 그대로 사용하세요: "{NO_INFORMATION_FALLBACK}"
+- final_answer 항목에는 추가 안내나 후속 제안을 덧붙이지 마세요. 특히 "필요하신 교수님의 상세 일정이나 연구실 방문 등에 대해 추가로 알려드릴 수 있습니다."와 같은 문장은 금지합니다.
 - reasoning_steps: 답변 도출 과정을 2~5단계로 요약합니다. 정보가 부족한 경우에도 확인 과정을 기록합니다.
 - retrieved_facts: 신뢰 가능한 근거 문장을 bullet 형식으로 최대 5개 기록합니다. 근거가 없으면 빈 리스트를 유지합니다.
 - intent가 seminar_recommendation이라면 검색된 모든 세미나실 후보를 비교·평가하여 최적의 선택 이유와 함께 final_answer와 retrieved_facts에 반영하세요.
@@ -742,11 +743,12 @@ JSON으로만 답변:
             if destination_hint:
                 state.setdefault("navigation_info", {})
                 state["navigation_info"]["destination_room"] = destination_hint
-            should_offer = structured_hint or self.navigation_system.should_offer_navigation(
-                state["detected_intent"],
-                state.get("sanitized_query", state["user_query"]),
-                state["llm_response"],
-            )
+            should_offer = False  # Temporarily disable all navigation responses.
+            # should_offer = structured_hint or self.navigation_system.should_offer_navigation(
+            #     state["detected_intent"],
+            #     state.get("sanitized_query", state["user_query"]),
+            #     state["llm_response"],
+            # )
             state["needs_navigation"] = should_offer
             if should_offer:
                 state["processing_log"].append("Navigation assistance offered")

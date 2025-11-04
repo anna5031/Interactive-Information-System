@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import math
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Optional, Tuple, TYPE_CHECKING
 
 import numpy as np
@@ -80,14 +80,49 @@ class MotorStub:
         )
         self._stage_width_mm = max(footprint_width * 2.0, 2000.0)
         self._stage_depth_mm = max(footprint_height * 2.0, 2000.0)
+        if motor_config is not None:
+            self._standby_pan = float(motor_config.poses.standby_pan_deg)
+            self._standby_tilt = float(motor_config.poses.standby_tilt_deg)
+        else:
+            self._standby_pan = float(motor_settings.STANDBY_PAN_DEG)
+            self._standby_tilt = float(motor_settings.STANDBY_TILT_DEG)
         self._last_distance: Optional[float] = None
         self._last_distance_timestamp: Optional[float] = None
         self._velocity_epsilon = 1e-3
+        self._hold_pose = False
+        self._last_state: Optional[MotorStateEvent] = None
 
     def update(self, vision: VisionResultEvent) -> MotorStateEvent:
         target_x: float
         target_y: float
         synthetic_target: Tuple[float, float] | None = None
+
+        timestamp_value = vision.timestamp if vision.timestamp else time.time()
+
+        if self._hold_pose and self._last_state is not None:
+            state = replace(
+                self._last_state,
+                timestamp=timestamp_value,
+                has_target=False,
+                approach_velocity_mm_s=None,
+                is_approaching=None,
+            )
+            self._last_state = state
+            return state
+
+        if not vision.has_target:
+            self._pan = self._standby_pan
+            self._tilt = self._standby_tilt
+            self._last_distance = None
+            self._last_distance_timestamp = None
+            state = MotorStateEvent(
+                pan=self._pan,
+                tilt=self._tilt,
+                has_target=False,
+                timestamp=timestamp_value,
+            )
+            self._last_state = state
+            return state
 
         if vision.has_target and vision.target_position:
             target_x, target_y = vision.target_position
@@ -115,8 +150,6 @@ class MotorStub:
         direction_label = vision.direction_label
         if direction_label is None and head_position is not None:
             direction_label = _direction_from_target(head_position)
-
-        timestamp_value = vision.timestamp if vision.timestamp else time.time()
 
         norm_x = target_x
         norm_y = target_y
@@ -157,7 +190,7 @@ class MotorStub:
             self._last_distance = None
             self._last_distance_timestamp = None
 
-        return MotorStateEvent(
+        state = MotorStateEvent(
             pan=self._pan,
             tilt=self._tilt,
             has_target=vision.has_target,
@@ -174,6 +207,39 @@ class MotorStub:
             approach_velocity_mm_s=approach_velocity,
             is_approaching=is_approaching,
         )
+        self._last_state = state
+        return state
+
+    async def move_to_pose(self, *, pan_deg: float, tilt_deg: float) -> None:
+        self._pan = float(
+            max(motor_settings.PAN_MIN_DEG, min(motor_settings.PAN_MAX_DEG, pan_deg))
+        )
+        self._tilt = float(
+            max(motor_settings.TILT_MIN_DEG, min(motor_settings.TILT_MAX_DEG, tilt_deg))
+        )
+        self._last_distance = None
+        self._last_distance_timestamp = None
+        if self._last_state is not None:
+            self._last_state = replace(
+                self._last_state,
+                pan=self._pan,
+                tilt=self._tilt,
+                has_target=False,
+                approach_velocity_mm_s=None,
+                is_approaching=None,
+            )
+        else:
+            self._last_state = MotorStateEvent(
+                pan=self._pan,
+                tilt=self._tilt,
+                has_target=False,
+                timestamp=time.time(),
+            )
+
+    async def set_hold_pose(self, hold: bool) -> None:
+        self._hold_pose = hold
+        self._last_distance = None
+        self._last_distance_timestamp = None
 
     def _derive_world_points(
         self,

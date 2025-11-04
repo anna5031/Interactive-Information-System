@@ -16,6 +16,10 @@ TILT_MIN_DEG = 45.0
 TILT_MAX_DEG = 170.0
 TILT_INIT_DEG = 110.0
 
+# Preset poses (degrees)
+STANDBY_PAN_DEG = 50.0
+STANDBY_TILT_DEG = 95.0
+
 # Geometric parameters (millimetres)
 TILT_AXIS_HEIGHT_MM = 1620.0  # Height of the tilt axis from the floor
 PROJECTOR_OFFSET_MM = 150.0  # Distance from tilt axis to projector lens along beam

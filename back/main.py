@@ -7,18 +7,19 @@ from contextlib import suppress
 
 from app import Application, DebugConfig, RuntimeOverrides
 from websocket.server import WebSocketServer
+from websocket.log_handler import BroadcastLogHandler
 
 
-# 디버그 로그 토글 (라인을 주석 처리해 on/off 조절)
-LOG_EXPLORATION = True  # 주석 처리하면 로그 비활성화
-# LOG_MOTOR = True  # 주석 처리하면 로그 비활성화
-# LOG_HOMOGRAPHY = True  # 주석 처리하면 로그 비활성화
-LOG_COMMANDS = True  # 주석 처리하면 로그 비활성화
-SHOW_EXPLORATION_OVERLAY = True  # 주석 처리하면 화면 오버레이 비활성화
-# USE_DUMMY_EXPLORATION = True  # 주석 처리하면 실제 파이프라인 사용
-# USE_DUMMY_MOTOR = True  # 주석 처리하면 실제 모터 제어 사용
-# USE_DUMMY_HOMOGRAPHY = True  # 주석 처리하면 실제 호모그래피 계산 사용
-# SKIP_TO_QA_AUTO = True  # 주석 처리하면 QA 자동 진입 비활성화
+# 디버그/테스트 토글 (라인을 주석 처리해 on/off 조절)
+# LOG_EXPLORATION = True       # 탐색 파이프라인 로그 출력
+# LOG_MOTOR = True             # 모터 제어 로그 출력
+# LOG_HOMOGRAPHY = True        # 호모그래피 계산 로그 출력
+LOG_COMMANDS = True            # 명령 송수신 로그 출력
+# SHOW_EXPLORATION_OVERLAY = True  # 디버그용 탐색 오버레이 창 표시
+# USE_DUMMY_EXPLORATION = True     # 실제 탐색 대신 스텁 사용
+# USE_DUMMY_MOTOR = True           # 실제 모터 대신 스텁 사용
+# USE_DUMMY_HOMOGRAPHY = True      # 실제 호모그래피 대신 스텁 사용
+# SKIP_TO_QA_AUTO = True           # 탐색 후 QA 자동 진입 건너뛰기
 
 # 위 라인을 주석 처리했을 때 기본값 False로 설정
 LOG_EXPLORATION = bool(globals().get("LOG_EXPLORATION", False))
@@ -58,6 +59,12 @@ async def main_async() -> None:
     )
 
     application = Application(debug=debug_config, overrides=overrides)
+    log_handler = BroadcastLogHandler(application.frame_broadcaster)
+    log_handler.setFormatter(
+        logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+    )
+    logging.getLogger().addHandler(log_handler)
+
     server = WebSocketServer(application)
 
     loop = asyncio.get_running_loop()
@@ -75,6 +82,7 @@ async def main_async() -> None:
     try:
         await server_task
     finally:
+        logging.getLogger().removeHandler(log_handler)
         if not server_task.done():
             server_task.cancel()
             with suppress(asyncio.CancelledError):

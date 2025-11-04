@@ -1,15 +1,7 @@
-import ctypes
-from pathlib import Path
+# click_points.py
+import cv2 as cv, numpy as np
 
-import cv2 as cv
-import numpy as np
-
-
-IMAGE_PATH = Path(__file__).with_name("sts_hallway.jpg")
-img = cv.imread(str(IMAGE_PATH))
-if img is None:
-    raise FileNotFoundError(f"Unable to load image at {IMAGE_PATH}")
-
+img = cv.imread('sts_hallway_1280x720.jpg')  # 좌표를 찍을 이미지
 pts = []
 scale = 1.0
 display_img = img.copy()
