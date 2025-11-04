@@ -15,7 +15,9 @@ from websocket.log_handler import BroadcastLogHandler
 # LOG_MOTOR = True             # 모터 제어 로그 출력
 # LOG_HOMOGRAPHY = True        # 호모그래피 계산 로그 출력
 LOG_COMMANDS = True            # 명령 송수신 로그 출력
+
 # SHOW_EXPLORATION_OVERLAY = True  # 디버그용 탐색 오버레이 창 표시
+
 # USE_DUMMY_EXPLORATION = True     # 실제 탐색 대신 스텁 사용
 # USE_DUMMY_MOTOR = True           # 실제 모터 대신 스텁 사용
 # USE_DUMMY_HOMOGRAPHY = True      # 실제 호모그래피 대신 스텁 사용
@@ -30,19 +32,16 @@ SHOW_EXPLORATION_OVERLAY = bool(globals().get("SHOW_EXPLORATION_OVERLAY", False)
 USE_DUMMY_EXPLORATION = bool(globals().get("USE_DUMMY_EXPLORATION", False))
 USE_DUMMY_MOTOR = bool(globals().get("USE_DUMMY_MOTOR", False))
 USE_DUMMY_HOMOGRAPHY = bool(globals().get("USE_DUMMY_HOMOGRAPHY", False))
-SKIP_TO_QA_AUTO_OVERRIDE = globals().get("SKIP_TO_QA_AUTO", None)
-if isinstance(SKIP_TO_QA_AUTO_OVERRIDE, bool):
-    SKIP_TO_QA_AUTO = SKIP_TO_QA_AUTO_OVERRIDE
-else:
-    SKIP_TO_QA_AUTO = None
+SKIP_TO_QA_AUTO = globals().get("SKIP_TO_QA_AUTO", None)
 
-
+# Coordinates startup of the backend runtime components.
 async def main_async() -> None:
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     )
 
+    # Package optional debug toggles so they can be passed down to the app stack.
     debug_config = DebugConfig(
         log_exploration=LOG_EXPLORATION,
         log_motor=LOG_MOTOR,
@@ -59,6 +58,8 @@ async def main_async() -> None:
     )
 
     application = Application(debug=debug_config, overrides=overrides)
+    
+    # Forward root logger output to the WebSocket broadcast stream.
     log_handler = BroadcastLogHandler(application.frame_broadcaster)
     log_handler.setFormatter(
         logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -73,10 +74,12 @@ async def main_async() -> None:
         logging.info("Shutdown initiated.")
         await server.stop()
 
+    # Propagate OS shutdown signals into an asyncio task so cleanup stays async.
     for sig in (signal.SIGINT, signal.SIGTERM):
         with suppress(NotImplementedError):
             loop.add_signal_handler(sig, lambda s=sig: asyncio.create_task(shutdown()))
 
+    # Launch the WebSocket server loop and keep a handle for graceful teardown.
     server_task = asyncio.create_task(server.start(), name="websocket-server")
 
     try:
