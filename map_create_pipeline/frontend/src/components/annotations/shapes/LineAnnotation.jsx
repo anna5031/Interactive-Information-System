@@ -1,10 +1,13 @@
 import PropTypes from 'prop-types';
 import styles from '../AnnotationCanvas.module.css';
 
+const HIGHLIGHT_COLOR = '#f97316';
+
 const LineAnnotation = ({
   line,
   label,
   isSelected,
+  isHighlighted = false,
   imageBox,
   onPointerDown,
   onPointerMove,
@@ -12,7 +15,8 @@ const LineAnnotation = ({
   onHandlePointerDown,
   onHandlePointerMove,
 }) => {
-  const stroke = label?.color || '#f59e0b';
+  const baseStroke = label?.color || '#f59e0b';
+  const stroke = baseStroke;
   const startX = line.x1 * imageBox.width;
   const startY = line.y1 * imageBox.height;
   const endX = line.x2 * imageBox.width;
@@ -33,25 +37,40 @@ const LineAnnotation = ({
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
       />
+      {isHighlighted && (
+        <line
+          x1={startX}
+          y1={startY}
+          x2={endX}
+          y2={endY}
+          stroke={HIGHLIGHT_COLOR}
+          strokeWidth={8}
+          strokeLinecap='round'
+          strokeOpacity={0.4}
+          pointerEvents='none'
+        />
+      )}
       {isSelected && (
         <>
           <circle
             cx={startX}
             cy={startY}
-            r={8}
+            r={5}
             className={styles.lineHandle}
             onPointerDown={(event) => onHandlePointerDown(event, line, 'start')}
             onPointerMove={onHandlePointerMove}
             onPointerUp={onPointerUp}
+            style={isHighlighted ? { stroke: '#f97316' } : undefined}
           />
           <circle
             cx={endX}
             cy={endY}
-            r={8}
+            r={5}
             className={styles.lineHandle}
             onPointerDown={(event) => onHandlePointerDown(event, line, 'end')}
             onPointerMove={onHandlePointerMove}
             onPointerUp={onPointerUp}
+            style={isHighlighted ? { stroke: '#f97316' } : undefined}
           />
         </>
       )}
@@ -73,6 +92,7 @@ LineAnnotation.propTypes = {
     color: PropTypes.string,
   }),
   isSelected: PropTypes.bool.isRequired,
+  isHighlighted: PropTypes.bool,
   imageBox: PropTypes.shape({
     width: PropTypes.number.isRequired,
     height: PropTypes.number.isRequired,
@@ -86,6 +106,7 @@ LineAnnotation.propTypes = {
 
 LineAnnotation.defaultProps = {
   label: undefined,
+  isHighlighted: false,
 };
 
 export default LineAnnotation;

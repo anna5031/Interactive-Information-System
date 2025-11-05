@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { ArrowLeft, Loader2, Save } from 'lucide-react';
 import AnnotationCanvas from '../components/annotations/AnnotationCanvas';
@@ -147,6 +147,7 @@ const FloorPlanEditorPage = ({
   const [addMode, setAddMode] = useState(false);
   const [activeLabelId, setActiveLabelId] = useState(getDefaultLabelId());
   const [hiddenLabelIds, setHiddenLabelIds] = useState(() => new Set());
+  const canvasRef = useRef(null);
 
   useEffect(() => {
     setBoxes(initialBoxes);
@@ -179,24 +180,20 @@ const FloorPlanEditorPage = ({
     });
   }, [initialBoxes, initialLines, initialPoints]);
 
-  const boxesMemo = useMemo(() => boxes, [boxes]);
-  const linesMemo = useMemo(() => lines, [lines]);
-  const pointsMemo = useMemo(() => points, [points]);
-
   useEffect(() => {
     if (!selectedItem) {
       return;
     }
     const exists =
-      (selectedItem.type === 'box' && boxesMemo.some((box) => box.id === selectedItem.id)) ||
-      (selectedItem.type === 'line' && linesMemo.some((line) => line.id === selectedItem.id)) ||
-      (selectedItem.type === 'point' && pointsMemo.some((point) => point.id === selectedItem.id));
+      (selectedItem.type === 'box' && boxes.some((box) => box.id === selectedItem.id)) ||
+      (selectedItem.type === 'line' && lines.some((line) => line.id === selectedItem.id)) ||
+      (selectedItem.type === 'point' && points.some((point) => point.id === selectedItem.id));
 
     if (!exists) {
-      const fallback = createSelectionFromData(boxesMemo, linesMemo, pointsMemo);
+      const fallback = createSelectionFromData(boxes, lines, points);
       setSelectedItem(fallback);
     }
-  }, [boxesMemo, linesMemo, pointsMemo, selectedItem]);
+  }, [boxes, lines, points, selectedItem]);
 
   const applyPointsUpdate = (updater) => {
     setPoints((prev) => {
@@ -210,7 +207,7 @@ const FloorPlanEditorPage = ({
     setBoxes((prev) => {
       const next = producer(prev);
       onBoxesChange?.(next);
-      applyPointsUpdate((prevPoints) => recalcPointsForGeometry(prevPoints, next, linesMemo));
+      applyPointsUpdate((prevPoints) => recalcPointsForGeometry(prevPoints, next, lines));
       return next;
     });
   };
@@ -219,7 +216,7 @@ const FloorPlanEditorPage = ({
     setLines((prev) => {
       const next = producer(prev);
       onLinesChange?.(next);
-      applyPointsUpdate((prevPoints) => recalcPointsForGeometry(prevPoints, boxesMemo, next));
+      applyPointsUpdate((prevPoints) => recalcPointsForGeometry(prevPoints, boxes, next));
       return next;
     });
   };
@@ -260,7 +257,7 @@ const FloorPlanEditorPage = ({
       const nextIndex = (() => {
         const regex = new RegExp(`^${resolvedLabelId}-box-(\\d+)$`);
         let max = -1;
-        boxesMemo.forEach((box) => {
+        boxes.forEach((box) => {
           const match = regex.exec(box.id);
           if (match) {
             const value = Number.parseInt(match[1], 10);
@@ -292,30 +289,30 @@ const FloorPlanEditorPage = ({
     if (item.type === 'line') {
       handleUpdateLines((prev) => {
         const filtered = prev.filter((line) => line.id !== item.id);
-        const remainingPoints = pointsMemo.filter(
+        const remainingPoints = points.filter(
           (point) => !(point.anchor?.type === 'line' && point.anchor?.id === item.id)
         );
         if (selectedItem?.type === 'line' && selectedItem.id === item.id) {
-          const fallback = createSelectionFromData(boxesMemo, filtered, remainingPoints);
+          const fallback = createSelectionFromData(boxes, filtered, remainingPoints);
           setSelectedItem(fallback);
         }
         return filtered;
       });
     } else if (item.type === 'box') {
-      const remainingBoxes = boxesMemo.filter((box) => box.id !== item.id);
-      const remainingPoints = pointsMemo.filter(
+      const remainingBoxes = boxes.filter((box) => box.id !== item.id);
+      const remainingPoints = points.filter(
         (point) => !(point.anchor?.type === 'box' && point.anchor?.id === item.id)
       );
       handleUpdateBoxes((prev) => prev.filter((box) => box.id !== item.id));
       if (selectedItem?.type === 'box' && selectedItem.id === item.id) {
-        const fallback = createSelectionFromData(remainingBoxes, linesMemo, remainingPoints);
+        const fallback = createSelectionFromData(remainingBoxes, lines, remainingPoints);
         setSelectedItem(fallback);
       }
     } else if (item.type === 'point') {
       applyPointsUpdate((prevPoints) => prevPoints.filter((point) => point.id !== item.id));
       if (selectedItem?.type === 'point' && selectedItem.id === item.id) {
-        const remaining = pointsMemo.filter((point) => point.id !== item.id);
-        const fallback = createSelectionFromData(boxesMemo, linesMemo, remaining);
+        const remaining = points.filter((point) => point.id !== item.id);
+        const fallback = createSelectionFromData(boxes, lines, remaining);
         setSelectedItem(fallback);
       }
     }
@@ -336,7 +333,7 @@ const FloorPlanEditorPage = ({
   };
 
   const handleSubmit = () => {
-    onSubmit?.({ boxes: boxesMemo, lines: linesMemo, points: pointsMemo });
+    onSubmit?.({ boxes, lines, points });
   };
 
   const handleToggleAddMode = () => {
@@ -361,9 +358,70 @@ const FloorPlanEditorPage = ({
     });
   };
 
-  const selectedBox = selectedItem?.type === 'box' ? boxesMemo.find((box) => box.id === selectedItem.id) : null;
-  const selectedLine = selectedItem?.type === 'line' ? linesMemo.find((line) => line.id === selectedItem.id) : null;
-  const selectedPoint = selectedItem?.type === 'point' ? pointsMemo.find((point) => point.id === selectedItem.id) : null;
+  const selectedBox = selectedItem?.type === 'box' ? boxes.find((box) => box.id === selectedItem.id) : null;
+  const selectedLine = selectedItem?.type === 'line' ? lines.find((line) => line.id === selectedItem.id) : null;
+  const selectedPoint = selectedItem?.type === 'point' ? points.find((point) => point.id === selectedItem.id) : null;
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      const target = event.target;
+      if (target) {
+        const tagName = target.tagName;
+        const isEditable =
+          tagName === 'INPUT' ||
+          tagName === 'TEXTAREA' ||
+          target.isContentEditable ||
+          target.getAttribute?.('contenteditable') === 'true';
+        if (isEditable) {
+          return;
+        }
+      }
+
+      if (event.key === 'Escape') {
+        if (addMode) {
+          event.preventDefault();
+          setAddMode(false);
+        }
+        return;
+      }
+
+      if ((event.key === 'Backspace' || event.key === 'Delete') && selectedItem) {
+        event.preventDefault();
+        handleDelete(selectedItem);
+        return;
+      }
+
+      if (!event.metaKey && !event.ctrlKey && !event.altKey) {
+        if (event.key?.toLowerCase() === 'a') {
+          event.preventDefault();
+          handleToggleAddMode();
+          return;
+        }
+      }
+
+      if (event.metaKey || event.ctrlKey) {
+        if (event.key === '=' || event.key === '+') {
+          event.preventDefault();
+          canvasRef.current?.zoomIn();
+          return;
+        }
+        if (event.key === '-') {
+          event.preventDefault();
+          canvasRef.current?.zoomOut();
+          return;
+        }
+        if (event.key === '0') {
+          event.preventDefault();
+          canvasRef.current?.resetZoom();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown, true);
+    };
+  }, [addMode, handleDelete, handleToggleAddMode, selectedItem]);
 
   return (
     <div className={styles.wrapper}>
@@ -386,10 +444,11 @@ const FloorPlanEditorPage = ({
       <main className={styles.main}>
         <section className={styles.canvasContainer}>
           <AnnotationCanvas
+            ref={canvasRef}
             imageUrl={imageUrl}
-            boxes={boxesMemo}
-            lines={linesMemo}
-            points={pointsMemo}
+            boxes={boxes}
+            lines={lines}
+            points={points}
             selectedItem={selectedItem}
             onSelect={handleSelect}
             onUpdateBox={handleUpdateBox}
@@ -402,9 +461,9 @@ const FloorPlanEditorPage = ({
           />
         </section>
         <AnnotationSidebar
-          boxes={boxesMemo}
-          lines={linesMemo}
-          points={pointsMemo}
+          boxes={boxes}
+          lines={lines}
+          points={points}
           selectedBox={selectedBox}
           selectedLine={selectedLine}
           selectedPoint={selectedPoint}

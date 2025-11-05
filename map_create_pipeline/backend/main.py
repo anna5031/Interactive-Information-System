@@ -9,7 +9,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from typing import List
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
@@ -22,6 +22,11 @@ from api.schemas import (
     StoredFloorPlanSummary,
 )
 from services.floorplan_pipeline import FloorPlanProcessingService
+from services.inference_service import (
+    DependencyNotAvailableError,
+    TorchNotAvailableError,
+    build_inference_service_from_config,
+)
 from services.step_two_repository import StepTwoRepository
 
 
@@ -34,6 +39,7 @@ app = FastAPI(
 )
 
 service = FloorPlanProcessingService(storage_root=DATA_DIR)
+inference_service = build_inference_service_from_config()
 step_two_repository = StepTwoRepository(storage_root=DATA_DIR)
 
 
@@ -119,6 +125,33 @@ async def process_floorplan(payload: ProcessFloorPlanRequest) -> ProcessFloorPla
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return ProcessFloorPlanResponse(**result)
+
+
+@app.post(
+    "/api/floorplans/inference",
+    summary="업로드된 이미지를 RF-DETR 모델로 객체 추론",
+)
+async def infer_floorplan_from_image(file: UploadFile = File(...)) -> dict:
+    try:
+        image_bytes = await file.read()
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="이미지 파일을 읽지 못했습니다.") from exc
+
+    if not image_bytes:
+        raise HTTPException(status_code=400, detail="비어 있는 이미지가 전달되었습니다.")
+
+    try:
+        result = inference_service.infer_from_file(image_bytes, filename=file.filename)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    except DependencyNotAvailableError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    except TorchNotAvailableError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=500, detail=f"RF-DETR 추론에 실패했습니다: {exc}") from exc
+
+    return result
 
 
 @app.get(

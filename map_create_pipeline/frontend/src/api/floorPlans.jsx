@@ -1,6 +1,4 @@
 import api from './client.jsx';
-import yoloTxtPath from '../dummy/yolo.txt';
-import wallTxtPath from '../dummy/wall.txt';
 import { isBoxLabel, isPointLabel } from '../config/annotationConfig';
 import { subtractBoxesFromLines } from '../utils/wallTrimmer';
 import { saveStepOneResult } from './stepOneResults';
@@ -781,13 +779,27 @@ const subtractBoxesFromLinesForInitialLoad = (lines, boxes) =>
   ENABLE_INITIAL_WALL_PRESERVATION ? lines : subtractBoxesFromLines(lines, boxes);
 
 export const uploadFloorPlan = async (file) => {
-  const [yoloResponse, wallResponse, doorResponse] = await Promise.all([fetch(yoloTxtPath), fetch(wallTxtPath)]);
+  const imageUrl = await readFileAsDataUrl(file);
+  const { width: localWidth, height: localHeight } = await loadImageDimensions(imageUrl);
 
-  const [yoloText, wallText, doorFileText] = await Promise.all([
-    yoloResponse.text(),
-    wallResponse.text(),
-    doorResponse ? doorResponse.text() : Promise.resolve(''),
-  ]);
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('image_width', Math.round(localWidth));
+  formData.append('image_height', Math.round(localHeight));
+
+  let inferenceResult = null;
+  try {
+    const response = await api.post('/api/floorplans/inference', formData);
+    inferenceResult = response?.data ?? null;
+  } catch (error) {
+    console.error('RF-DETR 추론 요청에 실패했습니다.', error);
+    throw error;
+  }
+
+  const yoloText = inferenceResult?.yolo_text ?? inferenceResult?.yoloText ?? '';
+  const wallText = inferenceResult?.wall_text ?? inferenceResult?.wallText ?? '';
+  const doorFileText = inferenceResult?.door_text ?? inferenceResult?.doorText ?? '';
+  const fileName = inferenceResult?.file_name ?? inferenceResult?.fileName ?? file.name;
 
   const boxes = parseYoloBoxes(yoloText);
   const doorCandidates = parseDoorCandidatesFromYolo(yoloText);
@@ -799,11 +811,11 @@ export const uploadFloorPlan = async (file) => {
   const points = parsedDoorPoints.length > 0 ? parsedDoorPoints : autoDoorPoints;
   const doorText = parsedDoorPoints.length > 0 ? doorFileText.trim() : serialisePointsToDoorText(points, boxes, lines);
 
-  const imageUrl = await readFileAsDataUrl(file);
-  const { width: imageWidth, height: imageHeight } = await loadImageDimensions(imageUrl);
+  const imageWidth = inferenceResult?.image_width ?? inferenceResult?.imageWidth ?? localWidth;
+  const imageHeight = inferenceResult?.image_height ?? inferenceResult?.imageHeight ?? localHeight;
 
   return {
-    fileName: file.name,
+    fileName,
     imageUrl,
     imageWidth,
     imageHeight,

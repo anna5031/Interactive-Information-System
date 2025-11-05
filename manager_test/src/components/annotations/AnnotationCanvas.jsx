@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import LABEL_CONFIG, { getLabelById, isLineLabel, isBoxLabel, isPointLabel } from '../../config/annotationConfig';
 import styles from './AnnotationCanvas.module.css';
@@ -19,552 +19,953 @@ import {
   applyAxisLockToLine,
   snapLineEndpoints,
   snapSpecificLineEndpoint,
+  SNAP_RELEASE_DISTANCE,
 } from './utils/canvasGeometry';
 
 const MIN_BOX_SIZE = 0.01;
-// const MIN_LINE_LENGTH = 0.01;
 const MIN_LINE_LENGTH = 0;
+const MIN_ZOOM = 1;
+const MAX_ZOOM = 4;
+const KEYBOARD_ZOOM_STEP = 0.2;
+const WHEEL_ZOOM_SENSITIVITY = 0.0016;
+const GUIDE_COLOR = '#38bdf8';
+const clampNumber = (value, min, max) => Math.min(Math.max(value, min), max);
 const getLabel = (labelId) => getLabelById(labelId) || LABEL_CONFIG[0];
 
-const AnnotationCanvas = ({
-  imageUrl,
-  boxes,
-  lines,
-  points = [],
-  selectedItem,
-  onSelect,
-  onUpdateBox,
-  onUpdateLine,
-  onUpdatePoint,
-  addMode,
-  activeLabelId,
-  onAddShape,
-  hiddenLabelIds,
-  isReadOnly = false,
-}) => {
-  const containerRef = useRef(null);
-  const imageRef = useRef(null);
-  const pointerStateRef = useRef(null);
-  const imageBoxRef = useRef({ offsetX: 0, offsetY: 0, width: 0, height: 0 });
-
-  const [imageBox, setImageBox] = useState({ offsetX: 0, offsetY: 0, width: 0, height: 0 });
-  const [draftShape, setDraftShape] = useState(null);
-  const effectiveAddMode = addMode && !isReadOnly;
-
-  const visibleBoxes = useMemo(() => {
-    if (!hiddenLabelIds || hiddenLabelIds.size === 0) {
-      return boxes;
-    }
-    return boxes.filter((box) => !hiddenLabelIds.has(box.labelId));
-  }, [boxes, hiddenLabelIds]);
-
-  const visibleLines = useMemo(() => {
-    if (!hiddenLabelIds || hiddenLabelIds.size === 0) {
-      return lines;
-    }
-    return lines.filter((line) => !hiddenLabelIds.has(line.labelId));
-  }, [lines, hiddenLabelIds]);
-
-  const visiblePoints = useMemo(() => {
-    if (!hiddenLabelIds || hiddenLabelIds.size === 0) {
-      return points;
-    }
-    return points.filter((point) => !hiddenLabelIds.has(point.labelId));
-  }, [points, hiddenLabelIds]);
-
-  const anchoredPointIdsByBox = useMemo(() => {
-    const map = new Map();
-    points.forEach((point) => {
-      const anchor = point?.anchor;
-      if (anchor?.type === 'box' && anchor.id && point.id) {
-        if (!map.has(anchor.id)) {
-          map.set(anchor.id, new Set());
-        }
-        map.get(anchor.id).add(point.id);
-      }
-    });
-    return map;
-  }, [points]);
-
-  const boxesMap = useMemo(() => {
-    return boxes.reduce((acc, box) => {
-      acc[box.id] = box;
-      return acc;
-    }, {});
-  }, [boxes]);
-
-  const linesMap = useMemo(() => {
-    return lines.reduce((acc, line) => {
-      acc[line.id] = line;
-      return acc;
-    }, {});
-  }, [lines]);
-
-  const snapPoints = useMemo(() => buildSnapPoints(boxes, lines, points), [boxes, lines, points]);
-
-  const snapSegments = useMemo(() => buildSnapSegments(boxes, lines), [boxes, lines]);
-
-  const updateImageBox = useCallback(() => {
-    const container = containerRef.current;
-    const image = imageRef.current;
-    if (!container || !image || !image.naturalWidth || !image.naturalHeight) {
-      return;
-    }
-
-    const containerRect = container.getBoundingClientRect();
-    const containerWidth = containerRect.width;
-    const containerHeight = containerRect.height;
-
-    const imageAspect = image.naturalWidth / image.naturalHeight;
-    const containerAspect = containerWidth / containerHeight;
-
-    let renderWidth = containerWidth;
-    let renderHeight = containerHeight;
-    let offsetX = 0;
-    let offsetY = 0;
-
-    if (imageAspect > containerAspect) {
-      renderWidth = containerWidth;
-      renderHeight = containerWidth / imageAspect;
-      offsetY = (containerHeight - renderHeight) / 2;
-    } else {
-      renderHeight = containerHeight;
-      renderWidth = containerHeight * imageAspect;
-      offsetX = (containerWidth - renderWidth) / 2;
-    }
-
-    const next = {
-      offsetX,
-      offsetY,
-      width: renderWidth,
-      height: renderHeight,
-    };
-
-    imageBoxRef.current = next;
-    setImageBox(next);
-  }, []);
-
-  useEffect(() => {
-    updateImageBox();
-  }, [updateImageBox, imageUrl]);
-
-  useEffect(() => {
-    const image = imageRef.current;
-    if (!image) {
-      return () => {};
-    }
-
-    if (image.complete) {
-      updateImageBox();
-    } else {
-      image.addEventListener('load', updateImageBox);
-    }
-
-    return () => {
-      image.removeEventListener('load', updateImageBox);
-    };
-  }, [updateImageBox, imageUrl]);
-
-  useEffect(() => {
-    if (typeof ResizeObserver === 'undefined') {
-      window.addEventListener('resize', updateImageBox);
-      return () => {
-        window.removeEventListener('resize', updateImageBox);
-      };
-    }
-
-    const observer = new ResizeObserver(() => updateImageBox());
-    const container = containerRef.current;
-    if (container) {
-      observer.observe(container);
-    }
-
-    window.addEventListener('resize', updateImageBox);
-
-    return () => {
-      observer.disconnect();
-      window.removeEventListener('resize', updateImageBox);
-    };
-  }, [updateImageBox]);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    return () => {
-      if (pointerStateRef.current?.pointerId !== undefined && container) {
-        try {
-          container.releasePointerCapture(pointerStateRef.current.pointerId);
-        } catch (error) {
-          // ignore release failures
-        }
-      }
-      pointerStateRef.current = null;
-    };
-  }, []);
-
-  const normalisePointer = useCallback((event) => {
-    const container = containerRef.current;
-    const metrics = imageBoxRef.current;
-
-    if (!container || !metrics.width || !metrics.height) {
-      return { x: 0, y: 0, isInside: false };
-    }
-
-    const containerRect = container.getBoundingClientRect();
-    const localX = event.clientX - containerRect.left - metrics.offsetX;
-    const localY = event.clientY - containerRect.top - metrics.offsetY;
-
-    const x = clamp(localX / metrics.width);
-    const y = clamp(localY / metrics.height);
-    const isInside = localX >= 0 && localY >= 0 && localX <= metrics.width && localY <= metrics.height;
-
-    return { x, y, localX, localY, isInside };
-  }, []);
-
-  const setSelection = (type, id) => {
-    onSelect?.({ type, id });
-  };
-
-  const snapDrawingPosition = (x, y, options = {}) => snapPosition({ x, y, snapPoints, snapSegments, ...options });
-
-  const getAnchorForPoint = (x, y) => findAnchorForPoint(x, y, lines, boxes, LINE_SNAP_THRESHOLD);
-
-  const applyAxisLock = (line) => applyAxisLockToLine(line, AXIS_LOCK_TOLERANCE);
-
-  const snapLineWithState = (line, excludeId) => snapLineEndpoints({ line, snapPoints, snapSegments, excludeId });
-
-  const snapLineEndpointWithState = (line, endpoint, excludeId) =>
-    snapSpecificLineEndpoint({ line, endpoint, snapPoints, snapSegments, excludeId });
-
-  const { handleBoxPointerDown, handleBoxPointerMove, handleBoxResizePointerDown, handleBoxResizePointerMove } =
-    useBoxInteractions({
-      addMode: effectiveAddMode,
-      readOnly: isReadOnly,
-      pointerStateRef,
-      boxesMap,
-      hiddenLabelIds,
-      normalisePointer,
-      snapDrawingPosition,
+const AnnotationCanvas = forwardRef(
+  (
+    {
+      imageUrl,
+      boxes,
+      lines,
+      points = [],
+      selectedItem,
+      onSelect,
       onUpdateBox,
-      setSelection,
-      clamp,
-      minBoxSize: MIN_BOX_SIZE,
-      anchoredPointIdsByBox,
-    });
-
-  const { handleLinePointerDown, handleLinePointerMove, handleLineHandlePointerDown, handleLineResizeMove } =
-    useLineInteractions({
-      addMode: effectiveAddMode,
-      readOnly: isReadOnly,
-      pointerStateRef,
-      linesMap,
-      hiddenLabelIds,
-      normalisePointer,
-      clamp,
-      applyAxisLock,
-      snapLineWithState,
-      snapLineEndpointWithState,
       onUpdateLine,
-      setSelection,
-    });
+      onUpdatePoint,
+      addMode,
+      activeLabelId,
+      onAddShape,
+      hiddenLabelIds,
+      isReadOnly = false,
+    },
+    ref
+  ) => {
+    const containerRef = useRef(null);
+    const imageRef = useRef(null);
+    const pointerStateRef = useRef(null);
+    const imageBoxRef = useRef({ offsetX: 0, offsetY: 0, width: 0, height: 0 });
+    const viewportRef = useRef({ scale: 1, offsetX: 0, offsetY: 0 });
 
-  const { handlePointPointerDown, handlePointPointerMove } = usePointInteractions({
-    pointerStateRef,
-    normalisePointer,
-    getAnchorForPoint,
-    onUpdatePoint,
-    setSelection,
-    addMode: effectiveAddMode,
-    readOnly: isReadOnly,
-  });
+    const [imageBox, setImageBox] = useState({ offsetX: 0, offsetY: 0, width: 0, height: 0 });
+    const [draftShape, setDraftShape] = useState(null);
+    const [viewport, setViewport] = useState(viewportRef.current);
+    const [guides, setGuides] = useState([]);
+    const effectiveAddMode = addMode && !isReadOnly;
 
-  const handlePointerUp = (event) => {
-    const state = pointerStateRef.current;
-    if (!state) {
-      return;
-    }
+    const updateViewport = useCallback((updater) => {
+      setViewport((prev) => {
+        const next = updater(prev);
+        viewportRef.current = next;
+        return next;
+      });
+    }, []);
 
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
-
-    if (state.type === 'add-box') {
-      if (draftShape && draftShape.width >= MIN_BOX_SIZE && draftShape.height >= MIN_BOX_SIZE) {
-        onAddShape?.(draftShape);
-      }
-      setDraftShape(null);
-    }
-
-    if (state.type === 'add-line') {
-      if (draftShape) {
-        const length = Math.hypot(draftShape.x2 - draftShape.x1, draftShape.y2 - draftShape.y1);
-        if (length >= MIN_LINE_LENGTH) {
-          onAddShape?.(draftShape);
-        }
-      }
-      setDraftShape(null);
-    }
-
-    if (state.type === 'move-point') {
-      // point updates already applied during move
-    }
-
-    pointerStateRef.current = null;
-  };
-
-  const handleCanvasPointerDown = (event) => {
-    if (isReadOnly) {
-      const { isInside } = normalisePointer(event);
-      if (!isInside) {
-        onSelect?.(null);
-      }
-      return;
-    }
-
-    const labelIsLine = isLineLabel(activeLabelId);
-    const labelIsPoint = isPointLabel(activeLabelId);
-
-    if (!effectiveAddMode) {
-      const { isInside } = normalisePointer(event);
-      if (!isInside) {
-        onSelect?.(null);
-      }
-      return;
-    }
-
-    const position = normalisePointer(event);
-    if (!position.isInside) {
-      return;
-    }
-    event.preventDefault();
-
-    const snappedStart = snapDrawingPosition(position.x, position.y);
-
-    if (labelIsLine) {
-      const draft = {
-        type: 'line',
-        labelId: activeLabelId,
-        x1: snappedStart.x,
-        y1: snappedStart.y,
-        x2: snappedStart.x,
-        y2: snappedStart.y,
-      };
-      setDraftShape(draft);
-      pointerStateRef.current = {
-        type: 'add-line',
-        pointerId: event.pointerId,
-        originX: snappedStart.x,
-        originY: snappedStart.y,
-      };
-      event.currentTarget.setPointerCapture(event.pointerId);
-    } else if (labelIsPoint) {
-      const anchor = getAnchorForPoint(position.x, position.y);
-      if (!anchor) {
+    const setGuidesNormalized = useCallback((next) => {
+      if (!next || next.length === 0) {
+        setGuides([]);
         return;
       }
-      const draft = {
-        type: 'point',
-        labelId: activeLabelId,
-        x: anchor.x,
-        y: anchor.y,
-        anchor: anchor.anchor,
-      };
-      onAddShape?.(draft);
-    } else if (isBoxLabel(activeLabelId)) {
-      const snapped = snapDrawingPosition(position.x, position.y);
-      const draft = {
-        type: 'box',
-        labelId: activeLabelId,
-        x: snapped.x,
-        y: snapped.y,
-        width: 0,
-        height: 0,
-      };
-      setDraftShape(draft);
-      pointerStateRef.current = {
-        type: 'add-box',
-        pointerId: event.pointerId,
-        originX: snapped.x,
-        originY: snapped.y,
-      };
-      event.currentTarget.setPointerCapture(event.pointerId);
-    } else {
-      return;
-    }
-  };
+      setGuides(next);
+    }, []);
 
-  const handleCanvasPointerMove = (event) => {
-    if (isReadOnly) {
-      return;
-    }
+    const clearGuides = useCallback(() => {
+      setGuides([]);
+    }, []);
 
-    const state = pointerStateRef.current;
-    if (!state || (state.type !== 'add-box' && state.type !== 'add-line')) {
-      return;
-    }
-    event.preventDefault();
+    const clampOffset = useCallback((offset, scale, size) => {
+      if (!size || scale <= 1) {
+        return 0;
+      }
+      const maxShift = size * (scale - 1);
+      return clampNumber(offset, -maxShift, 0);
+    }, []);
 
-    const { x, y } = normalisePointer(event);
+    const applyViewportZoom = useCallback(
+      (nextScale, focal) => {
+        const metrics = imageBoxRef.current;
+        if (!metrics.width || !metrics.height) {
+          return;
+        }
+        const scale = clampNumber(nextScale, MIN_ZOOM, MAX_ZOOM);
 
-    if (state.type === 'add-box') {
-      const snapped = snapDrawingPosition(x, y);
-      const snappedX = snapped.x;
-      const snappedY = snapped.y;
-      const boxMinX = Math.min(state.originX, snappedX);
-      const boxMinY = Math.min(state.originY, snappedY);
-      const width = Math.abs(snappedX - state.originX);
-      const height = Math.abs(snappedY - state.originY);
+        updateViewport((prev) => {
+          if (Math.abs(scale - prev.scale) < 0.0001) {
+            return prev;
+          }
 
-      setDraftShape((prev) =>
-        prev
-          ? {
-              ...prev,
-              x: clamp(boxMinX, 0, 1 - MIN_BOX_SIZE),
-              y: clamp(boxMinY, 0, 1 - MIN_BOX_SIZE),
-              width: clamp(width, 0, 1),
-              height: clamp(height, 0, 1),
+          let offsetX = prev.offsetX;
+          let offsetY = prev.offsetY;
+
+          if (focal) {
+            const worldX = focal.x / prev.scale;
+            const worldY = focal.y / prev.scale;
+            offsetX = focal.x - worldX * scale;
+            offsetY = focal.y - worldY * scale;
+          } else {
+            const ratio = scale / prev.scale;
+            offsetX *= ratio;
+            offsetY *= ratio;
+            if (prev.scale <= 1 && scale > 1) {
+              offsetX = -(metrics.width * scale - metrics.width) / 2;
+              offsetY = -(metrics.height * scale - metrics.height) / 2;
             }
-          : prev
-      );
-    } else if (state.type === 'add-line') {
-      const snapped = snapDrawingPosition(x, y);
-      const snappedX = snapped.x;
-      const snappedY = snapped.y;
-      setDraftShape((prev) =>
-        prev
-          ? {
-              ...prev,
-              ...(() => {
-                const dx = snappedX - state.originX;
-                const dy = snappedY - state.originY;
-                const absDx = Math.abs(dx);
-                const absDy = Math.abs(dy);
+          }
 
-                if (absDy <= absDx * AXIS_LOCK_TOLERANCE) {
+          const nextOffsetX = clampOffset(offsetX, scale, metrics.width);
+          const nextOffsetY = clampOffset(offsetY, scale, metrics.height);
+
+          return { scale, offsetX: nextOffsetX, offsetY: nextOffsetY };
+        });
+      },
+      [clampOffset, updateViewport]
+    );
+
+    const applyViewportPan = useCallback(
+      (deltaX, deltaY) => {
+        const metrics = imageBoxRef.current;
+        if (!metrics.width || !metrics.height) {
+          return;
+        }
+
+        updateViewport((prev) => {
+          if (prev.scale <= 1) {
+            if (prev.offsetX === 0 && prev.offsetY === 0) {
+              return prev;
+            }
+            return { scale: prev.scale, offsetX: 0, offsetY: 0 };
+          }
+
+          let offsetX = prev.offsetX - deltaX;
+          let offsetY = prev.offsetY - deltaY;
+          offsetX = clampOffset(offsetX, prev.scale, metrics.width);
+          offsetY = clampOffset(offsetY, prev.scale, metrics.height);
+
+          if (offsetX === prev.offsetX && offsetY === prev.offsetY) {
+            return prev;
+          }
+
+          return { scale: prev.scale, offsetX, offsetY };
+        });
+      },
+      [clampOffset, updateViewport]
+    );
+
+    const handleWheel = useCallback(
+      (event) => {
+        const container = containerRef.current;
+        const metrics = imageBoxRef.current;
+        if (!container || !metrics.width || !metrics.height) {
+          return;
+        }
+
+        if (event.ctrlKey || event.metaKey) {
+          event.preventDefault();
+          const rect = container.getBoundingClientRect();
+          const currentViewportState = viewportRef.current;
+          const focal = {
+            x: event.clientX - rect.left - metrics.offsetX - currentViewportState.offsetX,
+            y: event.clientY - rect.top - metrics.offsetY - currentViewportState.offsetY,
+          };
+          const nextScale = viewportRef.current.scale * Math.exp(-event.deltaY * WHEEL_ZOOM_SENSITIVITY);
+          applyViewportZoom(nextScale, focal);
+          return;
+        }
+
+        if (viewportRef.current.scale > 1) {
+          event.preventDefault();
+          applyViewportPan(event.deltaX, event.deltaY);
+        }
+      },
+      [applyViewportPan, applyViewportZoom]
+    );
+
+    useImperativeHandle(
+      ref,
+      () => ({
+        zoomIn: () => {
+          const current = viewportRef.current.scale;
+          applyViewportZoom(current * (1 + KEYBOARD_ZOOM_STEP));
+        },
+        zoomOut: () => {
+          const current = viewportRef.current.scale;
+          applyViewportZoom(current * (1 - KEYBOARD_ZOOM_STEP));
+        },
+        resetZoom: () => {
+          applyViewportZoom(1);
+        },
+        setZoom: (scale) => {
+          applyViewportZoom(scale);
+        },
+        panBy: (deltaX, deltaY) => {
+          applyViewportPan(deltaX, deltaY);
+        },
+        getViewport: () => viewportRef.current,
+      }),
+      [applyViewportPan, applyViewportZoom]
+    );
+
+    const visibleBoxes = useMemo(() => {
+      if (!hiddenLabelIds || hiddenLabelIds.size === 0) {
+        return boxes;
+      }
+      return boxes.filter((box) => !hiddenLabelIds.has(box.labelId));
+    }, [boxes, hiddenLabelIds]);
+
+    const visibleLines = useMemo(() => {
+      if (!hiddenLabelIds || hiddenLabelIds.size === 0) {
+        return lines;
+      }
+      return lines.filter((line) => !hiddenLabelIds.has(line.labelId));
+    }, [lines, hiddenLabelIds]);
+
+    const visiblePoints = useMemo(() => {
+      if (!hiddenLabelIds || hiddenLabelIds.size === 0) {
+        return points;
+      }
+      return points.filter((point) => !hiddenLabelIds.has(point.labelId));
+    }, [points, hiddenLabelIds]);
+
+    const anchoredPointIdsByBox = useMemo(() => {
+      const map = new Map();
+      points.forEach((point) => {
+        const anchor = point?.anchor;
+        if (anchor?.type === 'box' && anchor.id && point.id) {
+          if (!map.has(anchor.id)) {
+            map.set(anchor.id, new Set());
+          }
+          map.get(anchor.id).add(point.id);
+        }
+      });
+      return map;
+    }, [points]);
+
+    const boxesMap = useMemo(() => {
+      return boxes.reduce((acc, box) => {
+        acc[box.id] = box;
+        return acc;
+      }, {});
+    }, [boxes]);
+
+    const linesMap = useMemo(() => {
+      return lines.reduce((acc, line) => {
+        acc[line.id] = line;
+        return acc;
+      }, {});
+    }, [lines]);
+
+    const snapPoints = useMemo(() => buildSnapPoints(boxes, lines, points), [boxes, lines, points]);
+
+    const snapSegments = useMemo(() => buildSnapSegments(boxes, lines), [boxes, lines]);
+
+    const updateImageBox = useCallback(() => {
+      const container = containerRef.current;
+      const image = imageRef.current;
+      if (!container || !image || !image.naturalWidth || !image.naturalHeight) {
+        return;
+      }
+
+      const containerRect = container.getBoundingClientRect();
+      const containerWidth = containerRect.width;
+      const containerHeight = containerRect.height;
+
+      const imageAspect = image.naturalWidth / image.naturalHeight;
+      const containerAspect = containerWidth / containerHeight;
+
+      let renderWidth = containerWidth;
+      let renderHeight = containerHeight;
+      let offsetX = 0;
+      let offsetY = 0;
+
+      if (imageAspect > containerAspect) {
+        renderWidth = containerWidth;
+        renderHeight = containerWidth / imageAspect;
+        offsetY = (containerHeight - renderHeight) / 2;
+      } else {
+        renderHeight = containerHeight;
+        renderWidth = containerHeight * imageAspect;
+        offsetX = (containerWidth - renderWidth) / 2;
+      }
+
+      const next = {
+        offsetX,
+        offsetY,
+        width: renderWidth,
+        height: renderHeight,
+      };
+
+      imageBoxRef.current = next;
+      setImageBox(next);
+      updateViewport((prev) => {
+        const scale = clampNumber(prev.scale, MIN_ZOOM, MAX_ZOOM);
+        const offsetX = clampOffset(prev.offsetX, scale, next.width);
+        const offsetY = clampOffset(prev.offsetY, scale, next.height);
+
+        if (scale === prev.scale && offsetX === prev.offsetX && offsetY === prev.offsetY) {
+          return prev;
+        }
+
+        return { scale, offsetX, offsetY };
+      });
+    }, [clampOffset, updateViewport]);
+
+    useEffect(() => {
+      updateImageBox();
+    }, [updateImageBox, imageUrl]);
+
+    useEffect(() => {
+      updateViewport(() => ({ scale: 1, offsetX: 0, offsetY: 0 }));
+    }, [imageUrl, updateViewport]);
+
+    useEffect(() => {
+      const image = imageRef.current;
+      if (!image) {
+        return () => {};
+      }
+
+      if (image.complete) {
+        updateImageBox();
+      } else {
+        image.addEventListener('load', updateImageBox);
+      }
+
+      return () => {
+        image.removeEventListener('load', updateImageBox);
+      };
+    }, [updateImageBox, imageUrl]);
+
+    useEffect(() => {
+      if (typeof ResizeObserver === 'undefined') {
+        window.addEventListener('resize', updateImageBox);
+        return () => {
+          window.removeEventListener('resize', updateImageBox);
+        };
+      }
+
+      const observer = new ResizeObserver(() => updateImageBox());
+      const container = containerRef.current;
+      if (container) {
+        observer.observe(container);
+      }
+
+      window.addEventListener('resize', updateImageBox);
+
+      return () => {
+        observer.disconnect();
+        window.removeEventListener('resize', updateImageBox);
+      };
+    }, [updateImageBox]);
+
+    useEffect(() => {
+      const container = containerRef.current;
+      return () => {
+        if (pointerStateRef.current?.pointerId !== undefined && container) {
+          try {
+            container.releasePointerCapture(pointerStateRef.current.pointerId);
+          } catch (error) {
+            // ignore release failures
+          }
+        }
+        pointerStateRef.current = null;
+      };
+    }, []);
+
+    useEffect(() => {
+      if (!effectiveAddMode) {
+        setDraftShape(null);
+      }
+    }, [effectiveAddMode]);
+
+    const normalisePointer = useCallback((event) => {
+      const container = containerRef.current;
+      const metrics = imageBoxRef.current;
+      const viewportState = viewportRef.current;
+
+      if (!container || !metrics.width || !metrics.height) {
+        return { x: 0, y: 0, isInside: false };
+      }
+
+      const containerRect = container.getBoundingClientRect();
+      const rawX = event.clientX - containerRect.left - metrics.offsetX;
+      const rawY = event.clientY - containerRect.top - metrics.offsetY;
+
+      const adjustedX = (rawX - viewportState.offsetX) / viewportState.scale;
+      const adjustedY = (rawY - viewportState.offsetY) / viewportState.scale;
+
+      const x = clamp(adjustedX / metrics.width);
+      const y = clamp(adjustedY / metrics.height);
+      const isInside = adjustedX >= 0 && adjustedY >= 0 && adjustedX <= metrics.width && adjustedY <= metrics.height;
+
+      return { x, y, localX: adjustedX, localY: adjustedY, isInside };
+    }, []);
+
+    const setSelection = (type, id) => {
+      onSelect?.({ type, id });
+    };
+
+    const snapDrawingPosition = (x, y, options = {}) => snapPosition({ x, y, snapPoints, snapSegments, ...options });
+
+    const getAnchorForPoint = (x, y) => findAnchorForPoint(x, y, lines, boxes, LINE_SNAP_THRESHOLD);
+
+    const applyAxisLock = (line) => applyAxisLockToLine(line, AXIS_LOCK_TOLERANCE);
+
+    const snapLineWithState = (line, excludeId, axisPreference) =>
+      snapLineEndpoints({ line, snapPoints, snapSegments, excludeId, axisPreference });
+
+    const snapLineEndpointWithState = (line, endpoint, excludeId, axisPreference) =>
+      snapSpecificLineEndpoint({ line, endpoint, snapPoints, snapSegments, excludeId, axisPreference });
+
+    const { handleBoxPointerDown, handleBoxPointerMove, handleBoxResizePointerDown, handleBoxResizePointerMove } =
+      useBoxInteractions({
+        addMode: effectiveAddMode,
+        readOnly: isReadOnly,
+        pointerStateRef,
+        boxesMap,
+        hiddenLabelIds,
+        normalisePointer,
+        snapDrawingPosition,
+        onUpdateBox,
+        setSelection,
+        clamp,
+        minBoxSize: MIN_BOX_SIZE,
+        anchoredPointIdsByBox,
+        setGuides: setGuidesNormalized,
+        clearGuides,
+        snapReleaseDistance: SNAP_RELEASE_DISTANCE,
+      });
+
+    const { handleLinePointerDown, handleLinePointerMove, handleLineHandlePointerDown, handleLineResizeMove } =
+      useLineInteractions({
+        addMode: effectiveAddMode,
+        readOnly: isReadOnly,
+        pointerStateRef,
+        linesMap,
+        hiddenLabelIds,
+        normalisePointer,
+        clamp,
+        applyAxisLock,
+        snapLineWithState,
+        snapLineEndpointWithState,
+        onUpdateLine,
+        setSelection,
+        setGuides: setGuidesNormalized,
+        clearGuides,
+        snapReleaseDistance: SNAP_RELEASE_DISTANCE,
+      });
+
+    const { handlePointPointerDown, handlePointPointerMove } = usePointInteractions({
+      pointerStateRef,
+      normalisePointer,
+      getAnchorForPoint,
+      onUpdatePoint,
+      setSelection,
+      addMode: effectiveAddMode,
+      readOnly: isReadOnly,
+      clearGuides,
+    });
+
+    const handlePointerUp = (event) => {
+      const state = pointerStateRef.current;
+      if (!state) {
+        return;
+      }
+
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+
+      if (state.type === 'pan') {
+        if (!state.didMove) {
+          onSelect?.(null);
+        }
+        pointerStateRef.current = null;
+        return;
+      }
+
+      if (state.type === 'add-box') {
+        if (draftShape && draftShape.width >= MIN_BOX_SIZE && draftShape.height >= MIN_BOX_SIZE) {
+          onAddShape?.(draftShape);
+        }
+        setDraftShape(null);
+      }
+
+      if (state.type === 'add-line') {
+        if (draftShape) {
+          const length = Math.hypot(draftShape.x2 - draftShape.x1, draftShape.y2 - draftShape.y1);
+          if (length >= MIN_LINE_LENGTH) {
+            onAddShape?.(draftShape);
+          }
+        }
+        setDraftShape(null);
+      }
+
+      if (state.type === 'move-point') {
+        // point updates already applied during move
+      }
+
+      clearGuides();
+      pointerStateRef.current = null;
+    };
+
+    const handleCanvasPointerDown = (event) => {
+      clearGuides();
+      if (isReadOnly) {
+        const { isInside } = normalisePointer(event);
+        if (!isInside) {
+          onSelect?.(null);
+        }
+        return;
+      }
+
+      const labelIsLine = isLineLabel(activeLabelId);
+      const labelIsPoint = isPointLabel(activeLabelId);
+
+      if (!effectiveAddMode) {
+        const position = normalisePointer(event);
+        if (!position.isInside) {
+          onSelect?.(null);
+          return;
+        }
+
+        if (event.button === 0 || event.button === 1 || event.pointerType === 'touch') {
+          pointerStateRef.current = {
+            type: 'pan',
+            pointerId: event.pointerId,
+            lastClientX: event.clientX,
+            lastClientY: event.clientY,
+            didMove: false,
+          };
+          event.currentTarget.setPointerCapture(event.pointerId);
+          event.preventDefault();
+        } else {
+          onSelect?.(null);
+        }
+        return;
+      }
+
+      const position = normalisePointer(event);
+      if (!position.isInside) {
+        return;
+      }
+      event.preventDefault();
+
+      const snappedStart = snapDrawingPosition(position.x, position.y);
+
+      if (labelIsLine) {
+        const draft = {
+          type: 'line',
+          labelId: activeLabelId,
+          x1: snappedStart.x,
+          y1: snappedStart.y,
+          x2: snappedStart.x,
+          y2: snappedStart.y,
+        };
+        setDraftShape(draft);
+        pointerStateRef.current = {
+          type: 'add-line',
+          pointerId: event.pointerId,
+          originX: snappedStart.x,
+          originY: snappedStart.y,
+        };
+        event.currentTarget.setPointerCapture(event.pointerId);
+      } else if (labelIsPoint) {
+        const anchor = getAnchorForPoint(position.x, position.y);
+        if (!anchor) {
+          return;
+        }
+        const draft = {
+          type: 'point',
+          labelId: activeLabelId,
+          x: anchor.x,
+          y: anchor.y,
+          anchor: anchor.anchor,
+        };
+        onAddShape?.(draft);
+      } else if (isBoxLabel(activeLabelId)) {
+        const snapped = snapDrawingPosition(position.x, position.y);
+        const draft = {
+          type: 'box',
+          labelId: activeLabelId,
+          x: snapped.x,
+          y: snapped.y,
+          width: 0,
+          height: 0,
+        };
+        setDraftShape(draft);
+        pointerStateRef.current = {
+          type: 'add-box',
+          pointerId: event.pointerId,
+          originX: snapped.x,
+          originY: snapped.y,
+        };
+        event.currentTarget.setPointerCapture(event.pointerId);
+      } else {
+        return;
+      }
+    };
+
+    const handleCanvasPointerMove = (event) => {
+      if (isReadOnly) {
+        return;
+      }
+
+      const state = pointerStateRef.current;
+      if (!state) {
+        return;
+      }
+
+      if (state.type === 'pan') {
+        event.preventDefault();
+        const deltaX = event.clientX - state.lastClientX;
+        const deltaY = event.clientY - state.lastClientY;
+        if (deltaX !== 0 || deltaY !== 0) {
+          applyViewportPan(-deltaX, -deltaY);
+          state.lastClientX = event.clientX;
+          state.lastClientY = event.clientY;
+          state.didMove = state.didMove || Math.abs(deltaX) > 0 || Math.abs(deltaY) > 0;
+        }
+        return;
+      }
+
+      if (state.type !== 'add-box' && state.type !== 'add-line') {
+        return;
+      }
+      event.preventDefault();
+
+      const { x, y } = normalisePointer(event);
+
+      if (state.type === 'add-box') {
+        const snapped = snapDrawingPosition(x, y);
+        const snappedX = snapped.x;
+        const snappedY = snapped.y;
+        const boxMinX = Math.min(state.originX, snappedX);
+        const boxMinY = Math.min(state.originY, snappedY);
+        const width = Math.abs(snappedX - state.originX);
+        const height = Math.abs(snappedY - state.originY);
+
+        setDraftShape((prev) =>
+          prev
+            ? {
+                ...prev,
+                x: clamp(boxMinX, 0, 1 - MIN_BOX_SIZE),
+                y: clamp(boxMinY, 0, 1 - MIN_BOX_SIZE),
+                width: clamp(width, 0, 1),
+                height: clamp(height, 0, 1),
+              }
+            : prev
+        );
+      } else if (state.type === 'add-line') {
+        const snapped = snapDrawingPosition(x, y);
+        const snappedX = snapped.x;
+        const snappedY = snapped.y;
+        setDraftShape((prev) =>
+          prev
+            ? {
+                ...prev,
+                ...(() => {
+                  const dx = snappedX - state.originX;
+                  const dy = snappedY - state.originY;
+                  const absDx = Math.abs(dx);
+                  const absDy = Math.abs(dy);
+
+                  if (absDy <= absDx * AXIS_LOCK_TOLERANCE) {
+                    return {
+                      x2: snappedX,
+                      y2: clamp(state.originY),
+                    };
+                  }
+
+                  if (absDx <= absDy * AXIS_LOCK_TOLERANCE) {
+                    return {
+                      x2: clamp(state.originX),
+                      y2: snappedY,
+                    };
+                  }
+
                   return {
                     x2: snappedX,
-                    y2: clamp(state.originY),
-                  };
-                }
-
-                if (absDx <= absDy * AXIS_LOCK_TOLERANCE) {
-                  return {
-                    x2: clamp(state.originX),
                     y2: snappedY,
                   };
-                }
+                })(),
+              }
+            : prev
+        );
+      }
+    };
 
-                return {
-                  x2: snappedX,
-                  y2: snappedY,
-                };
-              })(),
-            }
-          : prev
+    const viewportStyle = useMemo(
+      () => ({
+        left: `${imageBox.offsetX}px`,
+        top: `${imageBox.offsetY}px`,
+        width: `${imageBox.width}px`,
+        height: `${imageBox.height}px`,
+        transform: `translate(${viewport.offsetX}px, ${viewport.offsetY}px)`,
+      }),
+      [imageBox.height, imageBox.offsetX, imageBox.offsetY, imageBox.width, viewport.offsetX, viewport.offsetY]
+    );
+
+    const viewportInnerStyle = useMemo(
+      () => ({
+        width: `${imageBox.width}px`,
+        height: `${imageBox.height}px`,
+        transform: `scale(${viewport.scale})`,
+        transformOrigin: 'top left',
+      }),
+      [imageBox.height, imageBox.width, viewport.scale]
+    );
+
+    const overlayStyle = useMemo(
+      () => ({
+        width: `${imageBox.width}px`,
+        height: `${imageBox.height}px`,
+      }),
+      [imageBox.height, imageBox.width]
+    );
+
+    const draftElements = [];
+    if (draftShape?.type === 'box') {
+      const label = getLabel(draftShape.labelId);
+      draftElements.push(
+        <div
+          key='draft-box'
+          className={styles.annotation}
+          style={{
+            left: `${draftShape.x * 100}%`,
+            top: `${draftShape.y * 100}%`,
+            width: `${draftShape.width * 100}%`,
+            height: `${draftShape.height * 100}%`,
+            borderColor: label?.color || '#94a3b8',
+            opacity: 0.6,
+          }}
+        />
+      );
+    } else if (draftShape?.type === 'line') {
+      draftElements.push(
+        <svg key='draft-line' className={styles.lineDraft} width={imageBox.width} height={imageBox.height}>
+          <line
+            x1={draftShape.x1 * imageBox.width}
+            y1={draftShape.y1 * imageBox.height}
+            x2={draftShape.x2 * imageBox.width}
+            y2={draftShape.y2 * imageBox.height}
+            stroke='#94a3b8'
+            strokeWidth={4}
+            strokeLinecap='round'
+            strokeDasharray='6 4'
+          />
+        </svg>
       );
     }
-  };
 
-  const overlayStyle = useMemo(() => {
-    return {
-      left: `${imageBox.offsetX}px`,
-      top: `${imageBox.offsetY}px`,
-      width: `${imageBox.width}px`,
-      height: `${imageBox.height}px`,
-    };
-  }, [imageBox]);
+    const highlightInfo = useMemo(() => {
+      const edgeMap = new Map();
+      const lineHighlights = new Set();
 
-  const draftElements = [];
-  if (draftShape?.type === 'box') {
-    const label = getLabel(draftShape.labelId);
-    draftElements.push(
-      <div
-        key='draft-box'
-        className={styles.annotation}
-        style={{
-          left: `${draftShape.x * 100}%`,
-          top: `${draftShape.y * 100}%`,
-          width: `${draftShape.width * 100}%`,
-          height: `${draftShape.height * 100}%`,
-          borderColor: label?.color || '#94a3b8',
-          opacity: 0.6,
-        }}
-      />
+      if (!guides || guides.length === 0) {
+        return { edgeMap, lineHighlights };
+      }
+
+      const cornerToEdges = {
+        'top-left': ['top', 'left'],
+        'top-right': ['top', 'right'],
+        'bottom-left': ['bottom', 'left'],
+        'bottom-right': ['bottom', 'right'],
+      };
+
+      const addEdge = (ownerId, edge) => {
+        if (!ownerId || !edge) {
+          return;
+        }
+        if (!edgeMap.has(ownerId)) {
+          edgeMap.set(ownerId, new Set());
+        }
+        edgeMap.get(ownerId).add(edge);
+      };
+
+      const collectSources = (guide) => {
+        const list = [];
+        if (guide?.source) {
+          list.push(guide.source);
+        }
+        if (Array.isArray(guide?.sources)) {
+          list.push(...guide.sources);
+        }
+        return list;
+      };
+
+      guides.forEach((guide) => {
+        const sources = collectSources(guide);
+        sources.forEach((source) => {
+          if (!source) {
+            return;
+          }
+
+          const { ownerId, type, meta } = source;
+          if (!ownerId) {
+            return;
+          }
+
+          if (type === 'box-edge') {
+            addEdge(ownerId, meta?.edge);
+            return;
+          }
+
+          if (type === 'box-corner') {
+            const edges = cornerToEdges[meta?.corner];
+            if (edges) {
+              edges.forEach((edge) => addEdge(ownerId, edge));
+            }
+            return;
+          }
+
+          if (type === 'line' || type === 'line-end') {
+            lineHighlights.add(ownerId);
+          }
+        });
+      });
+
+      return { edgeMap, lineHighlights };
+    }, [guides]);
+
+    const { edgeMap, lineHighlights } = highlightInfo;
+
+    const guideElements = useMemo(() => {
+      if (!guides || guides.length === 0) {
+        return [];
+      }
+
+      const lineElements = [];
+      const segmentGuides = [];
+
+      guides.forEach((guide, index) => {
+        if (guide.type === 'vertical' || guide.type === 'horizontal') {
+          lineElements.push(
+            <div
+              key={`guide-line-${index}`}
+              className={`${styles.guide} ${guide.type === 'vertical' ? styles.guideVertical : styles.guideHorizontal}`}
+              style={guide.type === 'vertical' ? { left: `${guide.value * 100}%` } : { top: `${guide.value * 100}%` }}
+            />
+          );
+        } else if (guide.type === 'segment') {
+          segmentGuides.push({ ...guide, key: index });
+        }
+      });
+
+      if (segmentGuides.length > 0) {
+        lineElements.push(
+          <svg key='guide-segments' className={styles.guideLayer} width={imageBox.width} height={imageBox.height}>
+            {segmentGuides.map((guide) => (
+              <line
+                key={`guide-segment-${guide.key}`}
+                x1={guide.x1 * imageBox.width}
+                y1={guide.y1 * imageBox.height}
+                x2={guide.x2 * imageBox.width}
+                y2={guide.y2 * imageBox.height}
+                stroke={GUIDE_COLOR}
+                strokeDasharray='6 4'
+                strokeWidth={2}
+              />
+            ))}
+          </svg>
+        );
+      }
+
+      return lineElements;
+    }, [guides, imageBox.height, imageBox.width]);
+
+    const canvasStyle = useMemo(
+      () => ({
+        minWidth: imageBox.width ? `${imageBox.width}px` : undefined,
+        minHeight: imageBox.height ? `${imageBox.height}px` : undefined,
+      }),
+      [imageBox.height, imageBox.width]
     );
-  } else if (draftShape?.type === 'line') {
-    draftElements.push(
-      <svg key='draft-line' className={styles.lineDraft} width={imageBox.width} height={imageBox.height}>
-        <line
-          x1={draftShape.x1 * imageBox.width}
-          y1={draftShape.y1 * imageBox.height}
-          x2={draftShape.x2 * imageBox.width}
-          y2={draftShape.y2 * imageBox.height}
-          stroke='#94a3b8'
-          strokeWidth={4}
-          strokeLinecap='round'
-          strokeDasharray='6 4'
-        />
-      </svg>
+
+    return (
+      <div
+        ref={containerRef}
+        className={`${styles.canvas} ${effectiveAddMode ? styles.adding : ''}`}
+        onPointerDown={handleCanvasPointerDown}
+        onPointerMove={handleCanvasPointerMove}
+        onPointerUp={handlePointerUp}
+        onWheel={handleWheel}
+        style={canvasStyle}
+      >
+        <div className={styles.viewport} style={viewportStyle}>
+          <div className={styles.viewportInner} style={viewportInnerStyle}>
+            <img
+              ref={imageRef}
+              src={imageUrl}
+              alt='floor plan'
+              className={styles.image}
+              style={{ width: '100%', height: '100%' }}
+            />
+            <div className={styles.overlay} style={overlayStyle}>
+              {guideElements}
+              {draftElements}
+              {visibleBoxes.map((box) => (
+                <BoxAnnotation
+                  key={box.id}
+                  box={box}
+                  label={getLabel(box.labelId)}
+                  isSelected={selectedItem?.type === 'box' && selectedItem.id === box.id}
+                  onPointerDown={handleBoxPointerDown}
+                  onPointerMove={handleBoxPointerMove}
+                  onPointerUp={handlePointerUp}
+                  onResizePointerDown={handleBoxResizePointerDown}
+                  onResizePointerMove={handleBoxResizePointerMove}
+                  highlightEdges={edgeMap.get(box.id)}
+                />
+              ))}
+              <svg className={styles.lineLayer} width={imageBox.width} height={imageBox.height}>
+                {visibleLines.map((line) => (
+                  <LineAnnotation
+                    key={line.id}
+                    line={line}
+                    label={getLabel(line.labelId)}
+                    isSelected={selectedItem?.type === 'line' && selectedItem.id === line.id}
+                    imageBox={imageBox}
+                    onPointerDown={handleLinePointerDown}
+                    onPointerMove={handleLinePointerMove}
+                    onPointerUp={handlePointerUp}
+                    onHandlePointerDown={handleLineHandlePointerDown}
+                    onHandlePointerMove={handleLineResizeMove}
+                    isHighlighted={lineHighlights.has(line.id)}
+                  />
+                ))}
+              </svg>
+              <svg className={styles.pointLayer} width={imageBox.width} height={imageBox.height}>
+                {visiblePoints.map((point) => (
+                  <PointAnnotation
+                    key={point.id}
+                    point={point}
+                    label={getLabel(point.labelId)}
+                    isSelected={selectedItem?.type === 'point' && selectedItem.id === point.id}
+                    imageBox={imageBox}
+                    onPointerDown={handlePointPointerDown}
+                    onPointerMove={handlePointPointerMove}
+                    onPointerUp={handlePointerUp}
+                  />
+                ))}
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
     );
   }
-
-  return (
-    <div
-      ref={containerRef}
-      className={`${styles.canvas} ${effectiveAddMode ? styles.adding : ''}`}
-      onPointerDown={handleCanvasPointerDown}
-      onPointerMove={handleCanvasPointerMove}
-      onPointerUp={handlePointerUp}
-    >
-      <img ref={imageRef} src={imageUrl} alt='floor plan' className={styles.image} />
-      <div className={styles.overlay} style={overlayStyle}>
-        {draftElements}
-        {visibleBoxes.map((box) => (
-          <BoxAnnotation
-            key={box.id}
-            box={box}
-            label={getLabel(box.labelId)}
-            isSelected={selectedItem?.type === 'box' && selectedItem.id === box.id}
-            onPointerDown={handleBoxPointerDown}
-            onPointerMove={handleBoxPointerMove}
-            onPointerUp={handlePointerUp}
-            onResizePointerDown={handleBoxResizePointerDown}
-            onResizePointerMove={handleBoxResizePointerMove}
-          />
-        ))}
-        <svg className={styles.lineLayer} width={imageBox.width} height={imageBox.height}>
-          {visibleLines.map((line) => (
-            <LineAnnotation
-              key={line.id}
-              line={line}
-              label={getLabel(line.labelId)}
-              isSelected={selectedItem?.type === 'line' && selectedItem.id === line.id}
-              imageBox={imageBox}
-              onPointerDown={handleLinePointerDown}
-              onPointerMove={handleLinePointerMove}
-              onPointerUp={handlePointerUp}
-              onHandlePointerDown={handleLineHandlePointerDown}
-              onHandlePointerMove={handleLineResizeMove}
-            />
-          ))}
-        </svg>
-        <svg className={styles.pointLayer} width={imageBox.width} height={imageBox.height}>
-          {visiblePoints.map((point) => (
-            <PointAnnotation
-              key={point.id}
-              point={point}
-              label={getLabel(point.labelId)}
-              isSelected={selectedItem?.type === 'point' && selectedItem.id === point.id}
-              imageBox={imageBox}
-              onPointerDown={handlePointPointerDown}
-              onPointerMove={handlePointPointerMove}
-              onPointerUp={handlePointerUp}
-            />
-          ))}
-        </svg>
-      </div>
-    </div>
-  );
-};
+);
+AnnotationCanvas.displayName = 'AnnotationCanvas';
 
 AnnotationCanvas.propTypes = {
   imageUrl: PropTypes.string.isRequired,
