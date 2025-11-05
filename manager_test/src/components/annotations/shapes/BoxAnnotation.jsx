@@ -8,18 +8,92 @@ const CURSOR_MAP = {
   'bottom-left': 'nesw-resize',
   'bottom-right': 'nwse-resize',
 };
+const EDGES = ['top', 'right', 'bottom', 'left'];
+const EDGE_CURSOR_MAP = {
+  top: 'ns-resize',
+  bottom: 'ns-resize',
+  left: 'ew-resize',
+  right: 'ew-resize',
+};
+const BORDER_WIDTH = 2;
+const HALF_BORDER = BORDER_WIDTH / 2;
+const HIGHLIGHT_COLOR = '#f97316';
 
 const BoxAnnotation = ({
   box,
   label,
   isSelected,
+  highlightEdges,
   onPointerDown,
   onPointerMove,
   onPointerUp,
   onResizePointerDown,
   onResizePointerMove,
 }) => {
-  const borderColor = label?.color || '#f59e0b';
+  const baseColor = label?.color || '#f59e0b';
+  const highlightSet = highlightEdges ? new Set(highlightEdges) : new Set();
+
+  const edgeColor = (edge) => (highlightSet.has(edge) ? HIGHLIGHT_COLOR : baseColor);
+
+  const cornerStyle = (corner) => {
+    switch (corner) {
+      case 'top-left':
+        return {
+          top: 0,
+          left: 0,
+          transform: `translate(-50%, -50%) translate(${HALF_BORDER}px, ${HALF_BORDER}px)`,
+        };
+      case 'top-right':
+        return {
+          top: 0,
+          left: '100%',
+          transform: `translate(-50%, -50%) translate(-${HALF_BORDER}px, ${HALF_BORDER}px)`,
+        };
+      case 'bottom-left':
+        return {
+          top: '100%',
+          left: 0,
+          transform: `translate(-50%, -50%) translate(${HALF_BORDER}px, -${HALF_BORDER}px)`,
+        };
+      case 'bottom-right':
+      default:
+        return {
+          top: '100%',
+          left: '100%',
+          transform: `translate(-50%, -50%) translate(-${HALF_BORDER}px, -${HALF_BORDER}px)`,
+        };
+    }
+  };
+
+  const edgeStyle = (edge) => {
+    switch (edge) {
+      case 'top':
+        return {
+          top: 0,
+          left: '50%',
+          transform: `translate(-50%, -50%) translate(0, ${HALF_BORDER}px)`,
+        };
+      case 'bottom':
+        return {
+          top: '100%',
+          left: '50%',
+          transform: `translate(-50%, -50%) translate(0, -${HALF_BORDER}px)`,
+        };
+      case 'left':
+        return {
+          top: '50%',
+          left: 0,
+          transform: `translate(-50%, -50%) translate(${HALF_BORDER}px, 0)`,
+        };
+      case 'right':
+      default:
+        return {
+          top: '50%',
+          left: '100%',
+          transform: `translate(-50%, -50%) translate(-${HALF_BORDER}px, 0)`,
+        };
+    }
+  };
 
   return (
     <div
@@ -30,24 +104,27 @@ const BoxAnnotation = ({
         top: `${box.y * 100}%`,
         width: `${box.width * 100}%`,
         height: `${box.height * 100}%`,
-        borderColor,
+        borderWidth: BORDER_WIDTH,
+        borderStyle: 'solid',
+        borderTopColor: edgeColor('top'),
+        borderRightColor: edgeColor('right'),
+        borderBottomColor: edgeColor('bottom'),
+        borderLeftColor: edgeColor('left'),
       }}
       onPointerDown={(event) => onPointerDown(event, box)}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
     >
-      <span className={styles.label} style={{ backgroundColor: borderColor }}>
+      <span className={styles.label} style={{ backgroundColor: baseColor }}>
         {label?.name || box.labelId}
       </span>
       {isSelected &&
         CORNERS.map((corner) => {
           const [vertical, horizontal] = corner.split('-');
+          const cursor = CURSOR_MAP[corner] || 'pointer';
           const style = {
-            top: vertical === 'top' ? 0 : undefined,
-            bottom: vertical === 'bottom' ? 0 : undefined,
-            left: horizontal === 'left' ? 0 : undefined,
-            right: horizontal === 'right' ? 0 : undefined,
-            cursor: CURSOR_MAP[corner] || 'pointer',
+            ...cornerStyle(corner),
+            cursor,
           };
 
           return (
@@ -57,6 +134,28 @@ const BoxAnnotation = ({
               className={styles.resizeHandle}
               style={style}
               onPointerDown={(event) => onResizePointerDown(event, box, corner)}
+              onPointerMove={onResizePointerMove}
+              onPointerUp={onPointerUp}
+            />
+          );
+        })}
+      {isSelected &&
+        EDGES.map((edge) => {
+          const cursor = EDGE_CURSOR_MAP[edge] || 'pointer';
+          const style = {
+            ...edgeStyle(edge),
+            cursor,
+          };
+
+          return (
+            <div
+              key={`edge-${edge}`}
+              role='presentation'
+              className={`${styles.edgeHandle} ${
+                edge === 'top' || edge === 'bottom' ? styles.edgeHandleHorizontal : styles.edgeHandleVertical
+              }`}
+              style={style}
+              onPointerDown={(event) => onResizePointerDown(event, box, edge)}
               onPointerMove={onResizePointerMove}
               onPointerUp={onPointerUp}
             />
@@ -80,6 +179,7 @@ BoxAnnotation.propTypes = {
     color: PropTypes.string,
   }),
   isSelected: PropTypes.bool.isRequired,
+  highlightEdges: PropTypes.oneOfType([PropTypes.instanceOf(Set), PropTypes.arrayOf(PropTypes.string)]),
   onPointerDown: PropTypes.func.isRequired,
   onPointerMove: PropTypes.func.isRequired,
   onPointerUp: PropTypes.func.isRequired,
@@ -89,6 +189,7 @@ BoxAnnotation.propTypes = {
 
 BoxAnnotation.defaultProps = {
   label: undefined,
+  highlightEdges: undefined,
 };
 
 export default BoxAnnotation;

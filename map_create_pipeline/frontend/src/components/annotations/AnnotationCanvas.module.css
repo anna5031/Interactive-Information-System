@@ -2,11 +2,14 @@
   position: relative;
   width: 100%;
   height: 100%;
+  max-height: 100%;
+  min-height: 0;
   overflow: hidden;
-  background: #0f172a;
+  background: #f1f5f9;
   display: flex;
   align-items: center;
   justify-content: center;
+  touch-action: none;
 }
 
 .canvas.adding {
@@ -25,13 +28,32 @@
 .image {
   width: 100%;
   height: 100%;
+  max-height: 100%;
   object-fit: contain;
   user-select: none;
   pointer-events: none;
 }
 
+.viewport {
+  position: absolute;
+  max-height: 100%;
+}
+
+.viewportInner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  transform-origin: top left;
+}
+
 .overlay {
   position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
   pointer-events: none;
 }
 
@@ -43,6 +65,7 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
+  z-index: 15; /* 박스 위, 선택된 박스 아래 */
 }
 
 .lineLayer line {
@@ -55,23 +78,25 @@
 
 .line {
   pointer-events: stroke;
+  cursor: pointer;
 }
 
 .pointLayer {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  z-index: 30; /* 제일 위 (박스 z-index 10/20 보다 높음) */
 }
 
 .point {
   pointer-events: auto;
   stroke: #ffffff;
-  stroke-width: 2px;
+  stroke-width: 1.5px;
   cursor: pointer;
 }
 
 .pointSelected {
-  stroke-width: 3px;
+  stroke-width: 2px;
 }
 
 .lineHandle {
@@ -93,16 +118,47 @@
   pointer-events: none;
 }
 
+.guide {
+  position: absolute;
+  pointer-events: none;
+  z-index: 10;
+  opacity: 0.75;
+}
+
+.guideVertical {
+  top: 0;
+  bottom: 0;
+  border-left: 1px dashed #38bdf8;
+}
+
+.guideHorizontal {
+  left: 0;
+  right: 0;
+  border-top: 1px dashed #38bdf8;
+}
+
+.guideLayer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
 .annotation {
   position: absolute;
-  border: 2px solid rgba(59, 130, 246, 0.9);
-  border-radius: 6px;
+  border: none;
+  border-radius: 0;
   box-sizing: border-box;
   pointer-events: auto;
   cursor: grab;
-  transition:
-    box-shadow 0.2s ease,
-    border-color 0.2s ease;
+  transition: box-shadow 0.2s ease;
+  z-index: 10;
+}
+
+.edgeStroke {
+  position: absolute;
+  pointer-events: none;
+  z-index: 0;
 }
 
 .annotation:active {
@@ -110,7 +166,8 @@
 }
 
 .selected {
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
+  box-shadow: none;
+  z-index: 20;
 }
 
 .label {
@@ -122,19 +179,65 @@
   font-size: 12px;
   color: white;
   background: rgba(59, 130, 246, 0.9);
+  z-index: 1;
 }
 
 .resizeHandle {
   position: absolute;
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   background: white;
   border: 2px solid rgba(30, 64, 175, 0.9);
   border-radius: 50%;
   pointer-events: auto;
   cursor: pointer;
+  z-index: 2;
 }
 
 .resizeHandle:hover {
   background: #2563eb;
+}
+
+.edgeHandle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: white;
+  border: 2px solid rgba(30, 64, 175, 0.9);
+  border-radius: 50%;
+  pointer-events: auto;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.edgeHandleHorizontal,
+.edgeHandleVertical {
+  width: 10px;
+  height: 10px;
+}
+
+.edgeHandle:hover {
+  background: #2563eb;
+}
+
+.highlightEdge {
+  position: absolute;
+  z-index: 25; /* .selected (20) 보다 높게 설정 */
+  background-color: #f97316; /* HIGHLIGHT_COLOR */
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+/* *** 수정: 새 스타일 추가 *** */
+.guideLockIcon {
+  position: absolute;
+  pointer-events: none;
+  z-index: 11; /* 가이드라인(10)보다 위에 */
+  color: #38bdf8;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 4px;
+  padding: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }

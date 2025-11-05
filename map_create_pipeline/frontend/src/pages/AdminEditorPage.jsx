@@ -4,6 +4,7 @@ import FloorPlanEditorPage from './FloorPlanEditorPage';
 import { saveAnnotations } from '../api/floorPlans';
 import { useFloorPlan } from '../utils/floorPlanContext';
 import layoutStyles from './MainPage.module.css';
+import styles from './AdminEditorPage.module.css';
 
 const AdminEditorPage = () => {
   const navigate = useNavigate();
@@ -21,10 +22,10 @@ const AdminEditorPage = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (state.imageUrl) {
+    if (state.imageUrl && state.stage !== 'editor') {
       setStage('editor');
     }
-  }, [setStage, state.imageUrl]);
+  }, [setStage, state.imageUrl, state.stage]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -92,7 +93,7 @@ const AdminEditorPage = () => {
   };
 
   return (
-    <div className={layoutStyles.fillContainer}>
+    <div className={`${layoutStyles.fillContainer} ${styles.editorLayout}`}>
       <FloorPlanEditorPage
         fileName={state.fileName || 'floor-plan.png'}
         imageUrl={state.imageUrl}

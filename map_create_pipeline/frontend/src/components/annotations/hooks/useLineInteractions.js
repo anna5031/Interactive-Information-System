@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { AXIS_LOCK_TOLERANCE, findVerticalSnap, findHorizontalSnap, DRAW_SNAP_DISTANCE } from '../utils/canvasGeometry';
 
 const useLineInteractions = ({
   addMode,
@@ -8,12 +9,41 @@ const useLineInteractions = ({
   hiddenLabelIds,
   normalisePointer,
   clamp,
-  applyAxisLock,
-  snapLineWithState,
-  snapLineEndpointWithState,
+  // applyAxisLock, // 사용 안 함
+  // snapLineWithState, // 새 로직으로 대체됨
+  // snapLineEndpointWithState, // 새 로직으로 대체됨
   onUpdateLine,
   setSelection,
+  setGuides,
+  clearGuides,
+  snapReleaseDistance,
+  snapPoints, // 새 로직에 필요
+  snapSegments, // 새 로직에 필요
 }) => {
+  const releaseDistance = Number.isFinite(snapReleaseDistance) ? snapReleaseDistance : 0.04;
+
+  // *** useBoxInteractions.js에서 가져온 헬퍼 함수 ***
+  const buildGuidesFromAxisSnaps = useCallback((snaps) => {
+    if (!snaps || snaps.length === 0) {
+      return [];
+    }
+    const guides = [];
+    snaps.forEach((snap) => {
+      if (!snap || !snap.snapped || !Array.isArray(snap.sources) || snap.sources.length === 0) {
+        return;
+      }
+
+      guides.push({
+        type: snap.axis === 'vertical' ? 'vertical' : 'horizontal',
+        value: snap.value,
+        sources: snap.sources,
+        axis: snap.axis,
+      });
+    });
+    return guides;
+  }, []);
+  // ***
+
   const handlePointerCapture = (event) => {
     try {
       event.currentTarget.setPointerCapture(event.pointerId);
@@ -39,6 +69,7 @@ const useLineInteractions = ({
 
       const { x, y } = normalisePointer(event);
 
+      clearGuides?.();
       pointerStateRef.current = {
         type: 'move-line',
         id: line.id,
@@ -46,11 +77,15 @@ const useLineInteractions = ({
         startY: y,
         startLine: { ...line },
         pointerId: event.pointerId,
+        snapSuppressed: false,
+        snapSource: null, // 'snapSource'는 'lastSnap'의 일부로 관리됨
+        snapOrigin: null,
+        lastSnap: null,
       };
 
       handlePointerCapture(event);
     },
-    [addMode, normalisePointer, pointerStateRef, readOnly, setSelection]
+    [addMode, clearGuides, normalisePointer, pointerStateRef, readOnly, setSelection]
   );
 
   const handleLinePointerMove = useCallback(
@@ -65,8 +100,9 @@ const useLineInteractions = ({
       }
       event.preventDefault();
 
-      const line = linesMap[state.id];
+      const line = linesMap.get(state.id);
       if (!line || hiddenLabelIds?.has(line.labelId)) {
+        clearGuides?.();
         return;
       }
 
@@ -74,20 +110,133 @@ const useLineInteractions = ({
       const deltaX = x - state.startX;
       const deltaY = y - state.startY;
 
-      let next = {
+      const rawLine = {
         x1: clamp(state.startLine.x1 + deltaX),
         y1: clamp(state.startLine.y1 + deltaY),
         x2: clamp(state.startLine.x2 + deltaX),
         y2: clamp(state.startLine.y2 + deltaY),
       };
 
-      next = applyAxisLock(next);
-      next = snapLineWithState(next, line.id);
-      next = applyAxisLock(next);
+      let nextX1 = rawLine.x1;
+      let nextY1 = rawLine.y1;
+      let nextX2 = rawLine.x2;
+      let nextY2 = rawLine.y2;
 
-      onUpdateLine?.(line.id, next);
+      // --- Snap Logic ---
+      let shouldSnap = true;
+      if (state.snapSuppressed && state.snapOrigin) {
+        const startDelta = Math.hypot(rawLine.x1 - state.snapOrigin.x1, rawLine.y1 - state.snapOrigin.y1);
+        const endDelta = Math.hypot(rawLine.x2 - state.snapOrigin.x2, rawLine.y2 - state.snapOrigin.y2);
+        if (Math.max(startDelta, endDelta) >= releaseDistance) {
+          state.snapSuppressed = false;
+          state.snapOrigin = null;
+          state.lastSnap = null;
+        } else {
+          shouldSnap = false;
+        }
+      }
+
+      const activeSnapResults = [];
+      if (shouldSnap) {
+        const excludeOwners = new Set([line.id]);
+        const snapOptions = {
+          snapPoints,
+          snapSegments,
+          distance: DRAW_SNAP_DISTANCE,
+          excludePointOwners: excludeOwners,
+          excludeSegmentOwners: excludeOwners,
+        };
+
+        // Vertical snap checks (x1, x2)
+        const vCandidates = [
+          { value: rawLine.x1, kind: 'start' },
+          { value: rawLine.x2, kind: 'end' },
+        ];
+        let bestVerticalSnap = { snapped: false, distance: Infinity };
+        let vSnapSourceKind = 'start';
+
+        vCandidates.forEach((candidate) => {
+          const snap = findVerticalSnap({ value: candidate.value, ...snapOptions });
+          if (snap.snapped && snap.distance < bestVerticalSnap.distance) {
+            bestVerticalSnap = snap;
+            vSnapSourceKind = candidate.kind;
+          }
+        });
+
+        // Horizontal snap checks (y1, y2)
+        const hCandidates = [
+          { value: rawLine.y1, kind: 'start' },
+          { value: rawLine.y2, kind: 'end' },
+        ];
+        let bestHorizontalSnap = { snapped: false, distance: Infinity };
+        let hSnapSourceKind = 'start';
+
+        hCandidates.forEach((candidate) => {
+          const snap = findHorizontalSnap({ value: candidate.value, ...snapOptions });
+          if (snap.snapped && snap.distance < bestHorizontalSnap.distance) {
+            bestHorizontalSnap = snap;
+            hSnapSourceKind = candidate.kind;
+          }
+        });
+
+        // Apply snaps
+        if (bestVerticalSnap.snapped) {
+          const snapDeltaX = bestVerticalSnap.value - (vSnapSourceKind === 'start' ? rawLine.x1 : rawLine.x2);
+          nextX1 = rawLine.x1 + snapDeltaX;
+          nextX2 = rawLine.x2 + snapDeltaX;
+          activeSnapResults.push(bestVerticalSnap);
+        }
+
+        if (bestHorizontalSnap.snapped) {
+          const snapDeltaY = bestHorizontalSnap.value - (hSnapSourceKind === 'start' ? rawLine.y1 : rawLine.y2);
+          nextY1 = rawLine.y1 + snapDeltaY;
+          nextY2 = rawLine.y2 + snapDeltaY;
+          activeSnapResults.push(bestHorizontalSnap);
+        }
+      } // End if (shouldSnap)
+
+      // --- Guide & Snap Suppression Logic ---
+      const nextLine = { x1: nextX1, y1: nextY1, x2: nextX2, y2: nextY2 };
+      if (activeSnapResults.length > 0) {
+        state.snapSuppressed = true;
+        state.snapOrigin = { ...rawLine };
+        state.lastSnap = { line: { ...nextLine }, guides: activeSnapResults };
+        setGuides?.(buildGuidesFromAxisSnaps(activeSnapResults));
+      } else if (state.snapSuppressed && state.lastSnap) {
+        Object.assign(nextLine, state.lastSnap.line); // Use last snapped line
+        setGuides?.(buildGuidesFromAxisSnaps(state.lastSnap.guides));
+      } else {
+        state.lastSnap = null;
+        if (shouldSnap) {
+          state.snapSuppressed = false;
+          state.snapOrigin = null;
+        }
+        clearGuides?.();
+      }
+
+      // --- Update Logic ---
+      onUpdateLine?.(line.id, {
+        x1: clamp(nextLine.x1),
+        y1: clamp(nextLine.y1),
+        x2: clamp(nextLine.x2),
+        y2: clamp(nextLine.y2),
+      });
     },
-    [applyAxisLock, clamp, hiddenLabelIds, linesMap, normalisePointer, onUpdateLine, pointerStateRef, readOnly, snapLineWithState]
+    [
+      clamp,
+      clearGuides,
+      hiddenLabelIds,
+      linesMap,
+      normalisePointer,
+      onUpdateLine,
+      pointerStateRef,
+      readOnly,
+      releaseDistance,
+      setGuides,
+      snapPoints,
+      snapSegments,
+      buildGuidesFromAxisSnaps,
+    ]
   );
 
   const handleLineHandlePointerDown = useCallback(
@@ -103,17 +252,21 @@ const useLineInteractions = ({
         return;
       }
 
+      clearGuides?.();
       pointerStateRef.current = {
         type: 'resize-line',
         id: line.id,
         handle,
         startLine: { ...line },
         pointerId: event.pointerId,
+        snapSuppressed: false,
+        snapOrigin: null,
+        lastSnap: null,
       };
 
       handlePointerCapture(event);
     },
-    [addMode, pointerStateRef, readOnly]
+    [addMode, clearGuides, pointerStateRef, readOnly]
   );
 
   const handleLineResizeMove = useCallback(
@@ -129,25 +282,125 @@ const useLineInteractions = ({
       event.preventDefault();
 
       const { id, handle, startLine } = state;
+      const line = linesMap.get(id); // Get current line
+      if (!line) return; // Safety check
+
       const { x, y } = normalisePointer(event);
 
-      let next = { ...startLine };
+      const rawX = clamp(x);
+      const rawY = clamp(y);
 
-      if (handle === 'start') {
-        next.x1 = clamp(x);
-        next.y1 = clamp(y);
-        next = snapLineEndpointWithState(next, 'start', id);
-      } else {
-        next.x2 = clamp(x);
-        next.y2 = clamp(y);
-        next = snapLineEndpointWithState(next, 'end', id);
+      const fixedX = handle === 'start' ? startLine.x2 : startLine.x1;
+      const fixedY = handle === 'start' ? startLine.y2 : startLine.y1;
+
+      let nextX = rawX;
+      let nextY = rawY;
+
+      // --- Snap Logic ---
+      let shouldSnap = true;
+      if (state.snapSuppressed && state.snapOrigin && state.snapOrigin.handle === handle) {
+        const dx = rawX - state.snapOrigin.x;
+        const dy = rawY - state.snapOrigin.y;
+        if (Math.hypot(dx, dy) >= releaseDistance) {
+          state.snapSuppressed = false;
+          state.snapOrigin = null;
+          state.lastSnap = null;
+        } else {
+          shouldSnap = false;
+        }
       }
 
-      next = applyAxisLock(next);
+      const activeSnapResults = [];
+      if (shouldSnap) {
+        const excludeOwners = new Set([id]);
+        const snapOptions = {
+          snapPoints,
+          snapSegments,
+          distance: DRAW_SNAP_DISTANCE,
+          excludePointOwners: excludeOwners,
+          excludeSegmentOwners: excludeOwners,
+        };
 
-      onUpdateLine?.(id, next);
+        const snapV = findVerticalSnap({ value: rawX, ...snapOptions });
+        if (snapV.snapped) {
+          nextX = snapV.value;
+          activeSnapResults.push(snapV);
+        }
+
+        const snapH = findHorizontalSnap({ value: rawY, ...snapOptions });
+        if (snapH.snapped) {
+          nextY = snapH.value;
+          activeSnapResults.push(snapH);
+        }
+      }
+
+      // --- Guide & Snap Suppression Logic ---
+      if (activeSnapResults.length > 0) {
+        state.snapSuppressed = true;
+        state.snapOrigin = { x: rawX, y: rawY, handle };
+        state.lastSnap = { x: nextX, y: nextY, guides: activeSnapResults, handle };
+        setGuides?.(buildGuidesFromAxisSnaps(activeSnapResults));
+      } else if (state.snapSuppressed && state.lastSnap && state.lastSnap.handle === handle) {
+        nextX = state.lastSnap.x;
+        nextY = state.lastSnap.y;
+        setGuides?.(buildGuidesFromAxisSnaps(state.lastSnap.guides));
+      } else {
+        // No snap, check for axis lock
+        state.lastSnap = null;
+        if (shouldSnap) {
+          state.snapSuppressed = false;
+          state.snapOrigin = null;
+        }
+
+        const dx = Math.abs(nextX - fixedX);
+        const dy = Math.abs(nextY - fixedY);
+
+        const isVertical = dx <= dy * AXIS_LOCK_TOLERANCE;
+        const isHorizontal = dy <= dx * AXIS_LOCK_TOLERANCE;
+
+        if (isVertical) {
+          nextX = fixedX; // Apply lock
+          setGuides?.([
+            { type: 'vertical', value: fixedX, sources: [], axis: 'vertical' },
+            { type: 'lock_symbol', x: fixedX, y: nextY, lock: 'vertical' },
+          ]);
+        } else if (isHorizontal) {
+          nextY = fixedY; // Apply lock
+          setGuides?.([
+            { type: 'horizontal', value: fixedY, sources: [], axis: 'horizontal' },
+            { type: 'lock_symbol', x: nextX, y: fixedY, lock: 'horizontal' },
+          ]);
+        } else {
+          clearGuides?.();
+        }
+      }
+
+      // --- Update Logic ---
+      const nextLine = { ...line }; // Start from current line
+      if (handle === 'start') {
+        nextLine.x1 = nextX;
+        nextLine.y1 = nextY;
+      } else {
+        nextLine.x2 = nextX;
+        nextLine.y2 = nextY;
+      }
+
+      onUpdateLine?.(id, nextLine);
     },
-    [applyAxisLock, clamp, normalisePointer, onUpdateLine, pointerStateRef, readOnly, snapLineEndpointWithState]
+    [
+      readOnly,
+      pointerStateRef,
+      normalisePointer,
+      clamp,
+      onUpdateLine,
+      setGuides,
+      clearGuides,
+      releaseDistance,
+      linesMap,
+      snapPoints,
+      snapSegments,
+      buildGuidesFromAxisSnaps,
+    ]
   );
 
   return {

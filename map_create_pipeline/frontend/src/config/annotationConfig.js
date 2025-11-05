@@ -3,7 +3,7 @@ const LABEL_CONFIG = [
   { id: '1', name: 'Elevator', color: '#a855f7', type: 'box' },
   { id: '2', name: 'Room', color: '#22c55e', type: 'box' },
   { id: '3', name: 'Stair', color: '#0ea5e9', type: 'box' },
-  { id: '4', name: 'Wall', color: '#f97316', type: 'line' },
+  { id: '4', name: 'Wall', color: '#ffbb00ff', type: 'line' },
 ];
 
 export const getLabelById = (labelId) => LABEL_CONFIG.find((label) => label.id === labelId);
