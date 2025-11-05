@@ -19,8 +19,6 @@ import {
   findAnchorForPoint,
   projectToClosestAnchor,
   applyAxisLockToLine,
-  snapLineEndpoints,
-  snapSpecificLineEndpoint,
   SNAP_RELEASE_DISTANCE,
 } from './utils/canvasGeometry';
 
@@ -589,12 +587,6 @@ const AnnotationCanvas = forwardRef(
     );
 
     const applyAxisLock = (line, axisLockHint = null) => applyAxisLockToLine(line, AXIS_LOCK_TOLERANCE, axisLockHint);
-
-    const snapLineWithState = (line, excludeId, axisPreference) =>
-      snapLineEndpoints({ line, snapPoints, snapSegments, excludeId, axisPreference });
-
-    const snapLineEndpointWithState = (line, endpoint, excludeId, axisPreference) =>
-      snapSpecificLineEndpoint({ line, endpoint, snapPoints, snapSegments, excludeId, axisPreference });
 
     const { handleBoxPointerDown, handleBoxPointerMove, handleBoxResizePointerDown, handleBoxResizePointerMove } =
       useBoxInteractions({
