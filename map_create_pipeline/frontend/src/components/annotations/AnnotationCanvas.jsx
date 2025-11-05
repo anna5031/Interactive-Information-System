@@ -38,7 +38,6 @@ const HIGHLIGHT_WIDTH = 2;
 const HIGHLIGHT_OFFSET = HIGHLIGHT_WIDTH / 2;
 
 const mergeGuideSegments = (segments) => {
-  // ... (이 함수는 변경 없음)
   if (!segments || segments.length === 0) {
     return [];
   }
@@ -618,9 +617,6 @@ const AnnotationCanvas = forwardRef(
         hiddenLabelIds,
         normalisePointer,
         clamp,
-        // applyAxisLock, // 더 이상 사용되지 않음
-        // snapLineWithState, // 더 이상 사용되지 않음
-        // snapLineEndpointWithState, // 더 이상 사용되지 않음
         onUpdateLine,
         setSelection,
         setGuides: setGuidesNormalized,
@@ -803,8 +799,6 @@ const AnnotationCanvas = forwardRef(
         return;
       }
 
-      // *** 수정된 부분 시작 ***
-      // 'move-line' 및 'resize-line' 이벤트 핸들러 호출 추가
       if (state.type === 'move-point') {
         handlePointPointerMove(event);
         return;
@@ -817,7 +811,6 @@ const AnnotationCanvas = forwardRef(
         handleLineResizeMove(event);
         return;
       }
-      // *** 여기에 박스 핸들러 추가 ***
       if (state.type === 'move-box') {
         handleBoxPointerMove(event);
         return;
@@ -826,7 +819,6 @@ const AnnotationCanvas = forwardRef(
         handleBoxResizePointerMove(event);
         return;
       }
-      // *** 수정된 부분 끝 ***
 
       if (state.type === 'pan') {
         event.preventDefault();
@@ -995,16 +987,13 @@ const AnnotationCanvas = forwardRef(
 
           if (type === 'box-edge') {
             const edge = meta?.edge;
-            if (!edge) return; // *** 수정: 안전 장치 추가 ***
+            if (!edge) return;
 
-            // *** 수정된 부분 시작 ***
-            // 가이드의 축과 엣지의 방향이 일치할 때만 해당 엣지를 추가
             if (guide.axis === 'vertical' && (edge === 'left' || edge === 'right')) {
-              addEdge(ownerId, edge); // 'left' 또는 'right' 중 실제 스냅된 엣지만 추가
+              addEdge(ownerId, edge);
             } else if (guide.axis === 'horizontal' && (edge === 'top' || edge === 'bottom')) {
-              addEdge(ownerId, edge); // 'top' 또는 'bottom' 중 실제 스냅된 엣지만 추가
+              addEdge(ownerId, edge);
             }
-            // *** 수정된 부분 끝 ***
             return;
           }
 

@@ -65,7 +65,7 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  z-index: 15; /* 박스 위, 선택된 박스 아래 */
+  z-index: 15;
 }
 
 .lineLayer line {

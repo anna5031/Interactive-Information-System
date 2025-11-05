@@ -18,13 +18,11 @@ const EDGE_CURSOR_MAP = {
 const BORDER_WIDTH = 2;
 const BORDER_OFFSET = BORDER_WIDTH / 2;
 const BORDER_EXTEND = 1;
-// const HIGHLIGHT_COLOR = '#f97316'; // *** 수정: 더 이상 여기서 사용하지 않음 ***
 
 const BoxAnnotation = ({
   box,
   label,
   isSelected,
-  // highlightEdges, // *** 수정: prop 제거 ***
   onPointerDown,
   onPointerMove,
   onPointerUp,
@@ -32,12 +30,8 @@ const BoxAnnotation = ({
   onResizePointerMove,
 }) => {
   const baseColor = label?.color || '#f59e0b';
-  // const highlightSet = highlightEdges ? new Set(highlightEdges) : new Set(); // *** 수정: 제거 ***
-
-  // const edgeColor = (edge) => (highlightSet.has(edge) ? HIGHLIGHT_COLOR : baseColor); // *** 수정: 제거 ***
   const edgeStrokeStyle = (edge) => {
-    // const color = edgeColor(edge); // *** 수정: 제거 ***
-    const color = baseColor; // *** 수정: 항상 baseColor 사용 ***
+    const color = baseColor;
 
     switch (edge) {
       case 'left':
@@ -227,7 +221,6 @@ BoxAnnotation.propTypes = {
     color: PropTypes.string,
   }),
   isSelected: PropTypes.bool.isRequired,
-  // highlightEdges: PropTypes.oneOfType([PropTypes.instanceOf(Set), PropTypes.arrayOf(PropTypes.string)]), // *** 수정: prop 제거 ***
   onPointerDown: PropTypes.func.isRequired,
   onPointerMove: PropTypes.func.isRequired,
   onPointerUp: PropTypes.func.isRequired,
@@ -237,7 +230,6 @@ BoxAnnotation.propTypes = {
 
 BoxAnnotation.defaultProps = {
   label: undefined,
-  // highlightEdges: undefined, // *** 수정: prop 제거 ***
 };
 
 export default BoxAnnotation;

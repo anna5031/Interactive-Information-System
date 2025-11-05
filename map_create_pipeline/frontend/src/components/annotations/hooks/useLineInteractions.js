@@ -9,20 +9,16 @@ const useLineInteractions = ({
   hiddenLabelIds,
   normalisePointer,
   clamp,
-  // applyAxisLock, // 사용 안 함
-  // snapLineWithState, // 새 로직으로 대체됨
-  // snapLineEndpointWithState, // 새 로직으로 대체됨
   onUpdateLine,
   setSelection,
   setGuides,
   clearGuides,
   snapReleaseDistance,
-  snapPoints, // 새 로직에 필요
-  snapSegments, // 새 로직에 필요
+  snapPoints,
+  snapSegments,
 }) => {
   const releaseDistance = Number.isFinite(snapReleaseDistance) ? snapReleaseDistance : 0.04;
 
-  // *** useBoxInteractions.js에서 가져온 헬퍼 함수 ***
   const buildGuidesFromAxisSnaps = useCallback((snaps) => {
     if (!snaps || snaps.length === 0) {
       return [];
@@ -42,7 +38,6 @@ const useLineInteractions = ({
     });
     return guides;
   }, []);
-  // ***
 
   const handlePointerCapture = (event) => {
     try {
@@ -78,7 +73,7 @@ const useLineInteractions = ({
         startLine: { ...line },
         pointerId: event.pointerId,
         snapSuppressed: false,
-        snapSource: null, // 'snapSource'는 'lastSnap'의 일부로 관리됨
+        snapSource: null,
         snapOrigin: null,
         lastSnap: null,
       };
@@ -122,7 +117,6 @@ const useLineInteractions = ({
       let nextX2 = rawLine.x2;
       let nextY2 = rawLine.y2;
 
-      // --- Snap Logic ---
       let shouldSnap = true;
       if (state.snapSuppressed && state.snapOrigin) {
         const startDelta = Math.hypot(rawLine.x1 - state.snapOrigin.x1, rawLine.y1 - state.snapOrigin.y1);
@@ -147,7 +141,6 @@ const useLineInteractions = ({
           excludeSegmentOwners: excludeOwners,
         };
 
-        // Vertical snap checks (x1, x2)
         const vCandidates = [
           { value: rawLine.x1, kind: 'start' },
           { value: rawLine.x2, kind: 'end' },
@@ -163,7 +156,6 @@ const useLineInteractions = ({
           }
         });
 
-        // Horizontal snap checks (y1, y2)
         const hCandidates = [
           { value: rawLine.y1, kind: 'start' },
           { value: rawLine.y2, kind: 'end' },
@@ -179,7 +171,6 @@ const useLineInteractions = ({
           }
         });
 
-        // Apply snaps
         if (bestVerticalSnap.snapped) {
           const snapDeltaX = bestVerticalSnap.value - (vSnapSourceKind === 'start' ? rawLine.x1 : rawLine.x2);
           nextX1 = rawLine.x1 + snapDeltaX;
@@ -193,9 +184,8 @@ const useLineInteractions = ({
           nextY2 = rawLine.y2 + snapDeltaY;
           activeSnapResults.push(bestHorizontalSnap);
         }
-      } // End if (shouldSnap)
+      }
 
-      // --- Guide & Snap Suppression Logic ---
       const nextLine = { x1: nextX1, y1: nextY1, x2: nextX2, y2: nextY2 };
       if (activeSnapResults.length > 0) {
         state.snapSuppressed = true;
@@ -203,7 +193,7 @@ const useLineInteractions = ({
         state.lastSnap = { line: { ...nextLine }, guides: activeSnapResults };
         setGuides?.(buildGuidesFromAxisSnaps(activeSnapResults));
       } else if (state.snapSuppressed && state.lastSnap) {
-        Object.assign(nextLine, state.lastSnap.line); // Use last snapped line
+        Object.assign(nextLine, state.lastSnap.line);
         setGuides?.(buildGuidesFromAxisSnaps(state.lastSnap.guides));
       } else {
         state.lastSnap = null;
@@ -214,7 +204,6 @@ const useLineInteractions = ({
         clearGuides?.();
       }
 
-      // --- Update Logic ---
       onUpdateLine?.(line.id, {
         x1: clamp(nextLine.x1),
         y1: clamp(nextLine.y1),
@@ -282,8 +271,8 @@ const useLineInteractions = ({
       event.preventDefault();
 
       const { id, handle, startLine } = state;
-      const line = linesMap.get(id); // Get current line
-      if (!line) return; // Safety check
+      const line = linesMap.get(id);
+      if (!line) return;
 
       const { x, y } = normalisePointer(event);
 
@@ -296,7 +285,6 @@ const useLineInteractions = ({
       let nextX = rawX;
       let nextY = rawY;
 
-      // --- Snap Logic ---
       let shouldSnap = true;
       if (state.snapSuppressed && state.snapOrigin && state.snapOrigin.handle === handle) {
         const dx = rawX - state.snapOrigin.x;
@@ -334,7 +322,6 @@ const useLineInteractions = ({
         }
       }
 
-      // --- Guide & Snap Suppression Logic ---
       if (activeSnapResults.length > 0) {
         state.snapSuppressed = true;
         state.snapOrigin = { x: rawX, y: rawY, handle };
@@ -345,7 +332,6 @@ const useLineInteractions = ({
         nextY = state.lastSnap.y;
         setGuides?.(buildGuidesFromAxisSnaps(state.lastSnap.guides));
       } else {
-        // No snap, check for axis lock
         state.lastSnap = null;
         if (shouldSnap) {
           state.snapSuppressed = false;
@@ -359,13 +345,13 @@ const useLineInteractions = ({
         const isHorizontal = dy <= dx * AXIS_LOCK_TOLERANCE;
 
         if (isVertical) {
-          nextX = fixedX; // Apply lock
+          nextX = fixedX;
           setGuides?.([
             { type: 'vertical', value: fixedX, sources: [], axis: 'vertical' },
             { type: 'lock_symbol', x: fixedX, y: nextY, lock: 'vertical' },
           ]);
         } else if (isHorizontal) {
-          nextY = fixedY; // Apply lock
+          nextY = fixedY;
           setGuides?.([
             { type: 'horizontal', value: fixedY, sources: [], axis: 'horizontal' },
             { type: 'lock_symbol', x: nextX, y: fixedY, lock: 'horizontal' },
@@ -376,7 +362,7 @@ const useLineInteractions = ({
       }
 
       // --- Update Logic ---
-      const nextLine = { ...line }; // Start from current line
+      const nextLine = { ...line };
       if (handle === 'start') {
         nextLine.x1 = nextX;
         nextLine.y1 = nextY;

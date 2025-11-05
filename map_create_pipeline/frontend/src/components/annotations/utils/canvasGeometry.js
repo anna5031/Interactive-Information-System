@@ -341,13 +341,11 @@ const snapPosition = ({
   return { x: clampFn(x), y: clampFn(y), snapped: false, distance: Infinity, source: null, axis: null };
 };
 
-// *** 수정: 새 함수 (projectToClosestAnchor) 추가 ***
 const projectToClosestAnchor = (x, y, lines = [], boxes = []) => {
   let best = null;
 
   lines.forEach((line, lineIndex) => {
     const projection = projectPointToSegment(x, y, line.x1, line.y1, line.x2, line.y2);
-    // 'threshold' 체크 없이, 무조건 가장 가까운 'best'를 찾음.
     if (!best || projection.distance < best.distance) {
       best = {
         x: projection.x,
@@ -373,7 +371,6 @@ const projectToClosestAnchor = (x, y, lines = [], boxes = []) => {
 
     edges.forEach(({ edge, ax, ay, bx, by }) => {
       const projection = projectPointToSegment(x, y, ax, ay, bx, by);
-      // 'threshold' 체크 없이, 무조건 가장 가까운 'best'를 찾음.
       if (!best || projection.distance < best.distance) {
         best = {
           x: projection.x,
@@ -391,12 +388,11 @@ const projectToClosestAnchor = (x, y, lines = [], boxes = []) => {
     });
   });
 
-  // 'best'를 찾았다면, (threshold 체크 없이) 즉시 반환
   if (best) {
     return { x: clamp(best.x), y: clamp(best.y), anchor: best.anchor };
   }
 
-  return null; // 캔버스에 선이나 박스가 아예 없는 경우
+  return null;
 };
 
 const findAnchorForPoint = (x, y, lines = [], boxes = [], threshold = LINE_SNAP_THRESHOLD) => {
@@ -404,7 +400,6 @@ const findAnchorForPoint = (x, y, lines = [], boxes = [], threshold = LINE_SNAP_
 
   lines.forEach((line, lineIndex) => {
     const projection = projectPointToSegment(x, y, line.x1, line.y1, line.x2, line.y2);
-    // *** 이 함수는 'threshold'를 존중함 (새 점 추가용) ***
     if (projection.distance <= threshold && (!best || projection.distance < best.distance)) {
       best = {
         x: projection.x,
@@ -430,7 +425,6 @@ const findAnchorForPoint = (x, y, lines = [], boxes = [], threshold = LINE_SNAP_
 
     edges.forEach(({ edge, ax, ay, bx, by }) => {
       const projection = projectPointToSegment(x, y, ax, ay, bx, by);
-      // *** 이 함수는 'threshold'를 존중함 (새 점 추가용) ***
       if (projection.distance <= threshold && (!best || projection.distance < best.distance)) {
         best = {
           x: projection.x,
@@ -454,7 +448,6 @@ const findAnchorForPoint = (x, y, lines = [], boxes = [], threshold = LINE_SNAP_
 
   return null;
 };
-// *** 수정된 부분 끝 ***
 
 const applyAxisLockToLine = (line, tolerance = AXIS_LOCK_TOLERANCE, axisLockHint = null) => {
   if (!line) {
@@ -781,7 +774,7 @@ export {
   buildSnapPoints,
   buildSnapSegments,
   snapPosition,
-  projectToClosestAnchor, // *** 수정: 새 함수 export ***
+  projectToClosestAnchor,
   findAnchorForPoint,
   applyAxisLockToLine,
   snapLineEndpoints,

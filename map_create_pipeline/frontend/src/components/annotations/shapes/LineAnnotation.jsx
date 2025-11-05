@@ -31,7 +31,7 @@ const LineAnnotation = ({
         x2={endX}
         y2={endY}
         stroke={stroke}
-        strokeWidth={2} // 두께는 2px로 유지 (BoxAnnotation.jsx와 일치)
+        strokeWidth={2}
         strokeLinecap='round'
         pointerEvents='none'
       />

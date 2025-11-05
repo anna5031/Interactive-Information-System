@@ -3,7 +3,7 @@ import { useCallback, useRef } from 'react';
 const usePointInteractions = ({
   pointerStateRef,
   normalisePointer,
-  projectToClosestAnchor, // *** 수정: prop 이름 변경 (getAnchorForPoint -> projectToClosestAnchor) ***
+  projectToClosestAnchor,
   onUpdatePoint,
   setSelection,
   addMode,
@@ -35,20 +35,12 @@ const usePointInteractions = ({
     if (!isInside) {
       return;
     }
-
-    // *** 수정: threshold 없는 projectToClosestAnchor 함수 사용 ***
     const anchor = projectToClosestAnchor(x, y);
 
-    // *** 수정: 앵커를 못찾으면(null) 마지막 위치를 그대로 사용 (업데이트 안함) ***
     if (!anchor) {
-      // 캔버스에 선/박스가 아예 없는 엣지 케이스.
-      // 이 경우, 포인트는 마지막으로 알려진 x, y에 머무름 (분리되지 않음)
-      // 혹은 원한다면 마우스 위치를 따르게 할 수도 있음:
-      // onUpdatePoint?.(state.id, { x, y, anchor: null });
       return;
     }
 
-    // 앵커를 찾으면 스냅된 위치로 업데이트
     onUpdatePoint?.(state.id, {
       x: anchor.x,
       y: anchor.y,

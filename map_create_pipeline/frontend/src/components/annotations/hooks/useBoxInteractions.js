@@ -8,7 +8,7 @@ const useBoxInteractions = ({
   boxesMap,
   hiddenLabelIds,
   normalisePointer,
-  // snapDrawingPosition, // 더 이상 handleBoxPointerMove에서 사용되지 않음
+  // snapDrawingPosition,
   snapPoints,
   snapSegments,
   onUpdateBox,
@@ -314,7 +314,6 @@ const useBoxInteractions = ({
   // }, []);
 
   const buildGuidesFromAxisSnaps = useCallback((snaps) => {
-    // ... (이 함수는 변경 없음)
     if (!snaps || snaps.length === 0) {
       return [];
     }
@@ -335,7 +334,6 @@ const useBoxInteractions = ({
   }, []);
 
   const handlePointerCapture = (event) => {
-    // ... (이 함수는 변경 없음)
     try {
       event.currentTarget.setPointerCapture(event.pointerId);
     } catch (error) {
@@ -345,7 +343,6 @@ const useBoxInteractions = ({
 
   const handleBoxPointerDown = useCallback(
     (event, box) => {
-      // ... (이 함수는 변경 없음)
       if (addMode) {
         return;
       }
@@ -378,8 +375,6 @@ const useBoxInteractions = ({
     [addMode, clearGuides, normalisePointer, pointerStateRef, readOnly, setSelection]
   );
 
-  // *** 수정된 부분 시작 ***
-  // `handleBoxPointerMove` 함수를 축 기반 스냅 로직으로 교체
   const handleBoxPointerMove = useCallback(
     (event) => {
       if (readOnly) {
@@ -400,7 +395,6 @@ const useBoxInteractions = ({
 
       const { x, y } = normalisePointer(event);
 
-      // 1. 계산: 마우스 위치 기준 박스의 새 원본(top-left) 좌표
       const rawX = clamp(x - state.offsetX, 0, 1 - box.width);
       const rawY = clamp(y - state.offsetY, 0, 1 - box.height);
 
@@ -409,7 +403,6 @@ const useBoxInteractions = ({
 
       const activeSnapResults = [];
 
-      // 2. 스냅 억제 로직 (기존과 유사)
       let shouldSnap = true;
       if (state.snapSuppressed && state.snapOrigin) {
         const dx = rawX - state.snapOrigin.x;
@@ -423,7 +416,6 @@ const useBoxInteractions = ({
         }
       }
 
-      // 3. 스냅 탐색 (축 기반)
       if (shouldSnap) {
         const excludeOwners = new Set([box.id]);
         const anchoredPoints = anchoredPointIdsByBox?.get?.(box.id);
@@ -439,14 +431,12 @@ const useBoxInteractions = ({
           excludeSegmentOwners: excludeOwners,
         };
 
-        // 박스의 3개 수직 축 (left, center, right)
         const vCandidates = [
           { value: rawX, kind: 'left' },
           { value: rawX + box.width / 2, kind: 'center' },
           { value: rawX + box.width, kind: 'right' },
         ];
 
-        // 박스의 3개 수평 축 (top, center, bottom)
         const hCandidates = [
           { value: rawY, kind: 'top' },
           { value: rawY + box.height / 2, kind: 'center' },
@@ -475,7 +465,6 @@ const useBoxInteractions = ({
           }
         });
 
-        // 4. 스냅 적용
         if (bestVerticalSnap.snapped) {
           if (vSnapSourceKind === 'left') nextX = bestVerticalSnap.value;
           else if (vSnapSourceKind === 'center') nextX = bestVerticalSnap.value - box.width / 2;
@@ -491,31 +480,26 @@ const useBoxInteractions = ({
 
           activeSnapResults.push(bestHorizontalSnap);
         }
-      } // End if (shouldSnap)
+      }
 
-      // 5. 스냅 상태 및 가이드라인 처리
       if (activeSnapResults.length > 0) {
         state.snapSuppressed = true;
         state.snapOrigin = { x: rawX, y: rawY };
         state.lastSnap = { x: nextX, y: nextY, guides: activeSnapResults };
         setGuides?.(buildGuidesFromAxisSnaps(activeSnapResults));
       } else if (state.snapSuppressed && state.lastSnap) {
-        // 스냅 유지
         nextX = state.lastSnap.x;
         nextY = state.lastSnap.y;
         setGuides?.(buildGuidesFromAxisSnaps(state.lastSnap.guides));
       } else {
-        // 스냅 없음
         state.lastSnap = null;
         if (shouldSnap) {
-          // 스냅 억제 풀기
           state.snapSuppressed = false;
           state.snapOrigin = null;
         }
         clearGuides?.();
       }
 
-      // 6. 최종 위치 클램핑 및 업데이트
       const finalX = clamp(nextX, 0, 1 - box.width);
       const finalY = clamp(nextY, 0, 1 - box.height);
 
@@ -525,8 +509,7 @@ const useBoxInteractions = ({
       });
     },
     [
-      // buildGuides, // buildGuides는 이제 사용되지 않음
-      buildGuidesFromAxisSnaps, // 새 가이드 빌더 사용
+      buildGuidesFromAxisSnaps,
       anchoredPointIdsByBox,
       boxesMap,
       clamp,
@@ -537,17 +520,13 @@ const useBoxInteractions = ({
       pointerStateRef,
       releaseDistance,
       setGuides,
-      snapPoints, // 필요
-      snapSegments, // 필요
-      // snapDrawingPosition, // 더 이상 사용되지 않음
+      snapPoints,
+      snapSegments,
       readOnly,
     ]
   );
-  // *** 수정된 부분 끝 ***
-
   const handleBoxResizePointerDown = useCallback(
     (event, box, handle) => {
-      // ... (이 함수는 이전 단계에서 수정 완료됨)
       if (addMode) {
         return;
       }
@@ -578,7 +557,6 @@ const useBoxInteractions = ({
 
   const handleBoxResizePointerMove = useCallback(
     (event) => {
-      // ... (이 함수는 이전 단계에서 수정 완료됨)
       if (readOnly) {
         return;
       }
@@ -622,7 +600,6 @@ const useBoxInteractions = ({
       const isHorizontalEdge = handle === 'left' || handle === 'right';
       const isCornerHandle = !isVerticalEdge && !isHorizontalEdge;
 
-      // --- 스냅 로직 ---
       if (isCornerHandle || isHorizontalEdge) {
         snapX = findVerticalSnap({ value: rawCornerX, ...snapOptions });
         if (snapX.snapped) {
@@ -639,7 +616,6 @@ const useBoxInteractions = ({
         }
       }
 
-      // --- 스냅 억제 및 가이드 로직 ---
       if (activeSnapResults.length > 0) {
         state.snapSuppressed = true;
         state.snapOrigin = { x: rawCornerX, y: rawCornerY };
@@ -662,7 +638,6 @@ const useBoxInteractions = ({
         clearGuides?.();
       }
 
-      // --- 좌표 적용 로직 ---
       let newLeft = original.left;
       let newRight = original.right;
       let newTop = original.top;
