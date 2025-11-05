@@ -1,5 +1,6 @@
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
+import { ArrowLeftRight, ArrowUpDown } from 'lucide-react';
 import LABEL_CONFIG, { getLabelById, isLineLabel, isBoxLabel, isPointLabel } from '../../config/annotationConfig';
 import styles from './AnnotationCanvas.module.css';
 import BoxAnnotation from './shapes/BoxAnnotation';
@@ -16,7 +17,7 @@ import {
   buildSnapSegments,
   snapPosition,
   findAnchorForPoint,
-  projectToClosestAnchor, // *** 수정: 새 함수 import ***
+  projectToClosestAnchor,
   applyAxisLockToLine,
   snapLineEndpoints,
   snapSpecificLineEndpoint,
@@ -35,7 +36,7 @@ const clampNumber = (value, min, max) => Math.min(Math.max(value, min), max);
 const getLabel = (labelId) => getLabelById(labelId) || LABEL_CONFIG[0];
 const clampUnit = (value) => clampNumber(value, 0, 1);
 
-const HIGHLIGHT_WIDTH = 2; // 하이라이트 두께 (px)
+const HIGHLIGHT_WIDTH = 2;
 const HIGHLIGHT_OFFSET = HIGHLIGHT_WIDTH / 2;
 
 const mergeGuideSegments = (segments) => {
@@ -411,10 +412,7 @@ const AnnotationCanvas = forwardRef(
     }, [boxes]);
 
     const linesMap = useMemo(() => {
-      return lines.reduce((acc, line) => {
-        acc[line.id] = line;
-        return acc;
-      }, {});
+      return new Map(lines.map((line) => [line.id, line]));
     }, [lines]);
 
     const snapPoints = useMemo(() => buildSnapPoints(boxes, lines, points), [boxes, lines, points]);
@@ -583,7 +581,6 @@ const AnnotationCanvas = forwardRef(
 
     const getAnchorForPoint = (x, y) => findAnchorForPoint(x, y, lines, boxes, LINE_SNAP_THRESHOLD);
 
-    // *** 수정: 드래그용 함수 (threshold 없음) ***
     const projectDraggingPoint = useCallback(
       (x, y) => {
         return projectToClosestAnchor(x, y, lines, boxes);
@@ -629,21 +626,22 @@ const AnnotationCanvas = forwardRef(
         hiddenLabelIds,
         normalisePointer,
         clamp,
-        applyAxisLock,
-        snapLineWithState,
-        snapLineEndpointWithState,
+        // applyAxisLock, // 더 이상 사용되지 않음
+        // snapLineWithState, // 더 이상 사용되지 않음
+        // snapLineEndpointWithState, // 더 이상 사용되지 않음
         onUpdateLine,
         setSelection,
         setGuides: setGuidesNormalized,
         clearGuides,
         snapReleaseDistance: SNAP_RELEASE_DISTANCE,
+        snapPoints,
+        snapSegments,
       });
 
-    // *** 수정: 훅에 새 prop 전달 ***
     const { handlePointPointerDown, handlePointPointerMove, cleanupPointMove } = usePointInteractions({
       pointerStateRef,
       normalisePointer,
-      projectToClosestAnchor: projectDraggingPoint, // getAnchorForPoint 대신 전달
+      projectToClosestAnchor: projectDraggingPoint,
       onUpdatePoint,
       setSelection,
       addMode: effectiveAddMode,
@@ -686,15 +684,10 @@ const AnnotationCanvas = forwardRef(
         setDraftShape(null);
       }
 
-      // *** 수정: 렉 해결을 위해 수정된 부분 ***
       if (state.type === 'move-point') {
-        // 1. 예약된 프레임이 있다면 취소
         cleanupPointMove?.();
-
-        // 2. 마우스를 놓은 '최종' 위치를 기준으로
-        //    가장 정확한 앵커를 '즉시' 다시 계산하여 적용 (렉 없음)
         const { x, y } = normalisePointer(event);
-        const anchor = projectDraggingPoint(x, y); // threshold 없는 함수 사용
+        const anchor = projectDraggingPoint(x, y);
 
         if (anchor) {
           onUpdatePoint?.(state.id, {
@@ -703,12 +696,9 @@ const AnnotationCanvas = forwardRef(
             anchor: anchor.anchor,
           });
         } else {
-          // 허공에 놓았다면, (이론상으론 발생 안함)
-          // 마지막 렌더링된 위치(x, y)에 anchor: null로 설정
           onUpdatePoint?.(state.id, { x, y, anchor: null });
         }
       }
-      // *** 수정된 부분 끝 ***
 
       clearGuides();
       pointerStateRef.current = null;
@@ -776,7 +766,6 @@ const AnnotationCanvas = forwardRef(
         };
         event.currentTarget.setPointerCapture(event.pointerId);
       } else if (labelIsPoint) {
-        // *** 수정: '새 점 추가' 시에는 threshold가 있는 getAnchorForPoint 사용 ***
         const anchor = getAnchorForPoint(position.x, position.y);
         if (!anchor) {
           return;
@@ -822,11 +811,30 @@ const AnnotationCanvas = forwardRef(
         return;
       }
 
-      // *** 수정: 'move-point' 이벤트는 해당 훅이 처리하도록 넘김 ***
+      // *** 수정된 부분 시작 ***
+      // 'move-line' 및 'resize-line' 이벤트 핸들러 호출 추가
       if (state.type === 'move-point') {
         handlePointPointerMove(event);
         return;
       }
+      if (state.type === 'move-line') {
+        handleLinePointerMove(event);
+        return;
+      }
+      if (state.type === 'resize-line') {
+        handleLineResizeMove(event);
+        return;
+      }
+      // *** 여기에 박스 핸들러 추가 ***
+      if (state.type === 'move-box') {
+        handleBoxPointerMove(event);
+        return;
+      }
+      if (state.type === 'resize-box') {
+        handleBoxResizePointerMove(event);
+        return;
+      }
+      // *** 수정된 부분 끝 ***
 
       if (state.type === 'pan') {
         event.preventDefault();
@@ -877,28 +885,11 @@ const AnnotationCanvas = forwardRef(
             ? {
                 ...prev,
                 ...(() => {
-                  const dx = snappedX - state.originX;
-                  const dy = snappedY - state.originY;
-                  const absDx = Math.abs(dx);
-                  const absDy = Math.abs(dy);
-
-                  if (absDy <= absDx * AXIS_LOCK_TOLERANCE) {
-                    return {
-                      x2: snappedX,
-                      y2: clamp(state.originY),
-                    };
-                  }
-
-                  if (absDx <= absDy * AXIS_LOCK_TOLERANCE) {
-                    return {
-                      x2: clamp(state.originX),
-                      y2: snappedY,
-                    };
-                  }
-
+                  const line = { x1: state.originX, y1: state.originY, x2: snappedX, y2: snappedY };
+                  const lockedLine = applyAxisLock(line);
                   return {
-                    x2: snappedX,
-                    y2: snappedY,
+                    x2: lockedLine.x2,
+                    y2: lockedLine.y2,
                   };
                 })(),
               }
@@ -1012,13 +1003,16 @@ const AnnotationCanvas = forwardRef(
 
           if (type === 'box-edge') {
             const edge = meta?.edge;
+            if (!edge) return; // *** 수정: 안전 장치 추가 ***
+
+            // *** 수정된 부분 시작 ***
+            // 가이드의 축과 엣지의 방향이 일치할 때만 해당 엣지를 추가
             if (guide.axis === 'vertical' && (edge === 'left' || edge === 'right')) {
-              addEdge(ownerId, 'left');
-              addEdge(ownerId, 'right');
+              addEdge(ownerId, edge); // 'left' 또는 'right' 중 실제 스냅된 엣지만 추가
             } else if (guide.axis === 'horizontal' && (edge === 'top' || edge === 'bottom')) {
-              addEdge(ownerId, 'top');
-              addEdge(ownerId, 'bottom');
+              addEdge(ownerId, edge); // 'top' 또는 'bottom' 중 실제 스냅된 엣지만 추가
             }
+            // *** 수정된 부분 끝 ***
             return;
           }
 
@@ -1050,27 +1044,50 @@ const AnnotationCanvas = forwardRef(
         return [];
       }
 
-      const lineElements = [];
+      const iconElements = [];
       const segmentGuides = [];
 
       guides.forEach((guide, index) => {
-        if (guide.type === 'vertical' || guide.type === 'horizontal') {
-          lineElements.push(
-            <div
-              key={`guide-line-${index}`}
-              className={`${styles.guide} ${guide.type === 'vertical' ? styles.guideVertical : styles.guideHorizontal}`}
-              style={guide.type === 'vertical' ? { left: `${guide.value * 100}%` } : { top: `${guide.value * 100}%` }}
-            />
-          );
+        if (guide.type === 'vertical') {
+          segmentGuides.push({
+            key: `guide-line-${index}`,
+            x1: guide.value,
+            y1: 0,
+            x2: guide.value,
+            y2: 1,
+          });
+        } else if (guide.type === 'horizontal') {
+          segmentGuides.push({
+            key: `guide-line-${index}`,
+            x1: 0,
+            y1: guide.value,
+            x2: 1,
+            y2: guide.value,
+          });
         } else if (guide.type === 'segment') {
           segmentGuides.push({ ...guide, key: index });
+        } else if (guide.type === 'lock_symbol') {
+          const Icon = guide.lock === 'vertical' ? ArrowUpDown : ArrowLeftRight;
+          iconElements.push(
+            <div
+              key={`guide-lock-${index}`}
+              className={styles.guideLockIcon}
+              style={{
+                left: `${guide.x * 100}%`,
+                top: `${guide.y * 100}%`,
+                transform: 'translate(12px, -8px)',
+              }}
+            >
+              <Icon size={14} strokeWidth={3} />
+            </div>
+          );
         }
       });
 
       if (segmentGuides.length > 0) {
         const mergedSegments = mergeGuideSegments(segmentGuides);
         const segmentsToRender = mergedSegments.length > 0 ? mergedSegments : segmentGuides;
-        lineElements.push(
+        iconElements.push(
           <svg key='guide-segments' className={styles.guideLayer} width={imageBox.width} height={imageBox.height}>
             {segmentsToRender.map((guide, index) => (
               <line
@@ -1090,17 +1107,16 @@ const AnnotationCanvas = forwardRef(
         );
       }
 
-      return lineElements;
+      return iconElements;
     }, [guides, imageBox.height, imageBox.width]);
 
     const highlightLayer = useMemo(() => {
       const elements = [];
-      if (!edgeMap || edgeMap.size === 0) {
+      if ((!edgeMap || edgeMap.size === 0) && (!lineHighlights || lineHighlights.size === 0)) {
         return elements;
       }
 
       const boxMap = new Map(visibleBoxes.map((b) => [b.id, b]));
-
       edgeMap.forEach((edges, boxId) => {
         const box = boxMap.get(boxId);
         if (!box) return;
@@ -1157,8 +1173,33 @@ const AnnotationCanvas = forwardRef(
         });
       });
 
+      if (imageBox.width > 0 && imageBox.height > 0) {
+        lineHighlights.forEach((lineId) => {
+          const line = linesMap.get(lineId);
+          if (!line) return;
+
+          const x1_pct = line.x1 * 100;
+          const y1_pct = line.y1 * 100;
+
+          const dx_px = (line.x2 - line.x1) * imageBox.width;
+          const dy_px = (line.y2 - line.y1) * imageBox.height;
+          const length_px = Math.hypot(dx_px, dy_px);
+          const angle_rad = Math.atan2(dy_px, dx_px);
+
+          const style = {
+            left: `${x1_pct}%`,
+            top: `${y1_pct}%`,
+            width: `${length_px}px`,
+            height: `${HIGHLIGHT_WIDTH}px`,
+            transform: `rotate(${angle_rad}rad) translateY(-${HIGHLIGHT_OFFSET}px)`,
+            transformOrigin: 'top left',
+          };
+          elements.push(<div key={`${line.id}-highlight`} className={styles.highlightEdge} style={style} />);
+        });
+      }
+
       return elements;
-    }, [visibleBoxes, edgeMap]);
+    }, [visibleBoxes, edgeMap, linesMap, lineHighlights, imageBox.width, imageBox.height]);
 
     const canvasStyle = useMemo(
       () => ({
@@ -1217,7 +1258,6 @@ const AnnotationCanvas = forwardRef(
                     onPointerUp={handlePointerUp}
                     onHandlePointerDown={handleLineHandlePointerDown}
                     onHandlePointerMove={handleLineResizeMove}
-                    isHighlighted={lineHighlights.has(line.id)}
                   />
                 ))}
               </svg>

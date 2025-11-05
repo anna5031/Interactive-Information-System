@@ -78,6 +78,7 @@
 
 .line {
   pointer-events: stroke;
+  cursor: pointer;
 }
 
 .pointLayer {
@@ -225,4 +226,18 @@
   background-color: #f97316; /* HIGHLIGHT_COLOR */
   pointer-events: none;
   opacity: 0.8;
+}
+
+/* *** 수정: 새 스타일 추가 *** */
+.guideLockIcon {
+  position: absolute;
+  pointer-events: none;
+  z-index: 11; /* 가이드라인(10)보다 위에 */
+  color: #38bdf8;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 4px;
+  padding: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }

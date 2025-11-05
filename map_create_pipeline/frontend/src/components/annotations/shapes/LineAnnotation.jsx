@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import styles from '../AnnotationCanvas.module.css';
 
-const HIGHLIGHT_COLOR = '#f97316';
+const HIGHLIGHT_COLOR = '#a855f7';
 
 const LineAnnotation = ({
   line,
@@ -24,13 +24,25 @@ const LineAnnotation = ({
 
   return (
     <g className={styles.lineGroup}>
+      {/* 1. 보이는 선 (이벤트 받지 않음) */}
       <line
         x1={startX}
         y1={startY}
         x2={endX}
         y2={endY}
         stroke={stroke}
-        strokeWidth={4}
+        strokeWidth={2} // 두께는 2px로 유지 (BoxAnnotation.jsx와 일치)
+        strokeLinecap='round'
+        pointerEvents='none'
+      />
+      {/* 2. 투명한 히트박스 (클릭 영역) */}
+      <line
+        x1={startX}
+        y1={startY}
+        x2={endX}
+        y2={endY}
+        stroke='transparent'
+        strokeWidth={16}
         strokeLinecap='round'
         className={styles.line}
         onPointerDown={(event) => onPointerDown(event, line)}
@@ -47,6 +59,7 @@ const LineAnnotation = ({
           strokeWidth={8}
           strokeLinecap='round'
           strokeOpacity={0.4}
+          strokeDasharray={null}
           pointerEvents='none'
         />
       )}
@@ -55,22 +68,22 @@ const LineAnnotation = ({
           <circle
             cx={startX}
             cy={startY}
-            r={5}
+            r={4}
             className={styles.lineHandle}
             onPointerDown={(event) => onHandlePointerDown(event, line, 'start')}
             onPointerMove={onHandlePointerMove}
             onPointerUp={onPointerUp}
-            style={isHighlighted ? { stroke: '#f97316' } : undefined}
+            style={isHighlighted ? { stroke: HIGHLIGHT_COLOR } : undefined}
           />
           <circle
             cx={endX}
             cy={endY}
-            r={5}
+            r={4}
             className={styles.lineHandle}
             onPointerDown={(event) => onHandlePointerDown(event, line, 'end')}
             onPointerMove={onHandlePointerMove}
             onPointerUp={onPointerUp}
-            style={isHighlighted ? { stroke: '#f97316' } : undefined}
+            style={isHighlighted ? { stroke: HIGHLIGHT_COLOR } : undefined}
           />
         </>
       )}
