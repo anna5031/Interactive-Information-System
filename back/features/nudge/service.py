@@ -26,7 +26,8 @@ logger = logging.getLogger(__name__)
 @dataclass(slots=True)
 class NudgeResult:
     pixel: Tuple[float, float]
-    world_mm: Tuple[float, float, float]
+    foot_point_mm: Tuple[float, float, float]
+    target_point_mm: Tuple[float, float, float]
     motor_angles: MotorAngles
     homography: np.ndarray
 
@@ -41,11 +42,21 @@ class NudgeService:
         motor_controller: MotorController,
         homography: HomographyCalculator,
         floor_z_mm: float = 0.0,
+        target_plane_normal: Sequence[float] | None = None,
+        target_plane_displacement_mm: float | None = None,
     ) -> None:
         self._pixel_mapper = pixel_mapper
         self._controller = motor_controller
         self._homography = homography
         self._floor_z_mm = floor_z_mm
+        if target_plane_normal is None or target_plane_displacement_mm is None:
+            raise ValueError("target plane 정보가 필요합니다.")
+        normal = np.asarray(tuple(target_plane_normal), dtype=float)
+        norm = float(np.linalg.norm(normal))
+        if norm < 1e-6:
+            raise ValueError("target plane 법선 벡터가 유효하지 않습니다.")
+        self._plane_normal = normal / norm
+        self._plane_displacement_mm = float(target_plane_displacement_mm)
 
     @classmethod
     def from_configs(
@@ -78,6 +89,8 @@ class NudgeService:
             motor_controller=controller,
             homography=homography,
             floor_z_mm=mapping_cfg.floor_z_mm,
+            target_plane_normal=settings.qa_projection.ceiling_normal,
+            target_plane_displacement_mm=settings.qa_projection.displacement_mm,
         )
 
     def shutdown(self) -> None:
@@ -104,17 +117,25 @@ class NudgeService:
         pixel: Sequence[float],
         *,
         plane_z_mm: Optional[float] = None,
+        target_plane_override_mm: Optional[float] = None,
     ) -> NudgeResult:
         px = (float(pixel[0]), float(pixel[1]))
-        world = self.pixel_to_world(px, plane_z_mm)
-        logger.info(
-            "NudgeService: pixel=%s -> world=(%.1f, %.1f, %.1f)",
-            px,
-            world[0],
-            world[1],
-            world[2],
+        foot = self.pixel_to_world(px, plane_z_mm)
+        target = self._lift_to_target_plane(
+            foot,
+            target_plane_override_mm=target_plane_override_mm,
         )
-        angles = self._controller.point_to(world)
+        logger.info(
+            "NudgeService: pixel=%s -> foot=(%.1f, %.1f, %.1f) target=(%.1f, %.1f, %.1f)",
+            px,
+            foot[0],
+            foot[1],
+            foot[2],
+            target[0],
+            target[1],
+            target[2],
+        )
+        angles = self._controller.point_to(target)
         logger.info(
             "NudgeService: motor command tilt=%.2f°, pan=%.2f°",
             angles.tilt_deg,
@@ -126,10 +147,31 @@ class NudgeService:
         )
         return NudgeResult(
             pixel=px,
-            world_mm=world,
+            foot_point_mm=foot,
+            target_point_mm=target,
             motor_angles=angles,
             homography=H,
         )
+
+    def _lift_to_target_plane(
+        self,
+        foot_point_mm: Sequence[float],
+        *,
+        target_plane_override_mm: Optional[float] = None,
+    ) -> Tuple[float, float, float]:
+        target_displacement = (
+            float(target_plane_override_mm)
+            if target_plane_override_mm is not None
+            else self._plane_displacement_mm
+        )
+        foot = np.asarray(tuple(foot_point_mm), dtype=float)
+        denom = float(np.dot(self._plane_normal, self._plane_normal))
+        if denom < 1e-9:
+            raise RuntimeError("target plane 정의가 잘못되었습니다.")
+        current = float(np.dot(self._plane_normal, foot))
+        alpha = (target_displacement - current) / denom
+        target = foot + alpha * self._plane_normal
+        return (float(target[0]), float(target[1]), float(target[2]))
 
 
 def build_homography_calculator(settings: MotorSettings) -> HomographyCalculator:

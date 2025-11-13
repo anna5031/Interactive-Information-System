@@ -103,7 +103,7 @@ ELEVENLABS_API_KEY=...
   - `calculator.py` – `HomographyCalculator` 클래스
 
 수동 스크립트:
-- `tests/manual_target_nudge.py` – `NudgeService` 기반 픽셀→월드→모터→호모그래피 전체 파이프라인 수동 테스트 (더미/실제 모터 선택 가능)
+- `tests/manual_target_nudge.py` – `NudgeService` 기반 픽셀→월드→모터→호모그래피 전체 파이프라인 수동 테스트 (더미/실제 모터 선택 가능, `--target-plane-mm`으로 천장 높이 지정)
 
 ---
 

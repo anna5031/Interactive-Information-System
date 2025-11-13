@@ -43,6 +43,12 @@ def main() -> None:
         action="store_true",
         help="실제 아두이노 대신 더미 드라이버 사용",
     )
+    parser.add_argument(
+        "--target-plane-mm",
+        type=float,
+        default=None,
+        help="발 좌표를 투영할 천장/목표 평면의 displacement(mm). 기본값은 motor_settings.qa_projection.displacement_mm",
+    )
     args = parser.parse_args()
 
     service = NudgeService.from_configs(
@@ -64,14 +70,23 @@ def main() -> None:
                 continue
 
             try:
-                result = service.point_at_pixel(px)
+                result = service.point_at_pixel(
+                    px,
+                    target_plane_override_mm=args.target_plane_mm,
+                )
             except Exception as exc:
                 print(f"[!] 요청 실패: {exc}")
                 continue
 
             print(f"[PIXEL ] {px}")
-            world = result.world_mm
-            print(f"[WORLD ] x={world[0]:.1f}mm y={world[1]:.1f}mm z={world[2]:.1f}mm")
+            foot = result.foot_point_mm
+            target = result.target_point_mm
+            print(
+                f"[FOOT  ] x={foot[0]:.1f}mm y={foot[1]:.1f}mm z={foot[2]:.1f}mm"
+            )
+            print(
+                f"[TARGET] x={target[0]:.1f}mm y={target[1]:.1f}mm z={target[2]:.1f}mm"
+            )
             angles = result.motor_angles
             print(f"[MOTOR ] tilt={angles.tilt_deg:.2f}°, pan={angles.pan_deg:.2f}°")
 
