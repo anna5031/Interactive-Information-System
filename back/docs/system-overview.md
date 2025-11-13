@@ -16,7 +16,7 @@ python main.py
      └─ WebSocketServer.serve_forever()
 ```
 
-- **DeviceManager** (`devices/manager.py`)는 마이크·스피커·카메라·아두이노를 점검하고, `config/device_preferences.py`에 정의된 우선순위로 OS 기본 오디오 디바이스를 설정합니다.
+- **DeviceManager** (`devices/manager.py`)는 마이크·스피커·카메라·아두이노를 점검하고, `config/device_preferences.py`에 정의된 우선순위·카메라 소스/프레임 크기(`CAMERA_SOURCE`, `CAMERA_FRAME_SIZE`)로 OS 기본 장치를 설정합니다.
 - **SessionRunnerFactory**는 `ExplorationPipeline`(YOLO 탐색)과 `QAPipeline`(음성 QA)을 생성합니다. 플래그 `USE_DUMMY_ARDUINO`, `USE_DUMMY_NUDGE_PASS` 등은 `main.py`에서 Boolean 변환 후 주입됩니다.
 - **WebSocketServer** (`websocket/server.py`)는 각 클라이언트 연결마다 `SessionRunner`를 실행해 탐색→QA 루프를 돌립니다.
 
@@ -77,7 +77,7 @@ STT/TTS 의존성:
 - `config/` 폴더에는 런타임 설정을 Python 모듈 형태로 저장
 
 주요 파일:
-- `config/device_preferences.py` – DeviceManager 우선순위
+- `config/device_preferences.py` – DeviceManager 우선순위, `CAMERA_SOURCE`, `CAMERA_FRAME_SIZE=(1280, 720)`
 - `config/motor_settings.yaml` – 모터/프로젝터 설정 (MotorController, HomographyCalculator)
 - `config/qa/*` – 마이크/TTs/STT 설정 (레거시에서 이동)
 

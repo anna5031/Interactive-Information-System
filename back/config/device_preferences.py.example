@@ -20,3 +20,6 @@ SPEAKER_PRIORITY_NAMES = [
 
 # 특정 카메라 소스를 강제로 사용할 경우 설정 (예: "/dev/video0" 또는 0)
 # CAMERA_SOURCE = "/dev/video0"
+
+# 카메라 해상도 (width, height). 장치가 지원하지 않으면 기본 해상도로 동작합니다.
+CAMERA_FRAME_SIZE = (1280, 720)

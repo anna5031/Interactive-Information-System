@@ -13,9 +13,14 @@ logger = logging.getLogger(__name__)
 
 
 class CameraCapture:
-    def __init__(self, source: Optional[int | str] = None) -> None:
+    def __init__(
+        self,
+        source: Optional[int | str] = None,
+        frame_size: Optional[tuple[int, int]] = None,
+    ) -> None:
         self._source: Optional[int | str] = source
         self._capture: Optional[cv2.VideoCapture] = None
+        self._frame_size = frame_size
 
     async def start(self) -> None:
         if self._capture is not None:
@@ -51,9 +56,36 @@ class CameraCapture:
                 capture.release()
             return False
         self._capture = capture
+        self._apply_frame_size()
         return True
 
     def _release(self) -> None:
         if self._capture is not None:
             self._capture.release()
             self._capture = None
+
+    def _apply_frame_size(self) -> None:
+        if self._capture is None or self._frame_size is None:
+            return
+        width, height = self._frame_size
+        if width <= 0 or height <= 0:
+            logger.warning("잘못된 카메라 해상도(%s, %s)를 무시합니다.", width, height)
+            return
+        set_w = self._capture.set(cv2.CAP_PROP_FRAME_WIDTH, float(width))
+        set_h = self._capture.set(cv2.CAP_PROP_FRAME_HEIGHT, float(height))
+        if not (set_w and set_h):
+            logger.warning(
+                "카메라 해상도 설정 실패 (width=%d, height=%d). 장치에서 지원하지 않을 수 있습니다.",
+                width,
+                height,
+            )
+        else:
+            applied_width = int(self._capture.get(cv2.CAP_PROP_FRAME_WIDTH))
+            applied_height = int(self._capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            logger.info(
+                "카메라 해상도 요청/적용 (requested=%dx%d, actual=%dx%d)",
+                width,
+                height,
+                applied_width,
+                applied_height,
+            )

@@ -38,6 +38,7 @@ class ExplorationPipeline:
         self,
         *,
         camera_source: CameraSource = None,
+        camera_frame_size: Optional[tuple[int, int]] = None,
         show_overlay: bool = False,
         max_frames: Optional[int] = None,
         detection_config: Optional[DetectionConfig] = None,
@@ -52,6 +53,12 @@ class ExplorationPipeline:
         self._camera_source: CameraSource = (
             resolved_source if resolved_source is not None else 0
         )
+        resolved_frame = (
+            camera_frame_size
+            if camera_frame_size is not None
+            else preferences.camera_frame_size
+        )
+        self._camera_frame_size: Optional[tuple[int, int]] = resolved_frame
 
         self._model_path = Path("yolo11n-pose.pt")
         self._show_overlay = show_overlay
@@ -77,7 +84,9 @@ class ExplorationPipeline:
         self._overlay_renderer = (
             OverlayRenderer(self._assistance.config) if self._show_overlay else None
         )
-        self._camera = CameraCapture(self._camera_source)
+        self._camera = CameraCapture(
+            self._camera_source, frame_size=self._camera_frame_size
+        )
 
     async def run(self) -> None:
         logger.info("탐색 파이프라인 시작")

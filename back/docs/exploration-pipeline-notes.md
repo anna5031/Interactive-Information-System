@@ -12,7 +12,7 @@
   - `DetectionConfig`: `confidence_threshold`, `iou_threshold`, `keypoint_confidence_threshold`
   - `TrackingConfig`: 거리 임계치, 속도 smoothing 등
   - `AssistanceConfig`: 정지 시간, 쿨다운 시간
-- `config/device_preferences.py`: 마이크/스피커 우선순위 및 `CAMERA_SOURCE`
+- `config/device_preferences.py`: 마이크/스피커 우선순위, `CAMERA_SOURCE`, `CAMERA_FRAME_SIZE`
 
 ## 3. 발 좌표 계산 전략 (혼합)
 1. 발목이 양쪽 모두 보이면 y값이 낮은(바닥에 가까운) 발 + 이전 프레임 속도 비교로 체중이 실린 발 선택.
