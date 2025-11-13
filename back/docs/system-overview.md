@@ -98,11 +98,12 @@ ELEVENLABS_API_KEY=...
   - `setpoint.py` – 목표 좌표→각도 계산 (`SetpointCalculator`)
   - `driver.py` – `MotorDriver` 프로토콜, `SerialMotorDriver`, `DummyMotorDriver`
   - `controller.py` – `MotorController.point_to(target_xyz)` 고수준 API
+- `features/nudge/service.py` – `NudgeService`는 픽셀→월드 매핑, 모터 제어, 호모그래피 계산을 하나의 호출로 묶어 세션/CLI에서 재사용할 수 있게 합니다.
 - Homography:
   - `calculator.py` – `HomographyCalculator` 클래스
 
 수동 스크립트:
-- `tests/manual_target_nudge.py` – 픽셀→월드→모터→호모그래피 전체 파이프라인을 수동 테스트 (더미/실제 모터 선택 가능)
+- `tests/manual_target_nudge.py` – `NudgeService` 기반 픽셀→월드→모터→호모그래피 전체 파이프라인 수동 테스트 (더미/실제 모터 선택 가능)
 
 ---
 
