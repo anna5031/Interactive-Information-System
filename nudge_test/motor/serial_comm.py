@@ -1,4 +1,4 @@
-# simple_serial_comm.py
+# serial_comm.py
 import time
 import serial  # pip install pyserial
 

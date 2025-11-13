@@ -1,8 +1,15 @@
 # config.yaml
-geometry:
+beam_geometry:
   z_offset: 150   # tilt 회전축 ~ 빔프로젝터 거리 mm
   H: 1200          # 바닥 ~ tilt 축 거리 mm
   scale_factor: 1328   # 빔프로젝터 화면 크기 일정 보정 factor mm
+space_geomgetry:
+  ceiling_height: 2500  # 천장 높이 mm
+qa_geometry:
+  n_vec: [0.0, 0.0, 1.0]  # 천장 법선 벡터
+  displacement: 400.0    # 천장과 빔프로젝터 광선 교차점 거리 mm
+  screen_width: 354.0    # 스크린 폭 mm
+  center_point: [0.0, 0.0, 0.0]  # 스크린 중심 좌표 mm
 serial:
   port: COM5
   baudrate: 115200
@@ -11,8 +18,8 @@ motor:
   pan:
     min_deg: 0
     max_deg: 180
-    init_deg: 0
+    init_deg: 63
   tilt:
     min_deg: 50
     max_deg: 170
-    init_deg: 110
+    init_deg: 111
