@@ -65,22 +65,29 @@ def _build_success_detail(
         return detail, meta
 
     width, height = frame_size
-    applied_width, applied_height = _apply_frame_size_or_raise(cap, width, height)
-
-    detail += f", frame_size={applied_width}x{applied_height}"
-    meta["frame_size"] = (applied_width, applied_height)
+    applied_width, applied_height = _apply_frame_size(cap, width, height)
+    if applied_width and applied_height:
+        detail += f", frame_size={applied_width}x{applied_height}"
+        meta["frame_size"] = (applied_width, applied_height)
+    else:
+        detail += (
+            f", frame_size 요청값 적용 불가 (requested={width}x{height})"
+        )
     return detail, meta
 
 
-def _apply_frame_size_or_raise(
+def _apply_frame_size(
     cap: cv2.VideoCapture,
     width: int,
     height: int,
 ) -> tuple[int, int]:
     if width <= 0 or height <= 0:
-        raise RuntimeError(
-            f"잘못된 카메라 해상도 요청: width={width}, height={height}"
+        logger.warning(
+            "잘못된 카메라 해상도 요청: width=%s, height=%s (무시합니다).",
+            width,
+            height,
         )
+        return 0, 0
 
     set_w = cap.set(cv2.CAP_PROP_FRAME_WIDTH, float(width))
     set_h = cap.set(cv2.CAP_PROP_FRAME_HEIGHT, float(height))
@@ -96,10 +103,14 @@ def _apply_frame_size_or_raise(
     )
 
     if not (set_w and set_h):
-        raise RuntimeError("카메라 드라이버가 해상도 설정을 거부했습니다.")
+        logger.warning("카메라 드라이버가 해상도 설정을 거부했습니다.")
     if applied_width != width or applied_height != height:
-        raise RuntimeError(
-            f"requested={width}x{height}, actual={applied_width}x{applied_height}"
+        logger.warning(
+            "카메라 해상도 적용 불일치: requested=%dx%d, actual=%dx%d",
+            width,
+            height,
+            applied_width,
+            applied_height,
         )
 
     return applied_width, applied_height

@@ -21,6 +21,8 @@ class CameraCapture:
         self._source: Optional[int | str] = source
         self._capture: Optional[cv2.VideoCapture] = None
         self._frame_size = frame_size
+        self._software_resize: Optional[tuple[int, int]] = None
+        self._resize_logged = False
 
     async def start(self) -> None:
         if self._capture is not None:
@@ -44,6 +46,14 @@ class CameraCapture:
         ret, frame = self._capture.read()
         if not ret or frame is None:
             return False, None
+        if self._software_resize is not None:
+            target_w, target_h = self._software_resize
+            if target_w > 0 and target_h > 0:
+                h, w = frame.shape[:2]
+                interpolation = (
+                    cv2.INTER_AREA if target_w < w or target_h < h else cv2.INTER_LINEAR
+                )
+                frame = cv2.resize(frame, (target_w, target_h), interpolation=interpolation)
         return True, frame
 
     def is_open(self) -> bool:
@@ -56,12 +66,7 @@ class CameraCapture:
                 capture.release()
             return False
         self._capture = capture
-        try:
-            self._apply_frame_size()
-        except RuntimeError:
-            logger.error("카메라 해상도를 적용하지 못해 스트림을 중단합니다.")
-            self._release()
-            return False
+        self._apply_frame_size()
         return True
 
     def _release(self) -> None:
@@ -74,9 +79,12 @@ class CameraCapture:
             return
         width, height = self._frame_size
         if width <= 0 or height <= 0:
-            raise RuntimeError(
-                f"잘못된 카메라 해상도 요청: width={width}, height={height}"
+            logger.warning(
+                "잘못된 카메라 해상도 요청: width=%s, height=%s (무시합니다)",
+                width,
+                height,
             )
+            return
         set_w = self._capture.set(cv2.CAP_PROP_FRAME_WIDTH, float(width))
         set_h = self._capture.set(cv2.CAP_PROP_FRAME_HEIGHT, float(height))
         applied_width = int(self._capture.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -88,9 +96,15 @@ class CameraCapture:
             applied_width,
             applied_height,
         )
-        if not (set_w and set_h):
-            raise RuntimeError("카메라 드라이버가 해상도 설정을 거부했습니다.")
-        if applied_width != width or applied_height != height:
-            raise RuntimeError(
-                f"카메라 해상도 적용 실패: requested={width}x{height}, actual={applied_width}x{applied_height}"
-            )
+        if not (set_w and set_h) or applied_width != width or applied_height != height:
+            self._software_resize = (width, height)
+            if not self._resize_logged:
+                logger.warning(
+                    "카메라가 요청 해상도(%dx%d)를 지원하지 않습니다. 프레임을 소프트웨어로 리사이즈합니다.",
+                    width,
+                    height,
+                )
+                self._resize_logged = True
+        else:
+            self._software_resize = None
+            self._resize_logged = False

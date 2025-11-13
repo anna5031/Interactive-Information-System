@@ -12,7 +12,7 @@ from features.exploration.pipeline import ExplorationPipeline
 from features.exploration.config import DetectionConfig
 
 
-SOURCE = "/Users/jaehyeon/Desktop/test_video.mov"
+SOURCE = 0
 MAX_FRAMES = None  # 정수로 제한을 두고 싶다면 설정
 
 
