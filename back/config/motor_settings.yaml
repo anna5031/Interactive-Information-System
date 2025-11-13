@@ -35,5 +35,5 @@ projector:
   beam_offset_mm: [50.0, 0.0, 80.0]
   pan_tilt_origin_height_mm: 1600.0
   beam_wall_displacement_m: 0.4
-  input_image_width_px: 1920
-  input_image_height_px: 1080
+  input_image_width_px: 3840
+  input_image_height_px: 2160

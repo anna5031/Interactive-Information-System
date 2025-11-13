@@ -28,7 +28,8 @@ class NudgeResult:
     pixel: Tuple[float, float]
     foot_point_mm: Tuple[float, float, float]
     target_point_mm: Tuple[float, float, float]
-    motor_angles: MotorAngles
+    raw_angles: MotorAngles
+    command_angles: MotorAngles
     homography: np.ndarray
 
 
@@ -149,21 +150,26 @@ class NudgeService:
             target[1],
             target[2],
         )
-        angles = self._controller.point_to(target)
+        pair = self._controller.point_to(target)
+        raw_angles = pair.raw
+        command_angles = pair.command
         logger.info(
-            "NudgeService: motor command tilt=%.2f°, pan=%.2f°",
-            angles.tilt_deg,
-            angles.pan_deg,
+            "NudgeService: raw tilt=%.2f°, raw pan=%.2f° | command tilt=%.2f°, command pan=%.2f°",
+            raw_angles.tilt_deg,
+            raw_angles.pan_deg,
+            command_angles.tilt_deg,
+            command_angles.pan_deg,
         )
         H = self._homography.calculate(
-            pan_deg=angles.pan_deg,
-            tilt_deg=angles.tilt_deg,
+            pan_deg=raw_angles.pan_deg,
+            tilt_deg=raw_angles.tilt_deg,
         )
         return NudgeResult(
             pixel=px,
             foot_point_mm=foot,
             target_point_mm=target,
-            motor_angles=angles,
+            raw_angles=raw_angles,
+            command_angles=command_angles,
             homography=H,
         )
 

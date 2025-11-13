@@ -82,10 +82,13 @@ def _demo() -> None:
         ),
     )
     target = (1000.0, -300.0, 0.0)
-    command = controller.point_to(target)
+    pair = controller.point_to(target)
     print("[MotorController Demo]")
     print(" target:", target)
-    print(f" command -> tilt={command.tilt_deg:.2f}, pan={command.pan_deg:.2f}")
+    print(
+        f" raw -> tilt={pair.raw.tilt_deg:.2f}, pan={pair.raw.pan_deg:.2f} | "
+        f"command -> tilt={pair.command.tilt_deg:.2f}, pan={pair.command.pan_deg:.2f}"
+    )
     print(" dummy driver history:", driver.history)
 
 

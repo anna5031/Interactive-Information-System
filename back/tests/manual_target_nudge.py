@@ -87,8 +87,12 @@ def main() -> None:
             print(
                 f"[TARGET] x={target[0]:.1f}mm y={target[1]:.1f}mm z={target[2]:.1f}mm"
             )
-            angles = result.motor_angles
-            print(f"[MOTOR ] tilt={angles.tilt_deg:.2f}°, pan={angles.pan_deg:.2f}°")
+            raw = result.raw_angles
+            cmd = result.command_angles
+            print(
+                f"[MOTOR ] raw tilt={raw.tilt_deg:.2f}°, raw pan={raw.pan_deg:.2f}° | "
+                f"cmd tilt={cmd.tilt_deg:.2f}°, cmd pan={cmd.pan_deg:.2f}°"
+            )
 
             np.set_printoptions(precision=4, suppress=True)
             print("[HOMOGRAPHY]\n", result.homography)

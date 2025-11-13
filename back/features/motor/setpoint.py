@@ -19,6 +19,12 @@ def _clip(value: float, vmin: float, vmax: float) -> float:
     return min(max(value, vmin), vmax)
 
 
+@dataclass(slots=True)
+class MotorAnglePair:
+    raw: MotorAngles
+    command: MotorAngles
+
+
 class SetpointCalculator:
     """Convert target coordinates into tilt/pan angles with limits applied."""
 
@@ -68,6 +74,10 @@ class SetpointCalculator:
         )
         return MotorAngles(tilt_deg=tilt, pan_deg=pan)
 
-    def calculate_command(self, target: Sequence[float]) -> MotorAngles:
+    def calculate_pair(self, target: Sequence[float]) -> MotorAnglePair:
         raw = self.calculate_raw_angles(target)
-        return self.apply_offsets(raw)
+        command = self.apply_offsets(raw)
+        return MotorAnglePair(raw=raw, command=command)
+
+    def calculate_command(self, target: Sequence[float]) -> MotorAngles:
+        return self.calculate_pair(target).command

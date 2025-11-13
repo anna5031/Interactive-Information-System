@@ -4,7 +4,7 @@ from typing import Sequence
 
 from .config import MotorSettings
 from .driver import MotorDriver
-from .setpoint import MotorAngles, SetpointCalculator
+from .setpoint import MotorAnglePair, SetpointCalculator
 
 
 class MotorController:
@@ -20,11 +20,11 @@ class MotorController:
             settings.beam_geometry, settings.motor_pan, settings.motor_tilt
         )
 
-    def point_to(self, target: Sequence[float]) -> MotorAngles:
-        raw = self.calculator.calculate_raw_angles(target)
-        command = self.calculator.apply_offsets(raw)
+    def point_to(self, target: Sequence[float]) -> MotorAnglePair:
+        pair = self.calculator.calculate_pair(target)
+        command = pair.command
         self.driver.set_angles(command.tilt_deg, command.pan_deg)
-        return command
+        return pair
 
     def ping(self) -> bool:
         return self.driver.ping()
