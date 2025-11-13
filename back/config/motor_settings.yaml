@@ -1,6 +1,14 @@
 beam_geometry:
   z_offset_mm: 150.0
   tilt_axis_height_mm: 1200.0
+  scale_factor_mm: 1328.0
+space_geometry:
+  ceiling_height_mm: 2500.0
+qa_geometry:
+  normal: [0.0, 0.0, 1.0]
+  displacement_mm: 400.0
+  screen_width_mm: 354.0
+  center_point_mm: [0.0, 0.0, 0.0]
 serial:
   port: COM5
   baudrate: 115200

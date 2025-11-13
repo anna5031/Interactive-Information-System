@@ -19,6 +19,20 @@ class MotorAxisConfig:
 class MotorGeometryConfig:
     z_offset_mm: float
     tilt_axis_height_mm: float
+    scale_factor_mm: float | None = None
+
+
+@dataclass(slots=True)
+class SpaceGeometryConfig:
+    ceiling_height_mm: float
+
+
+@dataclass(slots=True)
+class QAGeometryConfig:
+    normal: Tuple[float, float, float]
+    displacement_mm: float
+    screen_width_mm: float
+    center_point_mm: Tuple[float, float, float]
 
 
 @dataclass(slots=True)
@@ -52,6 +66,8 @@ class ProjectorConfig:
 @dataclass(slots=True)
 class MotorSettings:
     beam_geometry: MotorGeometryConfig
+    space_geometry: SpaceGeometryConfig
+    qa_geometry: QAGeometryConfig
     serial: SerialConfig
     motor_pan: MotorAxisConfig
     motor_tilt: MotorAxisConfig
@@ -75,6 +91,8 @@ def load_motor_settings(path: Path | None = None) -> MotorSettings:
     data = _load_yaml(cfg_path)
 
     beam = data.get("beam_geometry", {})
+    space = data.get("space_geometry") or data.get("space_geomgetry") or {}
+    qa_geom = data.get("qa_geometry", {})
     motor = data.get("motor", {})
     serial = data.get("serial", {})
     qa = data.get("qa_projection", {})
@@ -84,6 +102,20 @@ def load_motor_settings(path: Path | None = None) -> MotorSettings:
         beam_geometry=MotorGeometryConfig(
             z_offset_mm=float(beam.get("z_offset_mm", 0.0)),
             tilt_axis_height_mm=float(beam.get("tilt_axis_height_mm", 0.0)),
+            scale_factor_mm=float(beam.get("scale_factor_mm", 0.0))
+            if beam.get("scale_factor_mm") is not None
+            else None,
+        ),
+        space_geometry=SpaceGeometryConfig(
+            ceiling_height_mm=float(space.get("ceiling_height_mm", 0.0)),
+        ),
+        qa_geometry=QAGeometryConfig(
+            normal=_as_tuple(qa_geom.get("normal", (0.0, 0.0, 1.0))),
+            displacement_mm=float(qa_geom.get("displacement_mm", 0.0)),
+            screen_width_mm=float(qa_geom.get("screen_width_mm", 0.0)),
+            center_point_mm=_as_tuple(
+                qa_geom.get("center_point_mm", (0.0, 0.0, 0.0))
+            ),
         ),
         serial=SerialConfig(
             port=str(serial.get("port", "COM1")),

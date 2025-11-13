@@ -49,14 +49,20 @@ class NudgeService:
         self._controller = motor_controller
         self._homography = homography
         self._floor_z_mm = floor_z_mm
-        if target_plane_normal is None or target_plane_displacement_mm is None:
-            raise ValueError("target plane 정보가 필요합니다.")
-        normal = np.asarray(tuple(target_plane_normal), dtype=float)
+        normal = (
+            np.asarray(tuple(target_plane_normal), dtype=float)
+            if target_plane_normal is not None
+            else np.array([0.0, 0.0, 1.0], dtype=float)
+        )
         norm = float(np.linalg.norm(normal))
         if norm < 1e-6:
             raise ValueError("target plane 법선 벡터가 유효하지 않습니다.")
         self._plane_normal = normal / norm
-        self._plane_displacement_mm = float(target_plane_displacement_mm)
+        self._plane_displacement_mm = (
+            float(target_plane_displacement_mm)
+            if target_plane_displacement_mm is not None
+            else 0.0
+        )
 
     @classmethod
     def from_configs(
@@ -84,13 +90,21 @@ class NudgeService:
             )
         controller = MotorController(settings=settings, driver=driver)
         homography = build_homography_calculator(settings)
+        plane_normal = settings.qa_geometry.normal or settings.qa_projection.ceiling_normal
+        plane_displacement = (
+            settings.space_geometry.ceiling_height_mm
+            if settings.space_geometry.ceiling_height_mm
+            else settings.qa_geometry.displacement_mm
+            if settings.qa_geometry.displacement_mm
+            else settings.qa_projection.displacement_mm
+        )
         return cls(
             pixel_mapper=pixel_mapper,
             motor_controller=controller,
             homography=homography,
             floor_z_mm=mapping_cfg.floor_z_mm,
-            target_plane_normal=settings.qa_projection.ceiling_normal,
-            target_plane_displacement_mm=settings.qa_projection.displacement_mm,
+            target_plane_normal=plane_normal,
+            target_plane_displacement_mm=plane_displacement,
         )
 
     def shutdown(self) -> None:

@@ -79,6 +79,8 @@ STT/TTS 의존성:
 주요 파일:
 - `config/device_preferences.py` – DeviceManager 우선순위, `CAMERA_SOURCE`, `CAMERA_FRAME_SIZE=(1280, 720)`
 - `config/motor_settings.yaml` – 모터/프로젝터 설정 (MotorController, HomographyCalculator)
+-   - `beam_geometry.z_offset_mm`, `tilt_axis_height_mm`, `scale_factor_mm`
+-   - `space_geometry.ceiling_height_mm`·`qa_geometry.normal/displacement_mm`는 넛지 대상 평면 정의에 사용됩니다.
 - `config/qa/*` – 마이크/TTs/STT 설정 (레거시에서 이동)
 
 환경 변수 예시 (`.env`):
