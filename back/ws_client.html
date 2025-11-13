@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>WS 테스트 클라이언트</title>
+  <style>
+    body { font-family: sans-serif; margin: 2rem; }
+    label { display: block; margin-bottom: 0.5rem; }
+    input { width: 320px; }
+    button { margin-right: 0.5rem; }
+    #log { margin-top: 1rem; padding: 1rem; border: 1px solid #ccc; height: 240px; overflow-y: auto; white-space: pre-wrap; background: #f9f9f9; }
+  </style>
+</head>
+<body>
+  <h1>WebSocket 테스트</h1>
+
+  <label>
+    서버 주소:
+    <input id="ws-url" type="text" value="ws://127.0.0.1:8765">
+  </label>
+  <button id="connect">연결</button>
+  <button id="disconnect" disabled>연결 종료</button>
+  <button id="send" disabled>메시지 전송</button>
+  <input id="message" type="text" value="ping" placeholder="보낼 메시지">
+
+  <div id="log"></div>
+
+  <script>
+    const urlInput = document.getElementById("ws-url");
+    const connectBtn = document.getElementById("connect");
+    const disconnectBtn = document.getElementById("disconnect");
+    const sendBtn = document.getElementById("send");
+    const messageInput = document.getElementById("message");
+    const logEl = document.getElementById("log");
+
+    let socket = null;
+
+    function log(message) {
+      const now = new Date().toLocaleTimeString();
+      logEl.textContent += `[${now}] ${message}\n`;
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function setConnectedState(connected) {
+      connectBtn.disabled = connected;
+      disconnectBtn.disabled = !connected;
+      sendBtn.disabled = !connected;
+      urlInput.disabled = connected;
+    }
+
+    connectBtn.addEventListener("click", () => {
+      const url = urlInput.value.trim();
+      if (!url) {
+        log("URL을 입력하세요.");
+        return;
+      }
+      log(`연결 시도: ${url}`);
+      try {
+        socket = new WebSocket(url);
+      } catch (error) {
+        log(`연결 실패: ${error}`);
+        return;
+      }
+
+      socket.addEventListener("open", () => {
+        log("연결 성공");
+        setConnectedState(true);
+      });
+
+      socket.addEventListener("message", (event) => {
+        log(`수신: ${event.data}`);
+      });
+
+      socket.addEventListener("close", (event) => {
+        log(`연결 종료 (code=${event.code}, reason=${event.reason || "N/A"})`);
+        setConnectedState(false);
+        socket = null;
+      });
+
+      socket.addEventListener("error", (event) => {
+        log(`오류 발생: ${event.message || event.type}`);
+      });
+    });
+
+    disconnectBtn.addEventListener("click", () => {
+      if (!socket) {
+        return;
+      }
+      log("연결 종료 시도");
+      socket.close(1000, "client_closed");
+    });
+
+    sendBtn.addEventListener("click", () => {
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        log("연결된 상태가 아닙니다.");
+        return;
+      }
+      const payload = messageInput.value;
+      socket.send(payload);
+      log(`송신: ${payload}`);
+    });
+  </script>
+</body>
+</html>

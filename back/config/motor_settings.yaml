@@ -1,0 +1,31 @@
+beam_geometry:
+  z_offset_mm: 150.0
+  tilt_axis_height_mm: 1200.0
+serial:
+  port: COM5
+  baudrate: 115200
+  timeout: 1.0
+motor:
+  pan:
+    min_deg: 0.0
+    max_deg: 180.0
+    init_deg: 63.0
+  tilt:
+    min_deg: 50.0
+    max_deg: 170.0
+    init_deg: 111.0
+qa_projection:
+  ceiling_normal: [0.0, 0.0, 1.0]
+  displacement_mm: 400.0
+  screen_width_mm: 354.0
+  screen_height_ratio: 0.5625  # 9/16
+  roll_deg: 0.0
+projector:
+  width_px: 3840
+  height_px: 2160
+  horizontal_fov_deg: 45.0
+  beam_offset_mm: [50.0, 0.0, 80.0]
+  pan_tilt_origin_height_mm: 1600.0
+  beam_wall_displacement_m: 0.4
+  input_image_width_px: 1920
+  input_image_height_px: 1080
