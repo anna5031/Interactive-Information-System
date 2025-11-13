@@ -16,6 +16,8 @@ from features.motor.config import (
     SerialConfig,
     QAProjectionConfig,
     ProjectorConfig,
+    SpaceGeometryConfig,
+    QAGeometryConfig,
 )
 from features.motor.controller import MotorController
 from features.motor.driver import DummyMotorDriver
@@ -24,7 +26,18 @@ from features.motor.setpoint import SetpointCalculator
 
 def _make_settings() -> MotorSettings:
     return MotorSettings(
-        beam_geometry=MotorGeometryConfig(z_offset_mm=150.0, tilt_axis_height_mm=1200.0),
+        beam_geometry=MotorGeometryConfig(
+            z_offset_mm=150.0,
+            tilt_axis_height_mm=1200.0,
+            scale_factor_mm=1328.0,
+        ),
+        space_geometry=SpaceGeometryConfig(ceiling_height_mm=2500.0),
+        qa_geometry=QAGeometryConfig(
+            normal=(0.0, 0.0, 1.0),
+            displacement_mm=400.0,
+            screen_width_mm=354.0,
+            center_point_mm=(0.0, 0.0, 0.0),
+        ),
         serial=SerialConfig(port="COM1", baudrate=115200, timeout=1.0),
         motor_pan=MotorAxisConfig(min_deg=0.0, max_deg=180.0, init_deg=60.0),
         motor_tilt=MotorAxisConfig(min_deg=40.0, max_deg=170.0, init_deg=110.0),

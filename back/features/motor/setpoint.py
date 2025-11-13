@@ -48,9 +48,11 @@ class SetpointCalculator:
         theta2 = math.atan2(r_xy, dz)
         theta_tilt = theta1 - theta2
 
+        # NOTE: Legacy nudge_test 하드웨어 축 정의와 일치시키기 위해
+        # tilt/pan 순서를 뒤집어 반환한다.
         return MotorAngles(
-            tilt_deg=math.degrees(theta_tilt),
-            pan_deg=math.degrees(theta_pan),
+            tilt_deg=math.degrees(theta_pan),
+            pan_deg=math.degrees(theta_tilt),
         )
 
     def apply_offsets(self, angles: MotorAngles) -> MotorAngles:
