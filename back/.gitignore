@@ -1,0 +1,33 @@
+# 가상환경 폴더
+venv/
+
+# 파이썬 캐시 파일
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Intellij
+.idea/*
+!.idea/misc.xml
+!.idea/codeStyles/
+!.idea/inspectionProfiles/
+!.idea/prettier.xml
+
+# VS Code
+.vscode/*
+!.vscode/settings.json
+
+# Mac
+.DS_Store
+.AppleDouble
+.LSOverride
+
+/config/device_preferences.py
+
+/model/*
+rag_service/.env
+rag_service/chroma_db/
+rag_service/hf_cache/
+rag_service/onnx_model/
+.env
