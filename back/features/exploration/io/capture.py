@@ -53,26 +53,52 @@ class CameraCapture:
                 interpolation = (
                     cv2.INTER_AREA if target_w < w or target_h < h else cv2.INTER_LINEAR
                 )
-                frame = cv2.resize(frame, (target_w, target_h), interpolation=interpolation)
+                frame = cv2.resize(
+                    frame, (target_w, target_h), interpolation=interpolation
+                )
         return True, frame
 
     def is_open(self) -> bool:
         return self._capture is not None and self._capture.isOpened()
 
     def _open(self) -> bool:
-        capture = cv2.VideoCapture(self._source, cv2.CAP_ANY)
-        if not capture or not capture.isOpened():
-            if capture:
-                capture.release()
-            return False
-        self._capture = capture
-        self._apply_frame_size()
-        return True
+        for backend in self._backend_candidates():
+            capture = self._create_capture(backend)
+            if not capture or not capture.isOpened():
+                if capture:
+                    capture.release()
+                continue
+            self._capture = capture
+            logger.info("카메라 백엔드 선택: %s", self._backend_name(backend))
+            self._apply_frame_size()
+            return True
+        return False
 
     def _release(self) -> None:
         if self._capture is not None:
             self._capture.release()
             self._capture = None
+
+    def _backend_candidates(self) -> list[Optional[int]]:
+        candidates: list[Optional[int]] = []
+        v4l2 = getattr(cv2, "CAP_V4L2", None)
+        if isinstance(self._source, int) and v4l2 is not None:
+            candidates.append(v4l2)
+        candidates.append(cv2.CAP_ANY)
+        return candidates
+
+    def _create_capture(self, backend: Optional[int]) -> Optional[cv2.VideoCapture]:
+        if backend is None:
+            return cv2.VideoCapture(self._source)
+        return cv2.VideoCapture(self._source, backend)
+
+    def _backend_name(self, backend: Optional[int]) -> str:
+        if backend is None:
+            return "default"
+        for attr in dir(cv2):
+            if attr.startswith("CAP_") and getattr(cv2, attr) == backend:
+                return attr
+        return f"backend({backend})"
 
     def _apply_frame_size(self) -> None:
         if self._capture is None or self._frame_size is None:
