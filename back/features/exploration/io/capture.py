@@ -21,6 +21,8 @@ class CameraCapture:
         self._source: Optional[int | str] = source
         self._capture: Optional[cv2.VideoCapture] = None
         self._frame_size = frame_size
+        self._software_resize: Optional[tuple[int, int]] = None
+        self._resize_logged = False
 
     async def start(self) -> None:
         if self._capture is not None:
@@ -44,39 +46,71 @@ class CameraCapture:
         ret, frame = self._capture.read()
         if not ret or frame is None:
             return False, None
+        if self._software_resize is not None:
+            target_w, target_h = self._software_resize
+            if target_w > 0 and target_h > 0:
+                h, w = frame.shape[:2]
+                interpolation = (
+                    cv2.INTER_AREA if target_w < w or target_h < h else cv2.INTER_LINEAR
+                )
+                frame = cv2.resize(
+                    frame, (target_w, target_h), interpolation=interpolation
+                )
         return True, frame
 
     def is_open(self) -> bool:
         return self._capture is not None and self._capture.isOpened()
 
     def _open(self) -> bool:
-        capture = cv2.VideoCapture(self._source, cv2.CAP_ANY)
-        if not capture or not capture.isOpened():
-            if capture:
-                capture.release()
-            return False
-        self._capture = capture
-        try:
+        for backend in self._backend_candidates():
+            capture = self._create_capture(backend)
+            if not capture or not capture.isOpened():
+                if capture:
+                    capture.release()
+                continue
+            self._capture = capture
+            logger.info("카메라 백엔드 선택: %s", self._backend_name(backend))
             self._apply_frame_size()
-        except RuntimeError:
-            logger.error("카메라 해상도를 적용하지 못해 스트림을 중단합니다.")
-            self._release()
-            return False
-        return True
+            return True
+        return False
 
     def _release(self) -> None:
         if self._capture is not None:
             self._capture.release()
             self._capture = None
 
+    def _backend_candidates(self) -> list[Optional[int]]:
+        candidates: list[Optional[int]] = []
+        v4l2 = getattr(cv2, "CAP_V4L2", None)
+        if isinstance(self._source, int) and v4l2 is not None:
+            candidates.append(v4l2)
+        candidates.append(cv2.CAP_ANY)
+        return candidates
+
+    def _create_capture(self, backend: Optional[int]) -> Optional[cv2.VideoCapture]:
+        if backend is None:
+            return cv2.VideoCapture(self._source)
+        return cv2.VideoCapture(self._source, backend)
+
+    def _backend_name(self, backend: Optional[int]) -> str:
+        if backend is None:
+            return "default"
+        for attr in dir(cv2):
+            if attr.startswith("CAP_") and getattr(cv2, attr) == backend:
+                return attr
+        return f"backend({backend})"
+
     def _apply_frame_size(self) -> None:
         if self._capture is None or self._frame_size is None:
             return
         width, height = self._frame_size
         if width <= 0 or height <= 0:
-            raise RuntimeError(
-                f"잘못된 카메라 해상도 요청: width={width}, height={height}"
+            logger.warning(
+                "잘못된 카메라 해상도 요청: width=%s, height=%s (무시합니다)",
+                width,
+                height,
             )
+            return
         set_w = self._capture.set(cv2.CAP_PROP_FRAME_WIDTH, float(width))
         set_h = self._capture.set(cv2.CAP_PROP_FRAME_HEIGHT, float(height))
         applied_width = int(self._capture.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -88,9 +122,15 @@ class CameraCapture:
             applied_width,
             applied_height,
         )
-        if not (set_w and set_h):
-            raise RuntimeError("카메라 드라이버가 해상도 설정을 거부했습니다.")
-        if applied_width != width or applied_height != height:
-            raise RuntimeError(
-                f"카메라 해상도 적용 실패: requested={width}x{height}, actual={applied_width}x{applied_height}"
-            )
+        if not (set_w and set_h) or applied_width != width or applied_height != height:
+            self._software_resize = (width, height)
+            if not self._resize_logged:
+                logger.warning(
+                    "카메라가 요청 해상도(%dx%d)를 지원하지 않습니다. 프레임을 소프트웨어로 리사이즈합니다.",
+                    width,
+                    height,
+                )
+                self._resize_logged = True
+        else:
+            self._software_resize = None
+            self._resize_logged = False
