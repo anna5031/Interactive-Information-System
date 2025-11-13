@@ -56,7 +56,12 @@ class CameraCapture:
                 capture.release()
             return False
         self._capture = capture
-        self._apply_frame_size()
+        try:
+            self._apply_frame_size()
+        except RuntimeError:
+            logger.error("카메라 해상도를 적용하지 못해 스트림을 중단합니다.")
+            self._release()
+            return False
         return True
 
     def _release(self) -> None:
@@ -69,23 +74,23 @@ class CameraCapture:
             return
         width, height = self._frame_size
         if width <= 0 or height <= 0:
-            logger.warning("잘못된 카메라 해상도(%s, %s)를 무시합니다.", width, height)
-            return
+            raise RuntimeError(
+                f"잘못된 카메라 해상도 요청: width={width}, height={height}"
+            )
         set_w = self._capture.set(cv2.CAP_PROP_FRAME_WIDTH, float(width))
         set_h = self._capture.set(cv2.CAP_PROP_FRAME_HEIGHT, float(height))
+        applied_width = int(self._capture.get(cv2.CAP_PROP_FRAME_WIDTH))
+        applied_height = int(self._capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        logger.info(
+            "카메라 해상도 설정 요청 (requested=%dx%d) → 실제 장치 보고값 (actual=%dx%d)",
+            width,
+            height,
+            applied_width,
+            applied_height,
+        )
         if not (set_w and set_h):
-            logger.warning(
-                "카메라 해상도 설정 실패 (width=%d, height=%d). 장치에서 지원하지 않을 수 있습니다.",
-                width,
-                height,
-            )
-        else:
-            applied_width = int(self._capture.get(cv2.CAP_PROP_FRAME_WIDTH))
-            applied_height = int(self._capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
-            logger.info(
-                "카메라 해상도 요청/적용 (requested=%dx%d, actual=%dx%d)",
-                width,
-                height,
-                applied_width,
-                applied_height,
+            raise RuntimeError("카메라 드라이버가 해상도 설정을 거부했습니다.")
+        if applied_width != width or applied_height != height:
+            raise RuntimeError(
+                f"카메라 해상도 적용 실패: requested={width}x{height}, actual={applied_width}x{applied_height}"
             )
