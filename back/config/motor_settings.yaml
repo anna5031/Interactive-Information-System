@@ -10,7 +10,7 @@ qa_geometry:
   screen_width_mm: 354.0
   center_point_mm: [0.0, 0.0, 0.0]
 serial:
-  port: COM5
+  port: /dev/ttyACM0
   baudrate: 115200
   timeout: 1.0
 motor:

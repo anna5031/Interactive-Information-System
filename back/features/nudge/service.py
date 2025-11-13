@@ -195,10 +195,11 @@ class NudgeService:
 
 
 def build_homography_calculator(settings: MotorSettings) -> HomographyCalculator:
-    qa = settings.qa_projection
+    qa_plane = settings.qa_geometry
+    qa_projection = settings.qa_projection
     projector = settings.projector
 
-    normal = np.array(qa.ceiling_normal, dtype=float)
+    normal = np.array(qa_plane.normal or qa_projection.ceiling_normal, dtype=float)
     norm = np.linalg.norm(normal)
     if norm < 1e-6:
         raise ValueError("ceiling_normal 벡터가 유효하지 않습니다.")
@@ -206,12 +207,10 @@ def build_homography_calculator(settings: MotorSettings) -> HomographyCalculator
 
     screen = ScreenConfig(
         ceiling_normal=normal_tuple,
-        displacement_m=qa.displacement_mm / 1000.0,
-        screen_width_m=qa.screen_width_mm / 1000.0,
-        screen_height_m=(
-            qa.screen_width_mm * qa.screen_height_ratio / 1000.0
-        ),
-        roll_deg=qa.roll_deg,
+        displacement_m=settings.space_geometry.ceiling_height_mm / 1000.0,
+        screen_width_m=qa_plane.screen_width_mm / 1000.0,
+        screen_height_m=(qa_plane.screen_width_mm / 1000.0) * 9.0 / 16.0,
+        roll_deg=qa_projection.roll_deg,
     )
     config = HomographyConfig(
         projector_resolution=(projector.width_px, projector.height_px),
