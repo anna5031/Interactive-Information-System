@@ -30,7 +30,10 @@ class DeviceManager:
         self.results = [
             check_microphone(),
             check_speaker(),
-            check_camera(source=self.preferences.camera_source),
+            check_camera(
+                source=self.preferences.camera_source,
+                frame_size=self.preferences.camera_frame_size,
+            ),
         ]
 
         if self.use_dummy_arduino:
