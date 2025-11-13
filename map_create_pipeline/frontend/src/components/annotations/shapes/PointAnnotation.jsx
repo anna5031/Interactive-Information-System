@@ -18,7 +18,7 @@ const PointAnnotation = ({
     <circle
       cx={cx}
       cy={cy}
-      r={isSelected ? 10 : 7}
+      r={isSelected ? 7 : 5}
       className={`${styles.point} ${isSelected ? styles.pointSelected : ''}`}
       fill={fill}
       onPointerDown={(event) => onPointerDown(event, point)}

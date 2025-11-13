@@ -5,11 +5,15 @@ const clamp = (value, min = 0, max = 1) => {
   return Math.min(Math.max(value, min), max);
 };
 
-const LINE_SNAP_THRESHOLD = 0.02;
-const DRAW_SNAP_DISTANCE = 0.02;
+const LINE_SNAP_THRESHOLD = 0.002;
+const DRAW_SNAP_DISTANCE = 0.002;
+const SNAP_RELEASE_DISTANCE = 0.008;
 const AXIS_LOCK_ANGLE_DEG = 5;
 const AXIS_LOCK_TOLERANCE = Math.tan((AXIS_LOCK_ANGLE_DEG * Math.PI) / 180);
 const EMPTY_SET = Object.freeze(new Set());
+const POINT_MATCH_TOLERANCE = 0.0004;
+const AXIS_TOLERANCE = 0.0005;
+const RELATED_AXIS_TOLERANCE = Math.max(0.001, DRAW_SNAP_DISTANCE * 0.4);
 
 const projectPointToSegment = (px, py, ax, ay, bx, by) => {
   const dx = bx - ax;
@@ -34,8 +38,20 @@ const buildSnapPoints = (boxes = [], lines = [], points = []) => {
   boxes.forEach((box) => {
     list.push({ x: box.x, y: box.y, ownerId: box.id, type: 'box-corner', meta: { corner: 'top-left' } });
     list.push({ x: box.x + box.width, y: box.y, ownerId: box.id, type: 'box-corner', meta: { corner: 'top-right' } });
-    list.push({ x: box.x, y: box.y + box.height, ownerId: box.id, type: 'box-corner', meta: { corner: 'bottom-left' } });
-    list.push({ x: box.x + box.width, y: box.y + box.height, ownerId: box.id, type: 'box-corner', meta: { corner: 'bottom-right' } });
+    list.push({
+      x: box.x,
+      y: box.y + box.height,
+      ownerId: box.id,
+      type: 'box-corner',
+      meta: { corner: 'bottom-left' },
+    });
+    list.push({
+      x: box.x + box.width,
+      y: box.y + box.height,
+      ownerId: box.id,
+      type: 'box-corner',
+      meta: { corner: 'bottom-right' },
+    });
   });
 
   lines.forEach((line) => {
@@ -54,10 +70,42 @@ const buildSnapSegments = (boxes = [], lines = []) => {
   const segments = [];
 
   boxes.forEach((box) => {
-    segments.push({ ax: box.x, ay: box.y, bx: box.x + box.width, by: box.y, ownerId: box.id, type: 'box-edge', meta: { edge: 'top' } });
-    segments.push({ ax: box.x, ay: box.y + box.height, bx: box.x + box.width, by: box.y + box.height, ownerId: box.id, type: 'box-edge', meta: { edge: 'bottom' } });
-    segments.push({ ax: box.x, ay: box.y, bx: box.x, by: box.y + box.height, ownerId: box.id, type: 'box-edge', meta: { edge: 'left' } });
-    segments.push({ ax: box.x + box.width, ay: box.y, bx: box.x + box.width, by: box.y + box.height, ownerId: box.id, type: 'box-edge', meta: { edge: 'right' } });
+    segments.push({
+      ax: box.x,
+      ay: box.y,
+      bx: box.x + box.width,
+      by: box.y,
+      ownerId: box.id,
+      type: 'box-edge',
+      meta: { edge: 'top' },
+    });
+    segments.push({
+      ax: box.x,
+      ay: box.y + box.height,
+      bx: box.x + box.width,
+      by: box.y + box.height,
+      ownerId: box.id,
+      type: 'box-edge',
+      meta: { edge: 'bottom' },
+    });
+    segments.push({
+      ax: box.x,
+      ay: box.y,
+      bx: box.x,
+      by: box.y + box.height,
+      ownerId: box.id,
+      type: 'box-edge',
+      meta: { edge: 'left' },
+    });
+    segments.push({
+      ax: box.x + box.width,
+      ay: box.y,
+      bx: box.x + box.width,
+      by: box.y + box.height,
+      ownerId: box.id,
+      type: 'box-edge',
+      meta: { edge: 'right' },
+    });
   });
 
   lines.forEach((line) => {
@@ -80,8 +128,44 @@ const snapPosition = ({
   includePointTypes = null,
   includeSegmentTypes = null,
   clampFn = clamp,
+  axisPreference = null,
 }) => {
   let best = null;
+
+  const consider = (candidate) => {
+    if (!candidate) {
+      return;
+    }
+    if (candidate.distance > distance) {
+      return;
+    }
+
+    let weight = 1;
+    if (candidate.axis) {
+      if (axisPreference && candidate.axis !== axisPreference) {
+        weight = 3;
+      } else if (axisPreference && candidate.axis === axisPreference) {
+        weight = 0.4;
+      } else {
+        weight = 0.9;
+      }
+    }
+
+    const effectiveDistance = candidate.distance * weight;
+    const scored = { ...candidate, effectiveDistance };
+
+    const shouldReplace =
+      !best ||
+      effectiveDistance < best.effectiveDistance ||
+      (axisPreference &&
+        candidate.axis === axisPreference &&
+        best.axis !== axisPreference &&
+        Math.abs(effectiveDistance - best.effectiveDistance) <= Number.EPSILON);
+
+    if (shouldReplace) {
+      best = scored;
+    }
+  };
 
   if (Array.isArray(snapPoints)) {
     snapPoints.forEach((point) => {
@@ -92,9 +176,13 @@ const snapPosition = ({
         return;
       }
       const pointDistance = Math.hypot(x - point.x, y - point.y);
-      if (pointDistance <= distance && (!best || pointDistance < best.distance)) {
-        best = { x: point.x, y: point.y, distance: pointDistance, source: point };
-      }
+      consider({
+        x: point.x,
+        y: point.y,
+        distance: pointDistance,
+        source: point,
+        axis: null,
+      });
     });
   }
 
@@ -106,18 +194,149 @@ const snapPosition = ({
       if (includeSegmentTypes && !includeSegmentTypes.has(segment.type)) {
         return;
       }
-      const projection = projectPointToSegment(x, y, segment.ax, segment.ay, segment.bx, segment.by);
-      if (projection.distance <= distance && (!best || projection.distance < best.distance)) {
-        best = { x: projection.x, y: projection.y, distance: projection.distance, source: segment };
+
+      if (segment.type === 'box-edge' && segment.meta?.edge) {
+        const edge = segment.meta.edge;
+        const isVertical = edge === 'left' || edge === 'right';
+        if (isVertical) {
+          const axisDistance = Math.abs(x - segment.ax);
+          consider({
+            x: segment.ax,
+            y,
+            distance: axisDistance,
+            source: segment,
+            axis: 'vertical',
+          });
+        } else {
+          const axisDistance = Math.abs(y - segment.ay);
+          consider({
+            x,
+            y: segment.ay,
+            distance: axisDistance,
+            source: segment,
+            axis: 'horizontal',
+          });
+        }
+
+        return;
       }
+
+      if (segment.type === 'line') {
+        consider({
+          x: segment.ax,
+          y: segment.ay,
+          distance: Math.hypot(x - segment.ax, y - segment.ay),
+          source: { ...segment, type: 'line-end', meta: { end: 'start' } },
+          axis: null,
+        });
+        consider({
+          x: segment.bx,
+          y: segment.by,
+          distance: Math.hypot(x - segment.bx, y - segment.by),
+          source: { ...segment, type: 'line-end', meta: { end: 'end' } },
+          axis: null,
+        });
+        return;
+      }
+
+      const projection = projectPointToSegment(x, y, segment.ax, segment.ay, segment.bx, segment.by);
+      consider({
+        x: projection.x,
+        y: projection.y,
+        distance: projection.distance,
+        source: segment,
+        axis: null,
+      });
     });
   }
 
   if (best) {
-    return { x: clampFn(best.x), y: clampFn(best.y), snapped: true, distance: best.distance, source: best.source };
+    const relatedSources = [];
+
+    if (best.axis && Array.isArray(snapSegments)) {
+      const axis = best.axis;
+      const axisValue = axis === 'vertical' ? best.x : best.y;
+
+      snapSegments.forEach((segment) => {
+        if (segment === best.source) {
+          return;
+        }
+        if (segment.type !== 'box-edge' && segment.type !== 'line') {
+          return;
+        }
+        if (shouldSkipOwner(segment.ownerId, excludeSegmentOwners)) {
+          return;
+        }
+
+        if (axis === 'vertical') {
+          let segX = null;
+          if (segment.type === 'box-edge') {
+            const edge = segment.meta?.edge;
+            if (edge !== 'left' && edge !== 'right') {
+              return;
+            }
+            segX = segment.ax;
+          } else {
+            if (Math.abs(segment.ax - segment.bx) > AXIS_TOLERANCE) {
+              return;
+            }
+            segX = segment.ax;
+          }
+          if (Math.abs(segX - axisValue) <= RELATED_AXIS_TOLERANCE) {
+            relatedSources.push(segment);
+          }
+        } else if (axis === 'horizontal') {
+          let segY = null;
+          if (segment.type === 'box-edge') {
+            const edge = segment.meta?.edge;
+            if (edge !== 'top' && edge !== 'bottom') {
+              return;
+            }
+            segY = segment.ay;
+          } else {
+            if (Math.abs(segment.ay - segment.by) > AXIS_TOLERANCE) {
+              return;
+            }
+            segY = segment.ay;
+          }
+          if (Math.abs(segY - axisValue) <= RELATED_AXIS_TOLERANCE) {
+            relatedSources.push(segment);
+          }
+        }
+      });
+    }
+
+    if (Array.isArray(snapPoints)) {
+      snapPoints.forEach((point) => {
+        if (point === best.source) {
+          return;
+        }
+        if (shouldSkipOwner(point.ownerId, excludePointOwners)) {
+          return;
+        }
+        if (
+          Math.abs(point.x - best.x) <= POINT_MATCH_TOLERANCE &&
+          Math.abs(point.y - best.y) <= POINT_MATCH_TOLERANCE
+        ) {
+          relatedSources.push(point);
+        }
+      });
+    }
+
+    const { effectiveDistance, ...result } = best;
+
+    return {
+      x: clampFn(result.x),
+      y: clampFn(result.y),
+      snapped: true,
+      distance: result.distance,
+      source: result.source,
+      axis: result.axis ?? null,
+      relatedSources: relatedSources.length > 0 ? relatedSources : null,
+    };
   }
 
-  return { x: clampFn(x), y: clampFn(y), snapped: false, distance: Infinity, source: null };
+  return { x: clampFn(x), y: clampFn(y), snapped: false, distance: Infinity, source: null, axis: null };
 };
 
 const findAnchorForPoint = (x, y, lines = [], boxes = [], threshold = LINE_SNAP_THRESHOLD) => {
@@ -205,9 +424,10 @@ const snapLineEndpoints = ({
   snapSegments,
   excludeId,
   distance = DRAW_SNAP_DISTANCE,
+  axisPreference = null,
 }) => {
   if (!line) {
-    return line;
+    return { line, snap: null };
   }
 
   const excludeOwners = excludeId ? new Set([excludeId]) : EMPTY_SET;
@@ -226,6 +446,7 @@ const snapLineEndpoints = ({
       distance,
       excludePointOwners: excludeOwners,
       excludeSegmentOwners: excludeOwners,
+      axisPreference,
     });
     if (snap.snapped && (!best || snap.distance < best.distance)) {
       best = { endpoint: endpoint.key, snap };
@@ -233,31 +454,34 @@ const snapLineEndpoints = ({
   });
 
   if (!best) {
-    return line;
+    return { line, snap: null };
   }
 
   const { endpoint, snap } = best;
+  let nextLine;
   if (endpoint === 'start') {
     const deltaX = snap.x - line.x1;
     const deltaY = snap.y - line.y1;
-    return {
+    nextLine = {
       ...line,
       x1: clamp(snap.x),
       y1: clamp(snap.y),
       x2: clamp(line.x2 + deltaX),
       y2: clamp(line.y2 + deltaY),
     };
+  } else {
+    const deltaX = snap.x - line.x2;
+    const deltaY = snap.y - line.y2;
+    nextLine = {
+      ...line,
+      x1: clamp(line.x1 + deltaX),
+      y1: clamp(line.y1 + deltaY),
+      x2: clamp(snap.x),
+      y2: clamp(snap.y),
+    };
   }
 
-  const deltaX = snap.x - line.x2;
-  const deltaY = snap.y - line.y2;
-  return {
-    ...line,
-    x1: clamp(line.x1 + deltaX),
-    y1: clamp(line.y1 + deltaY),
-    x2: clamp(snap.x),
-    y2: clamp(snap.y),
-  };
+  return { line: nextLine, snap: { ...snap, endpoint } };
 };
 
 const snapSpecificLineEndpoint = ({
@@ -267,9 +491,10 @@ const snapSpecificLineEndpoint = ({
   snapSegments,
   excludeId,
   distance = DRAW_SNAP_DISTANCE,
+  axisPreference = null,
 }) => {
   if (!line) {
-    return line;
+    return { line, snap: null };
   }
 
   const excludeOwners = excludeId ? new Set([excludeId]) : EMPTY_SET;
@@ -284,16 +509,17 @@ const snapSpecificLineEndpoint = ({
     distance,
     excludePointOwners: excludeOwners,
     excludeSegmentOwners: excludeOwners,
+    axisPreference,
   });
 
   if (!snap.snapped) {
-    return line;
+    return { line, snap: null };
   }
 
   if (endpoint === 'start') {
-    return { ...line, x1: clamp(snap.x), y1: clamp(snap.y) };
+    return { line: { ...line, x1: clamp(snap.x), y1: clamp(snap.y) }, snap: { ...snap, endpoint } };
   }
-  return { ...line, x2: clamp(snap.x), y2: clamp(snap.y) };
+  return { line: { ...line, x2: clamp(snap.x), y2: clamp(snap.y) }, snap: { ...snap, endpoint } };
 };
 
 export {
@@ -311,4 +537,5 @@ export {
   applyAxisLockToLine,
   snapLineEndpoints,
   snapSpecificLineEndpoint,
+  SNAP_RELEASE_DISTANCE,
 };
