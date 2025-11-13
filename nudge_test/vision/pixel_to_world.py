@@ -35,7 +35,9 @@ def pixel_to_world_on_floor(u, v):
 
 
 if __name__ == "__main__":
-    pts = np.load('image_pts.npy')  # [[u,v], [u,v], ...]
-    for (u, v) in pts:
-        Xw = pixel_to_world_on_floor(u, v)
-        print(f"pixel=({u:.1f}, {v:.1f}) -> world={Xw}")
+    # pts = np.load('image_pts.npy')  # [[u,v], [u,v], ...]
+    # for (u, v) in pts:
+    #     Xw = pixel_to_world_on_floor(u, v)
+    #     print(f"pixel=({u:.1f}, {v:.1f}) -> world={Xw}")
+    Xw = pixel_to_world_on_floor(800, 500)
+    print(f"world={Xw}")

@@ -1,22 +1,38 @@
 # setMotor.py
+import time
 import numpy as np
 from config_loader import load_config
 from serial_comm import SimpleSerialMotor
-import time
 
-# ── config 로드 ─────────────────────────────────────────────
+# -------------------------------------------------------------
+# Configuration
+# -------------------------------------------------------------
 config = load_config()
+# Toggle to disable serial writes when Arduino is not present.
+ARDUINO_CONNECTED = False
 
-# geometry
-z_offset = float(config["beam_geometry"]["z_offset"])  # tilt축~프로젝터 거리(mm)
-H        = float(config["beam_geometry"]["H"])         # 바닥~tilt축 높이(mm)
+def _vector_setting(name, default):
+    """Read a 3D vector from the config with a safe fallback."""
+    value = config.get(name, default)
+    try:
+        arr = np.asarray(value, dtype=np.float64)
+    except (TypeError, ValueError):
+        return np.asarray(default, dtype=np.float64)
+    if arr.shape != np.asarray(default).shape:
+        return np.asarray(default, dtype=np.float64)
+    return arr
 
-# serial
-port     = str(config["serial"]["port"])          
+# Geometry
+PT_HEIGHT = float(config.get("pan_tilt_height", 1350.0))
+PT_POS = np.array([0.0, 0.0, PT_HEIGHT], dtype=np.float64)
+PROJECTOR_OFFSET_LOCAL = _vector_setting("projector_offset_vector", [50.0, 0.0, 150.0])
+
+# Serial settings
+port     = str(config["serial"]["port"])
 baudrate = int(config["serial"]["baudrate"])
 timeout  = float(config["serial"]["timeout"])
 
-# motor limits & init
+# Motor limits & init
 pan_min  = float(config["motor"]["pan"]["min_deg"])
 pan_max  = float(config["motor"]["pan"]["max_deg"])
 pan_init = float(config["motor"]["pan"]["init_deg"])
@@ -25,56 +41,142 @@ tilt_min  = float(config["motor"]["tilt"]["min_deg"])
 tilt_max  = float(config["motor"]["tilt"]["max_deg"])
 tilt_init = float(config["motor"]["tilt"]["init_deg"])
 
-# ── 통신 링크 ──────────────────────────────────────────────
-link = SimpleSerialMotor(port=port, baudrate=baudrate, timeout=timeout)
-print("[Serial Check]", "PING?", link.ping())
+# -------------------------------------------------------------
+# Serial link
+# -------------------------------------------------------------
+link = None
+if ARDUINO_CONNECTED:
+    link = SimpleSerialMotor(port=port, baudrate=baudrate, timeout=timeout)
+    print("[Serial Check]", "PING?", link.ping())
+else:
+    print("[Serial Check] Arduino link disabled (ARDUINO_CONNECTED=False)")
 
-# ── 유틸 ───────────────────────────────────────────────────
-def _clip(v: float, vmin: float, vmax: float) -> float:
-    return min(max(v, vmin), vmax)
+# -------------------------------------------------------------
+# Geometry helpers
+# -------------------------------------------------------------
+def _clip(v: float, vmin: float, vmax: float, type) -> float:
+    clipped_v = min(max(v, vmin), vmax)
+    if clipped_v != v:
+        print(type, " Motor Clipped", v, "to", clipped_v)
+    return clipped_v
 
-# ── 각도 계산 (radian → degree) ────────────────────────────
-def _calAngle(target):
+def _rot_z(rad):
+    c, s = np.cos(rad), np.sin(rad)
+    return np.array([[ c, -s, 0.0],
+                     [ s,  c, 0.0],
+                     [0.0, 0.0, 1.0]], dtype=np.float64)
+
+def _rot_y(rad):
+    c, s = np.cos(rad), np.sin(rad)
+    return np.array([[ c, 0.0,  s],
+                     [0.0, 1.0, 0.0],
+                     [-s, 0.0,  c]], dtype=np.float64)
+
+def _angles_to_R(pan_deg, tilt_deg):
+    """Return world rotation for given pan (about Z) and tilt (about Y)."""
+    p = np.deg2rad(pan_deg)
+    t = np.deg2rad(tilt_deg)
+    return _rot_z(p) @ _rot_y(t)
+
+def _beam_from_angles(pan_deg, tilt_deg):
+    """Compute beam origin and direction in world coordinates."""
+    R = _angles_to_R(pan_deg, tilt_deg)
+    beam_pos = PT_POS + R @ PROJECTOR_OFFSET_LOCAL
+    local_forward = np.array([1.0, 0.0, 0.0], dtype=np.float64)
+    nudge_vec = R @ local_forward
+    norm = np.linalg.norm(nudge_vec)
+    if norm < 1e-9:
+        raise RuntimeError("Invalid nudge vector norm (too small).")
+    return beam_pos, nudge_vec / norm
+
+def _ray_target_distance_sq(pan_deg, tilt_deg, target):
+    """Squared shortest distance between the beam ray and target."""
+    beam_pos, nudge_vec = _beam_from_angles(pan_deg, tilt_deg)
+    target = np.asarray(target, dtype=np.float64)
+    v = target - beam_pos
+    s = max(0.0, np.dot(v, nudge_vec))  # ray only fires forward
+    closest = beam_pos + s * nudge_vec
+    diff = closest - target
+    return float(np.dot(diff, diff))
+
+def _initial_guess_without_offset(target):
+    """Pan/tilt guess if the beam originated at PT_POS (offset ignored)."""
     x, y, z = map(float, target)
-    r_xy = np.hypot(x, y)                 # sqrt(x^2 + y^2)
-    dz = z-H
-    r = np.hypot(r_xy, dz)            # sqrt(x^2 + y^2 + (H-z)^2)
+    dz = z - PT_POS[2]
+    pan = np.degrees(np.arctan2(y, x))
+    r_xy = np.hypot(x, y)
+    tilt = np.degrees(np.arctan2(-dz, r_xy))
+    return pan, tilt
 
-    theta_p = np.arctan2(y, x)
+def solve_pan_tilt_for_target(target,
+                              pan_bounds=(pan_min, pan_max),
+                              tilt_bounds=(tilt_min, tilt_max)):
+    """Numerically minimize beam-to-target distance over pan/tilt."""
+    target = np.asarray(target, dtype=np.float64).reshape(3,)
+    pan, tilt = _initial_guess_without_offset(target)
+    pan = float(np.clip(pan, *pan_bounds))
+    tilt = float(np.clip(tilt, *tilt_bounds))
+    best_loss = _ray_target_distance_sq(pan, tilt, target)
 
-    ratio = np.clip(z_offset / max(r, 1e-9), -1.0, 1.0)
-    theta_1 = np.arccos(ratio)
-    theta_2 = np.arctan2(r_xy, dz)
-    print("theta_1, theta_2:", np.degrees(theta_1), np.degrees(theta_2))
-    theta_t = np.arccos(ratio) - np.arctan2(r_xy, dz)
-    
-    return float(np.degrees(theta_t)), float(np.degrees(theta_p))
+    for step in (4.0, 1.0, 0.25):
+        improved = True
+        while improved:
+            improved = False
+            for d_pan in (-step, 0.0, step):
+                for d_tilt in (-step, 0.0, step):
+                    if d_pan == 0.0 and d_tilt == 0.0:
+                        continue
+                    cand_pan = float(np.clip(pan + d_pan, *pan_bounds))
+                    cand_tilt = float(np.clip(tilt + d_tilt, *tilt_bounds))
+                    loss = _ray_target_distance_sq(cand_pan, cand_tilt, target)
+                    if loss + 1e-6 < best_loss:
+                        best_loss = loss
+                        pan, tilt = cand_pan, cand_tilt
+                        improved = True
+    return pan, tilt
 
-# ── 모터 제어 ──────────────────────────────────────────────
+def _calAngle(target):
+    start = time.perf_counter()
+    result = solve_pan_tilt_for_target(target)
+    elapsed_ms = (time.perf_counter() - start) * 1000.0
+    print(f"_calAngle computation took {elapsed_ms:.2f} ms")
+    return result
+
+# -------------------------------------------------------------
+# Motor command helpers
+# -------------------------------------------------------------
 def _setAngle(tilt_deg, pan_deg):
-    # int로 반올림 후 전송
-    print(f"Set motor to: tilt {tilt_deg:.2f}, pan {pan_deg:.2f}")
-    print(link.send(int(round(tilt_deg)), int(round(pan_deg))))
+    if ARDUINO_CONNECTED and link is not None:
+        print(link.send(int(round(tilt_deg)), int(round(pan_deg))))
+        print(f"Set motor to: tilt {tilt_deg:.2f}, pan {pan_deg:.2f}")
+    else:
+        print("[Serial Disabled] Command not sent.")
+        print(f"Simulated command: tilt {tilt_deg:.2f}, pan {pan_deg:.2f}")
 
-# ── 공개 API ───────────────────────────────────────────────
+# -------------------------------------------------------------
+# Public API
+# -------------------------------------------------------------
 def setMotor(target):
     """
-    1) target으로부터 '순수' 각도 계산
-    2) 각도에 init 보정(+= init_deg)
-    3) min/max 클램프
-    4) 모터 전송
+    1) solve pan/tilt that align the beam with target
+    2) add init offsets
+    3) clip to motor bounds
+    4) command motors
     """
     pan_raw, tilt_raw = _calAngle(target)
-    print(f"Raw angles: tilt {tilt_raw:.2f}, pan {pan_raw:.2f}")
-    tilt_cmd = _clip(tilt_init+tilt_raw, tilt_min, tilt_max)
-    pan_cmd  = _clip(pan_raw  + pan_init,  pan_min,  pan_max)
-    print(f"Command angles: tilt {tilt_cmd:.2f}, pan {pan_cmd:.2f}")
-    _setAngle(tilt_cmd, pan_cmd)
-    return pan_raw, tilt_raw  # 디버깅용 반환
+    
+    tilt_cmd = _clip(tilt_init + tilt_raw, tilt_min, tilt_max, "Tilt")
+    pan_cmd  = _clip(pan_init  + pan_raw,  pan_min,  pan_max, "Pan")
+    pan_raw = pan_cmd - pan_init
+    tilt_raw = tilt_cmd - tilt_init
 
-# ── 테스트 ─────────────────────────────────────────────────
+    print(f"Angles in degree: pan {pan_raw:.2f}, tilt {tilt_raw:.2f}")
+    # print(f"Command angles: pan {pan_cmd:.2f}, tilt {tilt_cmd:.2f}")
+    _setAngle(tilt_cmd, pan_cmd)
+    return pan_raw, tilt_raw
+
+# -------------------------------------------------------------
+# Manual test
+# -------------------------------------------------------------
 if __name__ == "__main__":
-    while True:
-        tilt = input("Tilt")
-        pan = input("Pan")
-        _setAngle(int(tilt), int(pan))
+    setMotor((1000, 0, 2500.0))

@@ -2,13 +2,65 @@
 import numpy as np
 import cv2
 
+try:
+    from nudge_test.motor.config_loader import load_config
+except ModuleNotFoundError:  # pragma: no cover
+    from config_loader import load_config
+
+
+def _safe_vector(value, default):
+    """Return np.array for vector settings, falling back to default on bad input."""
+    arr = np.asarray(default, dtype=np.float64)
+    if value is None:
+        return arr
+    try:
+        candidate = np.asarray(value, dtype=np.float64)
+    except (ValueError, TypeError):
+        return arr
+    if candidate.shape != arr.shape:
+        try:
+            candidate = candidate.reshape(arr.shape)
+        except ValueError:
+            return arr
+    return candidate
+
+
+def _parse_ratio(value, default):
+    """Parse width/height ratio from numeric, iterable, or 'a/b' string."""
+    if value is None:
+        return default
+    if isinstance(value, str) and "/" in value:
+        num, den = value.split("/", 1)
+        try:
+            num, den = float(num), float(den)
+            return default if abs(den) < 1e-9 else num / den
+        except ValueError:
+            return default
+    if isinstance(value, (list, tuple)) and len(value) == 2:
+        try:
+            num, den = float(value[0]), float(value[1])
+            return default if abs(den) < 1e-9 else num / den
+        except (TypeError, ValueError):
+            return default
+    try:
+        ratio = float(value)
+        return default if abs(ratio) < 1e-9 else ratio
+    except (TypeError, ValueError):
+        return default
+
+
+config = load_config()
+
 ################### configurations
 # Pan Tilt geo config
-pt_h = 1600   # projector height (mm)
+pt_h = float(config.get("pan_tilt_height", 1600.0))   # projector height (mm)
 pt_pos = np.array([0.0, 0.0, pt_h], dtype=np.float64)   # projector origin
 
 # Projector geo config
-beam_offset_vec = np.array([50, 0.0, 80], dtype=np.float64)  # pan tilt에서 본 빔프로젝터 light source 위치 벡터 (m)
+beam_offset_vec = _safe_vector(
+    config.get("projector_offset_vector"),
+    [50.0, 0.0, 80.0],
+)  # pan tilt에서 본 빔프로젝터 light source 위치 벡터 (mm)
 
 # Projector config
 PROJ_W, PROJ_H = 3840, 2160
@@ -18,16 +70,22 @@ H_FOV_DEG = 45.0
 IMG_W, IMG_H = 3840, 2160
 
 # nudge plane config
-ceiling_n_w     = np.array([0.0, 0.0, 1.0], dtype=np.float64)   # 천장 법선(+z)
-ceiling_height = 2500  # 천장 높이 (mm)
+plane_cfg = config.get("nudge_plane_geometry", {})
+ceiling_n_w = _safe_vector(
+    plane_cfg.get("normal_vector"),
+    [0.0, 0.0, 1.0],
+)   # 천장 법선(+z)
+ceiling_height = float(plane_cfg.get("nudge_plane_displacement", 2500.0))  # 천장 높이 (mm)
 
 # nudge screen config
-SCREEN_WIDTH_M  = 1.77 * 0.2
-SCREEN_HEIGHT_M = SCREEN_WIDTH_M * 9.0 / 16.0
+screen_cfg = config.get("nudge_screen_geometry", {})
+screen_width_mm = float(screen_cfg.get("screen_width", 354.0))
+screen_ratio = max(1e-9, _parse_ratio(screen_cfg.get("screen_ratio"), 16.0 / 9.0))  # width / height
+screen_height_mm = screen_width_mm / screen_ratio
 # Keep calculations in millimeters to stay consistent with other coordinates.
-SCREEN_WIDTH_MM  = SCREEN_WIDTH_M * 1000.0
-SCREEN_HEIGHT_MM = SCREEN_HEIGHT_M * 1000.0
-ROLL_DEG = 0.0  # 평면 내 추가 회전
+SCREEN_WIDTH_MM  = screen_width_mm
+SCREEN_HEIGHT_MM = screen_height_mm
+ROLL_DEG = float(screen_cfg.get("roll_deg", 0.0))  # 평면 내 추가 회전
 
 def _intrinsics_from_hfov(width, height, h_fov_deg):
     h = np.deg2rad(h_fov_deg)
@@ -157,9 +215,7 @@ def H_caculator(pan, tilt, src_pts=None, return_wall_center=False):
         return H, nudge_center_w
     return H
 
-if __name__ == "__main__":
-    test_pan = 0
-    test_tilt = 90
+def test_homography(test_pan, test_tilt):
     INPUT_IMG_PATH = "input_img.jpg"
 
     img = cv2.imread(INPUT_IMG_PATH, cv2.IMREAD_COLOR)
@@ -184,3 +240,16 @@ if __name__ == "__main__":
 
     print("wall_center_w:", wall_center_w)
     print("Saved: distorted_img.jpg")
+
+        # Show the distorted image in fullscreen for visual verification.
+    window_name = "Distorted Projection"
+    cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+    cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+    cv2.imshow(window_name, distorted)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+if __name__ == "__main__":
+    test_pan = 45
+    test_tilt = 45
+    test_homography(test_pan, test_tilt)
