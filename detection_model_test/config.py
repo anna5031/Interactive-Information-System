@@ -15,6 +15,14 @@ IMAGE_EXTENSIONS: tuple[str, ...] = (".jpg", ".jpeg", ".png", ".bmp", ".tif", ".
 YOLO_EXTENSIONS: tuple[str, ...] = (".pt",)
 RFDETR_EXTENSIONS: tuple[str, ...] = (".pth",)
 
+# RF-DETR model variants -----------------------------------------------------
+RFDETR_MODEL_CLASS_MAP: dict[str, str] = {
+    "medium": "RFDETRMedium",
+    "large": "RFDETRLarge",
+}
+RFDETR_MODEL_VARIANTS: tuple[str, ...] = tuple(RFDETR_MODEL_CLASS_MAP.keys())
+DEFAULT_RFDETR_VARIANT: str = "large"
+
 # UI defaults ----------------------------------------------------------------
 DEFAULT_CONFIDENCE: float = 0.25
 CONFIDENCE_MIN: float = 0.0

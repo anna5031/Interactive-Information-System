@@ -7,6 +7,7 @@ from typing import Sequence
 
 import pandas as pd
 import streamlit as st
+from streamlit.runtime.uploaded_file_manager import UploadedFile
 from PIL import Image
 
 from config import (
@@ -16,14 +17,17 @@ from config import (
     CONFIDENCE_STEP,
     DEFAULT_CONFIDENCE,
     DEFAULT_IOU,
+    DEFAULT_RFDETR_VARIANT,
     DEVICE_OPTIONS,
     IOU_MAX,
     IOU_MIN,
     IOU_STEP,
+    RFDETR_MODEL_VARIANTS,
     format_confidence,
 )
 from core.model_registry import BACKEND_RFDETR, BACKEND_YOLO, ModelInfo
 from inference.base import Detection, describe_runtime
+from utils.coco_eval import EvaluationSummary
 from utils.visualization import annotate_image
 
 
@@ -44,16 +48,29 @@ def _family_priority(models: Sequence[ModelInfo]) -> int:
     )
 
 
+def _format_percentage(value: float) -> str:
+    return f"{value * 100:.1f}%"
+
+
 def render_sidebar(
     models: Sequence[ModelInfo],
     selected_model: ModelInfo | None,
     default_device: str,
-) -> tuple[ModelInfo | None, float, float | None, str]:
+) -> tuple[ModelInfo | None, float, float | None, str, str | None, UploadedFile | None]:
     """Render sidebar controls and return selected values."""
     st.sidebar.header("모델 설정")
+    stored_variant = st.session_state.get("rfdetr_variant", DEFAULT_RFDETR_VARIANT)
+    if RFDETR_MODEL_VARIANTS:
+        if stored_variant not in RFDETR_MODEL_VARIANTS:
+            stored_variant = RFDETR_MODEL_VARIANTS[0]
+    else:
+        stored_variant = None
+    rfdetr_variant: str | None = stored_variant
+    annotation_file: UploadedFile | None = None
+
     if not models:
         st.sidebar.warning("사용 가능한 모델이 없습니다. `model` 폴더를 확인하세요.")
-        return None, DEFAULT_CONFIDENCE, None, default_device
+        return None, DEFAULT_CONFIDENCE, None, default_device, rfdetr_variant, annotation_file
 
     yolo_models = [model for model in models if model.backend == BACKEND_YOLO]
     rfdetr_models = [model for model in models if model.backend == BACKEND_RFDETR]
@@ -66,7 +83,7 @@ def render_sidebar(
 
     if not backend_options:
         st.sidebar.warning("선택할 수 있는 모델이 없습니다.")
-        return None, DEFAULT_CONFIDENCE, None, default_device
+        return None, DEFAULT_CONFIDENCE, None, default_device, rfdetr_variant, annotation_file
 
     backend_labels = {BACKEND_YOLO: "YOLO", BACKEND_RFDETR: "RF-DETR"}
     default_backend = backend_options[0]
@@ -103,13 +120,37 @@ def render_sidebar(
             chosen_model = selected_option
 
     elif backend_choice == BACKEND_RFDETR:
+        if not RFDETR_MODEL_VARIANTS:
+            st.sidebar.warning("선택할 수 있는 RF-DETR 모델 종류가 없습니다.")
+            return None, DEFAULT_CONFIDENCE, None, default_device, rfdetr_variant, annotation_file
+
+        default_variant = rfdetr_variant or DEFAULT_RFDETR_VARIANT
+        if default_variant not in RFDETR_MODEL_VARIANTS:
+            default_variant = RFDETR_MODEL_VARIANTS[0]
+        variant_options = list(RFDETR_MODEL_VARIANTS)
+        rfdetr_variant = st.sidebar.selectbox(
+            "RF-DETR 모델 종류",
+            options=variant_options,
+            index=variant_options.index(default_variant),
+            format_func=lambda value: value.upper(),
+            key="rfdetr_variant_select",
+        )
+        st.session_state["rfdetr_variant"] = rfdetr_variant
+        annotation_file = st.sidebar.file_uploader(
+            "정답 라벨 (_annotations.coco.json)",
+            type=["json"],
+            accept_multiple_files=False,
+            key="coco_annotation_uploader",
+            help="RF-DETR 추론 결과를 평가할 COCO 라벨 파일을 업로드하세요.",
+        )
+
         families: dict[str, list[ModelInfo]] = defaultdict(list)
         for model in rfdetr_models:
             families[model.family or "기타"].append(model)
 
         if not families:
             st.sidebar.warning("RF-DETR 체크포인트를 찾을 수 없습니다.")
-            return None, DEFAULT_CONFIDENCE, None, default_device
+            return None, DEFAULT_CONFIDENCE, None, default_device, rfdetr_variant, annotation_file
 
         sorted_families = sorted(
             families.items(),
@@ -185,6 +226,17 @@ def render_sidebar(
             format="%.2f",
             key="iou_slider",
         )
+    elif backend_choice == BACKEND_RFDETR:
+        iou_value = st.sidebar.slider(
+            "IoU Threshold (평가)",
+            min_value=float(IOU_MIN),
+            max_value=float(IOU_MAX),
+            value=float(DEFAULT_IOU),
+            step=float(IOU_STEP),
+            format="%.2f",
+            key="rfdetr_iou_slider",
+            help="라벨과 비교할 때 사용할 IoU 기준값입니다.",
+        )
 
     device_choice = st.sidebar.radio(
         "연산 장치",
@@ -204,7 +256,7 @@ def render_sidebar(
     else:
         st.session_state.pop("selected_model_id", None)
 
-    return chosen_model, confidence, iou_value, device_choice
+    return chosen_model, confidence, iou_value, device_choice, rfdetr_variant, annotation_file
 
 
 def render_device_status(device: str) -> list:
@@ -268,3 +320,62 @@ def render_image_section(
             st.dataframe(df, hide_index=True, width="stretch")
         else:
             st.caption("표시할 탐지 결과가 없습니다.")
+
+
+def render_evaluation_results(summary: EvaluationSummary) -> None:
+    """Render aggregate and per-image evaluation metrics."""
+    st.subheader("평가 결과 (RF-DETR)")
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("정확도", _format_percentage(summary.accuracy))
+    col2.metric("Precision", _format_percentage(summary.precision))
+    col3.metric("Recall", _format_percentage(summary.recall))
+    col4.metric("F1", _format_percentage(summary.f1))
+    st.caption(f"TP {summary.total_tp} · FP {summary.total_fp} · FN {summary.total_fn}")
+
+    if summary.per_class:
+        class_rows = [
+            {
+                "Class": item.label,
+                "TP": item.true_positives,
+                "FP": item.false_positives,
+                "FN": item.false_negatives,
+                "Precision": _format_percentage(item.precision),
+                "Recall": _format_percentage(item.recall),
+                "F1": _format_percentage(item.f1),
+            }
+            for item in summary.per_class
+        ]
+        class_df = pd.DataFrame(class_rows)
+        with st.expander(f"클래스별 결과 ({len(class_rows)}개)", expanded=False):
+            st.dataframe(class_df, hide_index=True, width="stretch")
+
+    if not summary.per_image:
+        st.info("평가할 이미지가 없습니다. 라벨 파일과 이미지 이름을 확인하세요.")
+        if summary.missing_images:
+            st.caption(
+                "라벨을 찾을 수 없는 이미지: "
+                + ", ".join(summary.missing_images[:5])
+                + (" ..." if len(summary.missing_images) > 5 else "")
+            )
+        return
+
+    rows = [
+        {
+            "Image": item.image_label,
+            "TP": item.true_positives,
+            "FP": item.false_positives,
+            "FN": item.false_negatives,
+            "Precision": _format_percentage(item.precision),
+            "Recall": _format_percentage(item.recall),
+            "F1": _format_percentage(item.f1),
+        }
+        for item in summary.per_image
+    ]
+    per_image_df = pd.DataFrame(rows)
+    with st.expander(f"이미지별 상세 결과 ({len(rows)}개)", expanded=False):
+        st.dataframe(per_image_df, hide_index=True, width="stretch")
+
+    if summary.missing_images:
+        missing_preview = ", ".join(summary.missing_images[:5])
+        suffix = " ..." if len(summary.missing_images) > 5 else ""
+        st.caption(f"라벨을 찾을 수 없는 이미지: {missing_preview}{suffix}")
