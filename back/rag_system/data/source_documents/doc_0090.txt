@@ -1,0 +1,7 @@
+type: lecture
+building: N7
+room: 2110
+prof_name: 조한솔
+lecture_name: 기계공학특론
+lecture_time: 화 13:00-14:30; 목 13:00-14:30
+info: 

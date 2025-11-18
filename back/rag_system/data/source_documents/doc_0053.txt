@@ -1,0 +1,13 @@
+type: professor
+building: N7
+room: 4111
+prof_name: 전원주
+lecture_name: 
+lecture_time: 
+info:
+  - 최종학위: Ph.D., KAIST (2006)
+  - 연구분야: Acoustic Metamaterial, Acoustic Black Hole, Absorption of Sound and Vibration, Fan Noise Prediction
+  - 연구실: 파동에너지(소음/진동) 제어 연구실
+  - 연구실 웹사이트: http://wave.kaist.ac.kr/
+  - E-mail: wonju.jeon@kaist.ac.kr
+  - Phone: 042-350-3219

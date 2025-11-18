@@ -1,0 +1,13 @@
+type: professor
+building: N7
+room: 4204
+prof_name: 김산하
+lecture_name: 
+lecture_time: 
+info:
+  - 최종학위: Ph.D., MIT (2013)
+  - 연구분야: Manufacturing, Contact Mechanics, Surface Engineering, Nano Materials and Processing
+  - 연구실: 첨단 생산기술 및 표면공학 연구실
+  - 연구실 웹사이트: https://amselab.kaist.ac.kr/
+  - E-mail: sanhkim@kaist.ac.kr
+  - Phone: 042-350- 3022

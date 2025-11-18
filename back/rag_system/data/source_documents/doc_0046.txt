@@ -1,0 +1,13 @@
+type: professor
+building: N7
+room: 7113
+prof_name: 이승섭
+lecture_name: 
+lecture_time: 
+info:
+  - 최종학위: Ph.D., Univ. of California, Berkeley (1995)
+  - 연구분야: MEMS, NEMS, Bio-MEMS, Microfluidics
+  - 연구실: 초소형 기전 공학 연구실
+  - 연구실 웹사이트: https://sites.google.com/site/kaistmmstlab/
+  - E-mail: sslee97@kaist.ac.kr
+  - Phone: 042-350-3046

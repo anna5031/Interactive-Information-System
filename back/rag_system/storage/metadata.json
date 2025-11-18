@@ -1,0 +1,737 @@
+[
+  {
+    "doc_id": "doc_0001.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0001.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0001.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 7101\nprof_name: 경기욱\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., KAIST (2006)\n  - 연구분야: Soft Robotics, Human-Robot Interaction, Flexible actuators & sensors, Haptics\n  - 연구실: 휴먼-로봇 인터랙션 연구실\n  - 연구실 웹사이트: http://irobot.kaist.ac.kr/\n  - E-mail: kyungku@kaist.ac.kr\n  - Phone: 042-350-3245"
+  },
+  {
+    "doc_id": "doc_0002.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0002.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0002.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 7104\nprof_name: 김성수\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., KAIST (2007)\n  - 연구분야: Composite materials & manufacturing, Multifunctional structures & materials\n  - 연구실: 신소재응용 기계설계 연구실\n  - 연구실 웹사이트: http://mdam.kaist.ac.kr/\n  - E-mail: seongsukim@kaist.ac.kr\n  - Phone: 042-350-3018"
+  },
+  {
+    "doc_id": "doc_0003.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0003.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0003.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 6113\nprof_name: 김영진\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., KAIST (2008)\n  - 연구분야: Precision Metrology, Ultrafast Photonics, Direct Laser Writing, Flexible/Stretchable Electro-Optics\n  - 연구실: 초정밀 측정 및 가공 연구실\n  - 연구실 웹사이트: http://upm2.kaist.ac.kr\n  - E-mail: yj.kim@kaist.ac.kr\n  - Phone: 042-350-3017"
+  },
+  {
+    "doc_id": "doc_0004.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0004.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0004.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 6108\nprof_name: 이강택\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D.,University of Florida(2010)\n  - 연구분야: SOFCs, Solid-state Batteries, Hydrogen Production, 3D Nano-imaging\n  - 연구실: 첨단 에너지 변환 저장 연구실\n  - 연구실 웹사이트: https://www.ktlee.kaist.ac.kr/\n  - E-mail: leekt@kaist.ac.kr\n  - Phone: 042-350-3020"
+  },
+  {
+    "doc_id": "doc_0005.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0005.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0005.txt",
+    "content": "type: professor\nbuilding: \nroom: \nprof_name: 황보제민\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., ETH Zurich(2019)\n  - 연구분야: Legged robotics, Learning-based control\n  - 연구실: 로봇지능 연구실\n  - 연구실 웹사이트: https://www.railab.kaist.ac.kr/\n  - E-mail: jhwangbo@kaist.ac.kr\n  - Phone: 042-350-3244"
+  },
+  {
+    "doc_id": "doc_0006.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0006.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0006.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 6112\nprof_name: 김현진\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D.,Stanford University (2009)\n  - 연구분야: Computational mechanics, Cardiovascular biomechanics, Clinical applications\n  - 연구실: 전산역학 및 생체역학 연구실\n  - 연구실 웹사이트: http://cvbml.kaist.ac.kr\n  - E-mail: kim.hyunjin@kaist.ac.kr\n  - Phone: 042-350-7925"
+  },
+  {
+    "doc_id": "doc_0007.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0007.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0007.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 5106\nprof_name: 남영석\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., University of California, Los Angeles (2010)\n  - 연구분야: Phase change heat transfer, Renewable/Intelligent thermal solutions, Thermal materials\n  - 연구실: 멀티스케일 에너지 연구실\n  - 연구실 웹사이트: https://mel.kaist.ac.kr/\n  - E-mail: ysnam1@kaist.ac.kr\n  - Phone: 042-350-3246"
+  },
+  {
+    "doc_id": "doc_0008.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0008.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0008.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 6114\nprof_name: 강준상\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., University of California, Los Angeles (2019)\n  - 연구분야: Semiconductor thermal transport, renewable energy production, extreme thermal conduction, thermal logic circuit\n  - 연구실: 첨단 열 및 에너지 전달 연구실\n  - 연구실 웹사이트: https://sites.google.com/view/atetl\n  - E-mail: jskang1@kaist.ac.kr\n  - Phone: 042-350-3025"
+  },
+  {
+    "doc_id": "doc_0009.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0009.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0009.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 4203\nprof_name: 노민균\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., MIT (2018)\n  - 연구분야: Electric motors and drives; Sensors and actuators; Control, instrumentation, and robotics\n  - 연구실: 정밀 메카트로닉스 연구실\n  - 연구실 웹사이트: https://pml.kaist.ac.kr/\n  - E-mail: minkyun.noh@kaist.ac.kr\n  - Phone: 042-350-3021"
+  },
+  {
+    "doc_id": "doc_0010.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0010.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0010.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 6111\nprof_name: 김성용\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., University of California, San Diego (2009)\n  - 연구분야: Environmental fluid dynamics, Air-sea and air-sea-land interaction processes, Environmental sensing\n  - 연구실: 환경유체역학 실험실\n  - 연구실 웹사이트: http://efml.kaist.ac.kr/\n  - E-mail: syongkim@kaist.ac.kr\n  - Phone: 042-350-1523"
+  },
+  {
+    "doc_id": "doc_0011.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0011.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0011.txt",
+    "content": "type: professor\nbuilding: \nroom: \nprof_name: 윤희택\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., Purdue Univ.(2021)\n  - 연구분야: Smart Manufacturing, Manufacturing Mechatronics, Manufacturing AI\n  - 연구실: 스마트생산시스템 연구실\n  - 연구실 웹사이트: https://smslab.kaist.ac.kr/\n  - E-mail: htyun@kaist.ac.kr\n  - Phone: 042-350-3011"
+  },
+  {
+    "doc_id": "doc_0012.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0012.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0012.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 6102\nprof_name: 이승철\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., The University of Michigan, Ann Arbor (2010)\n  - 연구분야: Industrial AI, Manufacturing AI, Physics-informed AI\n  - 연구실: 산업 인공지능 연구실\n  - 연구실 웹사이트: https://iailab.kaist.ac.kr/\n  - E-mail: seunglee@kaist.ac.kr\n  - Phone: 042-350-3026"
+  },
+  {
+    "doc_id": "doc_0013.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0013.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0013.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 5111\nprof_name: 김성진\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., Ohio State University (1989)\n  - 연구분야: Microscale heat transfer and fluid flow, Optimum design of heat exchanger, heat pipes, and heat sinks\n  - 연구실: 응용열전달 연구실\n  - 연구실 웹사이트: http://appheat.kaist.ac.kr/\n  - E-mail: sungjinkim@kaist.ac.kr\n  - Phone: 042-350- 3043"
+  },
+  {
+    "doc_id": "doc_0014.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0014.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0014.txt",
+    "content": "type: professor\nbuilding: \nroom: \nprof_name: 김지태\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., POSTECH (2011)\n  - 연구분야: Additive Manufacturing, 3D printed electronics/photonics\n  - 연구실: 초정밀 적층제조 (나노 3차원 프린팅) 연구실\n  - 연구실 웹사이트: https://sites.google.com/view/kimlabkaist\n  - E-mail: jitae.kim@kaist.ac.kr"
+  },
+  {
+    "doc_id": "doc_0015.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0015.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0015.txt",
+    "content": "type: professor\nbuilding: \nroom: \nprof_name: 남동욱\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., Stanford University (2014)\n  - 연구분야: Quantum photonics, Semiconductor fabrication, Photonic integration\n  - 연구실: 양자 반도체 집적광학 연구실\n  - 연구실 웹사이트: https://donguknam.com\n  - E-mail: dwnam@kaist.ac.kr"
+  },
+  {
+    "doc_id": "doc_0016.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0016.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0016.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 6103\nprof_name: 안송이\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., Georgia Institute of Technology [2019]\n  - 연구분야: Tissue engineering, Organs-on-chips, Bioelectronics\n  - 연구실: 생체융합 시스템 공학 연구실\n  - 연구실 웹사이트: https://sites.google.com/view/biosel24\n  - E-mail: siahn@kaist.ac.kr\n  - Phone: 042-350-3015"
+  },
+  {
+    "doc_id": "doc_0017.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0017.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0017.txt",
+    "content": "type: professor\nbuilding: \nroom: \nprof_name: 황준식\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., KAIST (2017)\n  - 연구분야: High-speed optical diagnostics, Turbulent flow, Spray atomization, Propulsion systems\n  - 연구실: 다상유동 연구실\n  - 연구실 웹사이트: https://ftpl.kaist.ac.kr/\n  - E-mail: jhwang@kaist.ac.kr"
+  },
+  {
+    "doc_id": "doc_0018.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0018.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0018.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 6015\nprof_name: 김미소\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: PhD., MIT (2012)\n  - 연구분야: Mechanical metamaterials, Piezoelectrics and dielectrics, Energy harvesting/Sensor/MLCC, Additive manufacturing\n  - 연구실: 스마트 에너지 소재 및 응용 연구실\n  - 연구실 웹사이트: https://sites.google.com/view/misokimgroup/\n  - E-mail: misokim@kaist.ac.kr"
+  },
+  {
+    "doc_id": "doc_0019.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0019.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0019.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 7110\nprof_name: 조한솔\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., Massachusetts Institute of Technology (2014)\n  - 연구분야: Solid mechanics, continuum mechanics, soft/hard condensed matter\n  - 연구실: 고체역학 및 익스트림 재료 연구실\n  - 연구실 웹사이트: https://continuum.kaist.ac.kr/\n  - E-mail: hansohl@kaist.ac.kr\n  - Phone: 042-350-3030"
+  },
+  {
+    "doc_id": "doc_0020.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0020.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0020.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 6106\nprof_name: 오현동\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., Cranfield University (2013)\n  - 연구분야: Unmanned Vehicles, Perception and Planning, Multi-Agent Systems\n  - 연구실: 필드 인공지능 및 로보틱스 연구실\n  - 연구실 웹사이트: https://asl.unist.ac.kr/\n  - E-mail: h.oh@kaist.ac.kr\n  - Phone: 042-350-3028"
+  },
+  {
+    "doc_id": "doc_0021.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0021.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0021.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 5201\nprof_name: 김정\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., MIT (2004)\n  - 연구분야: Biorobotics, Bioinstrumentation, Haptics, Physical HRI\n  - 연구실: 생체기계 연구실\n  - 연구실 웹사이트: http://biorobotics.kaist.ac.kr/\n  - E-mail: jungkim@kaist.ac.kr\n  - Phone: 042-350-3231"
+  },
+  {
+    "doc_id": "doc_0022.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0022.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0022.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 7105\nprof_name: 김정원\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., MIT (2007)\n  - 연구분야: Advanced lasers, Time-of-flight sensors and imaging, Timing and synchronization, Semiconductor metrology\n  - 연구실: 초규모 광 제어 및 계측 연구실\n  - 연구실 웹사이트: http://upcam.kaist.ac.kr/\n  - E-mail: jungwon.kim@kaist.ac.kr\n  - Phone: 042-350- 3236"
+  },
+  {
+    "doc_id": "doc_0023.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0023.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0023.txt",
+    "content": "type: professor\nbuilding: \nroom: \nprof_name: 김진환\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., Stanford University (2007)\n  - 연구분야: Mobile and marine robotics, vehicle intelligence, navigation and control\n  - 연구실: 모바일지능로봇연구실\n  - 연구실 웹사이트: http://morin.kaist.ac.kr\n  - E-mail: jinwhan@kaist.ac.kr\n  - Phone: 042-350- 1519"
+  },
+  {
+    "doc_id": "doc_0024.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0024.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0024.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 7103\nprof_name: 김택수\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., Stanford University (2010)\n  - 연구분야: Mechanics-related subjects of advanced packaging and thin films\n  - 연구실: 차세대 패키징 및 박막 연구실\n  - 연구실 웹사이트: http://aptf.kaist.ac.kr/\n  - E-mail: tskim1@kaist.ac.kr\n  - Phone: 042-350-3238"
+  },
+  {
+    "doc_id": "doc_0025.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0025.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0025.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 5110\nprof_name: 김형수\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., Delft University of Technology (2013)\n  - 연구분야: Soft Matter Hydrodynamics, Interfacial Instabilities, Microfluidics\n  - 연구실: 유체 및 계면 연구실\n  - 연구실 웹사이트: http://fil.kaist.ac.kr/\n  - E-mail: hshk@kaist.ac.kr\n  - Phone: 042-350-3049"
+  },
+  {
+    "doc_id": "doc_0026.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0026.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0026.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 3206\nprof_name: 공경철\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., University of California, Berkeley (2009)\n  - 연구분야: Robust control systems, Human assistive robotics, Design and control of legged robots\n  - 연구실: 웨어러블로봇연구실(Exo-LAB)\n  - 연구실 웹사이트: http://robotics.kaist.ac.kr\n  - E-mail: kckong@kaist.ac.kr\n  - Phone: 042-350-3012"
+  },
+  {
+    "doc_id": "doc_0027.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0027.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0027.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 5204\nprof_name: 박수경\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., University of Michigan (2002)\n  - 연구분야: Biomechanics, Dynamic Walking, Postural Control, Sports Mechanics, Biomimetics\n  - 연구실: 생체역학 연구실\n  - 연구실 웹사이트: http://biomech.kaist.ac.kr\n  - E-mail: sukyungp@kaist.ac.kr\n  - Phone: 042-350-3230"
+  },
+  {
+    "doc_id": "doc_0028.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0028.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0028.txt",
+    "content": "type: professor\nbuilding: N7-4\nroom: 4107\nprof_name: 박용화\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., KAIST(1999)\n  - 연구분야: Vibration Analysis and Condition Monitoring / Human Auditory System-inspired Acoustic Recognition / Human Sound and Vibration for Health Sensors / 3D Lidar Sensor and Human Recognition\n  - 연구실: 인간-기계 상호작용 연구실\n  - 연구실 웹사이트: http://human.kaist.ac.kr/\n  - E-mail: yhpark@kaist.ac.kr\n  - Phone: 042-350-3235"
+  },
+  {
+    "doc_id": "doc_0029.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0029.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0029.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 6102\nprof_name: 박인규\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., UC Berkeley (2007)\n  - 연구분야: Micro/nano-sensors for robotics, healthcare, and environment applications & AI+Smart sensors\n  - 연구실: 기계지능 및 첨단센서 연구실\n  - 연구실 웹사이트: http://mint.kaist.ac.kr/\n  - E-mail: inkyu@kaist.ac.kr\n  - Phone: 042-350- 7922"
+  },
+  {
+    "doc_id": "doc_0030.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0030.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0030.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 6104\nprof_name: 박해원\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., University of Michigan (2012)\n  - 연구분야: Control and design of dynamic robot systems,Legged locomotion robots,Bio-inspired robots\n  - 연구실: 로봇 제어 & 설계 연구실\n  - 연구실 웹사이트: https://dynamicrobot.kaist.ac.kr/\n  - E-mail: haewonpark@kaist.ac.kr\n  - Phone: 042-350-3242"
+  },
+  {
+    "doc_id": "doc_0031.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0031.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0031.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 5203\nprof_name: 박형순\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., KAIST (2004)\n  - 연구분야: Rehabilitation robotics, Healthcare system technology, Neuro-rehabilitation engineering, Orthopedic biomechanics\n  - 연구실: 신경재활공학 연구실\n  - 연구실 웹사이트: http://rehab.kaist.ac.kr/\n  - E-mail: hyungspark@kaist.ac.kr\n  - Phone: 042-350-3038"
+  },
+  {
+    "doc_id": "doc_0032.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0032.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0032.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 7111\nprof_name: 배중면\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., Imperial College London (1996)\n  - 연구분야: Solid Oxide Fuel Cell (SOFC), Liquid Fuel Reforming, Fuel Cell System, Hydrogen Storage System\n  - 연구실: 신 에너지변환시스템 연구실\n  - 연구실 웹사이트: https://www.necs.kr/\n  - E-mail: jmbae@kaist.ac.kr\n  - Phone: 042-350-3045"
+  },
+  {
+    "doc_id": "doc_0033.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0033.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0033.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 5109\nprof_name: 배충식\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., Imperial College London (1994)\n  - 연구분야: Internal combustion engine, Laser diagnostics and instrumentation\n  - 연구실: 수송동력연구실\n  - 연구실 웹사이트: http://ftpl.kaist.ac.kr/\n  - E-mail: csbae@kaist.ac.kr"
+  },
+  {
+    "doc_id": "doc_0034.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0034.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0034.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 5206\nprof_name: 구승범\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., Stanford University (2006)\n  - 연구분야: Human musculoskeletal biomechanics, Human joint kinematic analysis and dynamics simulation\n  - 연구실: 근골격 운동역학 연구실\n  - 연구실 웹사이트: https://mskbiodyn.kaist.ac.kr/\n  - E-mail: skoo@kaist.ac.kr\n  - Phone: 042-350-3241"
+  },
+  {
+    "doc_id": "doc_0035.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0035.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0035.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 5205\nprof_name: 신현정\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., MIT (2004)\n  - 연구분야: Cellular Mechanobiology, Tissue Engineering, Microfluidics, Plasma Medicine\n  - 연구실: 연성 생체역학 연구실\n  - 연구실 웹사이트: http://softbm.kaist.ac.kr/\n  - E-mail: j_shin@kaist.ac.kr\n  - Phone: 042-350- 3232"
+  },
+  {
+    "doc_id": "doc_0036.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0036.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0036.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 6116\nprof_name: 심기동\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., KAIST (2012)\n  - 연구분야: Mechanical Properties of Materials, Thin Film Mechanics, Fracture and Fatigue\n  - 연구실: 극한소재역학 및 신뢰성 평가 연구실\n  - 연구실 웹사이트: https://icare.kaist.ac.kr/\n  - E-mail: gdsim@kaist.ac.kr\n  - Phone: 042-350- 7318"
+  },
+  {
+    "doc_id": "doc_0037.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0037.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0037.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 7106\nprof_name: 오왕열\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., KAIST (1997)\n  - 연구분야: Development and Application of Optical Imaging System\n  - 연구실: 포토닉 이미징 연구실\n  - 연구실 웹사이트: https://phil.kaist.ac.kr/\n  - E-mail: woh1@kaist.ac.kr\n  - Phone: 042-350-3237"
+  },
+  {
+    "doc_id": "doc_0038.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0038.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0038.txt",
+    "content": "type: professor\nbuilding: \nroom: \nprof_name: 오일권\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., KAIST (2001)\n  - 연구분야: Soft Actuators and Mechatronics, Smart Materials/Structures, Energy Harvesting, Graphene and Nano-Engineering\n  - 연구실: 소프트 로보틱스 및 지능형 재료 연구실\n  - 연구실 웹사이트: https://srim.kaist.ac.kr/\n  - E-mail: ikoh@kaist.ac.kr\n  - Phone: 042-350-1520"
+  },
+  {
+    "doc_id": "doc_0039.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0039.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0039.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 3205\nprof_name: 유승화\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., Stanford University (2011)\n  - 연구분야: Multiscale mechanics and material simulation, Machine learning based design of structural materials\n  - 연구실: AiM⁴ Lab - 지능형 설계 및 제조 연구실\n  - 연구실 웹사이트: https://sites.google.com/site/seunghwalab/\n  - E-mail: ryush@kaist.ac.kr\n  - Phone: 042-350-3019"
+  },
+  {
+    "doc_id": "doc_0040.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0040.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0040.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 3204\nprof_name: 유홍기\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., KAIST(2007)\n  - 연구분야: Optical System Design, Biomedical Optics, Optical Metrology\n  - 연구실: 의광학 및 광측정 연구실\n  - 연구실 웹사이트: http://boom.kaist.ac.kr/\n  - E-mail: h.yoo@kaist.ac.kr\n  - Phone: 042-350-3243"
+  },
+  {
+    "doc_id": "doc_0041.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0041.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0041.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 6101\nprof_name: 윤국진\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., KAIST (2006)\n  - 연구분야: Computer Vision, Machine Learning, Pattern Analysis\n  - 연구실: 시각 지능 연구실\n  - 연구실 웹사이트: http://vi.kaist.ac.kr/\n  - E-mail: kjyoon@kaist.ac.kr\n  - Phone: 042-350- 7319"
+  },
+  {
+    "doc_id": "doc_0042.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0042.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0042.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 7115\nprof_name: 윤용진\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., Stanford University(2009)\n  - 연구분야: 3D printing, Si-μSOFC, Nonlinear dynamics\n  - 연구실: JDL (Just Do it Laboratory) 적층제조 및 반도체 융합 공정 연구실\n  - 연구실 웹사이트: https://jdl.kaist.ac.kr/\n  - E-mail: yongjiny@kaist.ac.kr\n  - Phone: 042-350- 3213"
+  },
+  {
+    "doc_id": "doc_0043.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0043.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0043.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 4202\nprof_name: 윤정환\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., KAIST (1997)\n  - 연구분야: Mechanics of Plasticity, Materials Processing\n  - 연구실: 컴퓨터원용 정형가공 연구실\n  - 연구실 웹사이트: http://canesm.kaist.ac.kr/\n  - E-mail: j.yoon@kaist.ac.kr\n  - Phone: 042-350-3233"
+  },
+  {
+    "doc_id": "doc_0044.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0044.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0044.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 5202\nprof_name: 이두용\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., Rensselaer Polytechnic Institute (1993)\n  - 연구분야: Medical Robotics, Medical Simulation\n  - 연구실: 로봇 및 시뮬레이션 연구실\n  - 연구실 웹사이트: https://sites.google.com/view/rslab-kaist/\n  - E-mail: leedy@kaist.ac.kr\n  - Phone: 042-350-3229"
+  },
+  {
+    "doc_id": "doc_0045.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0045.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0045.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 5101\nprof_name: 이봉재\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., Georgia Institute of Technology (2007)\n  - 연구분야: Thermal Radiation; Solar Energy Harvesting\n  - 연구실: 복사열전달 연구실\n  - 연구실 웹사이트: https://trad.kaist.ac.kr/\n  - E-mail: bongjae.lee@kaist.ac.kr\n  - Phone: 042-350-3239"
+  },
+  {
+    "doc_id": "doc_0046.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0046.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0046.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 7113\nprof_name: 이승섭\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., Univ. of California, Berkeley (1995)\n  - 연구분야: MEMS, NEMS, Bio-MEMS, Microfluidics\n  - 연구실: 초소형 기전 공학 연구실\n  - 연구실 웹사이트: https://sites.google.com/site/kaistmmstlab/\n  - E-mail: sslee97@kaist.ac.kr\n  - Phone: 042-350-3046"
+  },
+  {
+    "doc_id": "doc_0047.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0047.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0047.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 7109\nprof_name: 이익진\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., University of Iowa (2008)\n  - 연구분야: Design under uncertainties and applications, Statistical input identification\n  - 연구실: 최적 설계 연구실\n  - 연구실 웹사이트: http://idol.kaist.ac.kr/\n  - E-mail: ikjin.lee@kaist.ac.kr\n  - Phone: 042-350-3041"
+  },
+  {
+    "doc_id": "doc_0048.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0048.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0048.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 5108\nprof_name: 이정철\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., Georgia Institute of Technology(2007)\n  - 연구분야: Advanced micro-/nanomanufacturing, MEMS, Precision Instrumentation\n  - 연구실: 생산 및 계측 연구실\n  - 연구실 웹사이트: http://mnil.kaist.ac.kr/\n  - E-mail: jungchullee@kaist.ac.kr\n  - Phone: 042-350-3212"
+  },
+  {
+    "doc_id": "doc_0049.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0049.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0049.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 7112\nprof_name: 김경수\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., KAIST (1999)\n  - 연구분야: Control theory & applications, Robotics, Sensor & Actuators\n  - 연구실: MSC (Mechatronics, Systems and Control) 연구실\n  - 연구실 웹사이트: http://msc.kaist.ac.kr/\n  - E-mail: kyungsookim@kaist.ac.kr\n  - Phone: 042-350-3047"
+  },
+  {
+    "doc_id": "doc_0050.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0050.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0050.txt",
+    "content": "type: professor\nbuilding: \nroom: \nprof_name: 이필승\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., MIT (2004)\n  - 연구분야: Computational Mechanics, Structural Systems, Experimental Biology\n  - 연구실: 전산역학 및 구조시스템 연구실\n  - 연구실 웹사이트: http://cmss.kaist.ac.kr/\n  - E-mail: phillseung@kaist.edu\n  - Phone: 042-350-1512"
+  },
+  {
+    "doc_id": "doc_0051.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0051.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0051.txt",
+    "content": "type: professor\nbuilding: \nroom: \nprof_name: 장대준\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., KAIST (1997)\n  - 연구분야: Process Engineering for energy systems, High Pressure Storage Tanks, Risk and Reliability\n  - 연구실: 에너지시스템공학 연구실\n  - 연구실 웹사이트: http://iesel.kaist.ac.kr/\n  - E-mail: djchang@kaist.ac.kr\n  - Phone: 042-350-1514"
+  },
+  {
+    "doc_id": "doc_0052.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0052.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0052.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 3203\nprof_name: 전성윤\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., MIT (2014)\n  - 연구분야: Microfluidics for biological applications, Organ-on-a-chip\n  - 연구실: 바이오 미세 유체 연구실\n  - 연구실 웹사이트: http://jeon.kaist.ac.kr/\n  - E-mail: jsjeon@kaist.ac.kr\n  - Phone: 042-350-3226"
+  },
+  {
+    "doc_id": "doc_0053.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0053.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0053.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 4111\nprof_name: 전원주\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., KAIST (2006)\n  - 연구분야: Acoustic Metamaterial, Acoustic Black Hole, Absorption of Sound and Vibration, Fan Noise Prediction\n  - 연구실: 파동에너지(소음/진동) 제어 연구실\n  - 연구실 웹사이트: http://wave.kaist.ac.kr/\n  - E-mail: wonju.jeon@kaist.ac.kr\n  - Phone: 042-350-3219"
+  },
+  {
+    "doc_id": "doc_0054.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0054.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0054.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 5115\nprof_name: 정상권\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., MIT (1992)\n  - 연구분야: Cryogenic enginnering, Cryogenic heat transfer, Cryogenic refrigeration, Applied superconductivity\n  - 연구실: 저온공학 연구실\n  - 연구실 웹사이트: https://sites.google.com/view/cryokaist\n  - E-mail: skjeong@kaist.ac.kr\n  - Phone: 042-350- 3039"
+  },
+  {
+    "doc_id": "doc_0055.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0055.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0055.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 5116\nprof_name: 조연우\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., MIT (2010)\n  - 연구분야: Waves in Fluids, Nonlinear Dynamics and Waves, Renewable Energy from Fluids, Fluid-Body Interaction\n  - 연구실: 파동 및 유체역학 연구실\n  - 연구실 웹사이트: http://wfm.kaist.ac.kr/\n  - E-mail: ywoocho@kaist.ac.kr\n  - Phone: 042-350- 3220"
+  },
+  {
+    "doc_id": "doc_0056.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0056.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0056.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 5105\nprof_name: 최세범\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., UC Berkeley (1993)\n  - 연구분야: Fuel Saving Technologies, Vehicle Dynamics Control, Active Safety\n  - 연구실: 차량 제어 연구실\n  - 연구실 웹사이트: http://acl.kaist.ac.kr/\n  - E-mail: sbchoi@kaist.ac.kr\n  - Phone: 042-350- 4120"
+  },
+  {
+    "doc_id": "doc_0057.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0057.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0057.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 5112\nprof_name: 김남일\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D.,KAIST(2001)\n  - 연구분야: Flame control, Combustion new technology and combustor design, Thermal and reactive flow\n  - 연구실: 연소공학 연구실\n  - 연구실 웹사이트: http://combustion.kaist.ac.kr/\n  - E-mail: nikim@kaist.ac.kr\n  - Phone: 042-350-3211"
+  },
+  {
+    "doc_id": "doc_0058.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0058.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0058.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 5113\nprof_name: 김대겸\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., California Institute of Technology (2010)\n  - 연구분야: Fluid-structure interaction, Biological flow, Energy harvesting, Unsteady aerodynamics and hydrodynamics\n  - 연구실: 응용유체역학 연구실\n  - 연구실 웹사이트: http://fluid.kaist.ac.kr/\n  - E-mail: daegyoum@kaist.ac.kr\n  - Phone: 042-350-3218"
+  },
+  {
+    "doc_id": "doc_0059.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0059.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0059.txt",
+    "content": "type: professor\nbuilding: N7\nroom: 4204\nprof_name: 김산하\nlecture_name: \nlecture_time: \ninfo:\n  - 최종학위: Ph.D., MIT (2013)\n  - 연구분야: Manufacturing, Contact Mechanics, Surface Engineering, Nano Materials and Processing\n  - 연구실: 첨단 생산기술 및 표면공학 연구실\n  - 연구실 웹사이트: https://amselab.kaist.ac.kr/\n  - E-mail: sanhkim@kaist.ac.kr\n  - Phone: 042-350- 3022"
+  },
+  {
+    "doc_id": "doc_0060.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0060.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0060.txt",
+    "content": "type: lecture\nbuilding: N7\nroom: 2204\nprof_name: 황준식\nlecture_name: 기계공학특론 Ⅲ\nlecture_time: 화 13:00-14:30; 목 13:00-14:30\ninfo:"
+  },
+  {
+    "doc_id": "doc_0061.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0061.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0061.txt",
+    "content": "type: lecture\nbuilding: N7-4\nroom: 4102\nprof_name: 오현동\nlecture_name: 동역학\nlecture_time: 화 10:30-12:00; 목 10:30-12:00\ninfo:"
+  },
+  {
+    "doc_id": "doc_0062.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0062.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0062.txt",
+    "content": "type: lecture\nbuilding: N7\nroom: 2204\nprof_name: 박해원\nlecture_name: 기구설계학\nlecture_time: 화 14:30-16:00; 목 14:30-16:00\ninfo:"
+  },
+  {
+    "doc_id": "doc_0063.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0063.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0063.txt",
+    "content": "type: lecture\nbuilding: N7\nroom: 1501\nprof_name: 노민균\nlecture_name: 시스템 모델링 및 제어\nlecture_time: 화 13:00-14:30; 목 13:00-14:30\ninfo:"
+  },
+  {
+    "doc_id": "doc_0064.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0064.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0064.txt",
+    "content": "type: lecture\nbuilding: N7\nroom: 2202\nprof_name: 이두용\nlecture_name: 시스템 모델링 및 제어\nlecture_time: 화 13:00-14:30; 목 13:00-14:30\ninfo:"
+  },
+  {
+    "doc_id": "doc_0065.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0065.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0065.txt",
+    "content": "type: lecture\nbuilding: N7-4\nroom: 4102\nprof_name: 윤국진\nlecture_name: 자율모바일시스템 프로그래밍\nlecture_time: 월 16:00-18:00; 수 16:00-19:00\ninfo:"
+  },
+  {
+    "doc_id": "doc_0066.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0066.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0066.txt",
+    "content": "type: lecture\nbuilding: N7\nroom: 2110\nprof_name: 전원주\nlecture_name: 기계공학과 응용수학\nlecture_time: 수 09:00-10:30; 월 09:00-10:30\ninfo:"
+  },
+  {
+    "doc_id": "doc_0067.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0067.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0067.txt",
+    "content": "type: lecture\nbuilding: N7\nroom: 2202\nprof_name: 이정철\nlecture_name: 기계공학특강\nlecture_time: 화 14:30-16:00; 목 14:30-16:00\ninfo:"
+  },
+  {
+    "doc_id": "doc_0068.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0068.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0068.txt",
+    "content": "type: lecture\nbuilding: N7\nroom: 2204\nprof_name: 이강택\nlecture_name: 기계공학특강\nlecture_time: 월 14:30-16:00; 수 14:30-16:00\ninfo:"
+  },
+  {
+    "doc_id": "doc_0069.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0069.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0069.txt",
+    "content": "type: lecture\nbuilding: N7-0\nroom: 1601\nprof_name: 조연우\nlecture_name: 세미나\nlecture_time: 화 16:00-17:30\ninfo:"
+  },
+  {
+    "doc_id": "doc_0070.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0070.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0070.txt",
+    "content": "type: lecture\nbuilding: N7\nroom: 2204\nprof_name: 박인규\nlecture_name: 센서 및 계측공학\nlecture_time: 월 09:00-10:30; 수 09:00-10:30\ninfo:"
+  },
+  {
+    "doc_id": "doc_0071.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0071.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0071.txt",
+    "content": "type: lecture\nbuilding: N7\nroom: 2110\nprof_name: 김남일\nlecture_name: 고등연소공학\nlecture_time: 월 10:30-12:00; 수 10:30-12:00\ninfo:"
+  },
+  {
+    "doc_id": "doc_0072.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0072.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0072.txt",
+    "content": "type: lecture\nbuilding: N7\nroom: 2204\nprof_name: 김대겸\nlecture_name: 점성유동\nlecture_time: 월 13:00-14:30; 수 13:00-14:30\ninfo:"
+  },
+  {
+    "doc_id": "doc_0073.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0073.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0073.txt",
+    "content": "type: lecture\nbuilding: N7\nroom: 2108\nprof_name: 심기동\nlecture_name: 파괴역학\nlecture_time: 화 14:30-16:00; 목 14:30-16:00\ninfo:"
+  },
+  {
+    "doc_id": "doc_0074.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0074.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0074.txt",
+    "content": "type: lecture\nbuilding: N7\nroom: 2202\nprof_name: 이필승\nlecture_name: 유한요소 구조해석\nlecture_time: 화 10:30-12:00; 목 10:30-12:00\ninfo:"
+  },
+  {
+    "doc_id": "doc_0075.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0075.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0075.txt",
+    "content": "type: lecture\nbuilding: N7\nroom: 2202\nprof_name: 윤정환\nlecture_name: 소성역학\nlecture_time: 월 09:00-10:30; 수 09:00-10:30\ninfo:"
+  },
+  {
+    "doc_id": "doc_0076.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0076.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0076.txt",
+    "content": "type: lecture\nbuilding: N7\nroom: 2108\nprof_name: 조연우\nlecture_name: 고등동역학\nlecture_time: 화 13:00-14:30; 목 13:00-14:30\ninfo:"
+  },
+  {
+    "doc_id": "doc_0077.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0077.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0077.txt",
+    "content": "type: lecture\nbuilding: N7\nroom: 2108\nprof_name: 강준상\nlecture_name: 통계열역학개론\nlecture_time: 월 09:00-10:30; 수 09:00-10:30\ninfo:"
+  },
+  {
+    "doc_id": "doc_0078.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0078.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0078.txt",
+    "content": "type: lecture\nbuilding: N7\nroom: 2108\nprof_name: 김택수\nlecture_name: 접합공학\nlecture_time: 월 13:00-14:30; 수 13:00-14:30\ninfo:"
+  },
+  {
+    "doc_id": "doc_0079.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0079.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0079.txt",
+    "content": "type: lecture\nbuilding: N7\nroom: 2202\nprof_name: 박용화\nlecture_name: 랜덤데이타: 해석 및 처리\nlecture_time: 월 14:30-16:00; 수 14:30-16:00\ninfo:"
+  },
+  {
+    "doc_id": "doc_0080.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0080.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0080.txt",
+    "content": "type: lecture\nbuilding: N7\nroom: 2202\nprof_name: 남동욱\nlecture_name: 레이저의 원리 및 응용\nlecture_time: 월 10:30-12:00; 수 10:30-12:00\ninfo:"
+  },
+  {
+    "doc_id": "doc_0081.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0081.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0081.txt",
+    "content": "type: lecture\nbuilding: N7\nroom: 2204\nprof_name: 김성진\nlecture_name: 대류열전달\nlecture_time: 화 10:30-12:00; 목 10:30-12:00\ninfo:"
+  },
+  {
+    "doc_id": "doc_0082.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0082.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0082.txt",
+    "content": "type: lecture\nbuilding: N7\nroom: 2108\nprof_name: 배충식\nlecture_name: 모빌리티 동력과 환경\nlecture_time: 월 14:30-16:00; 수 14:30-16:00\ninfo:"
+  },
+  {
+    "doc_id": "doc_0083.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0083.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0083.txt",
+    "content": "type: lecture\nbuilding: N7\nroom: 2108\nprof_name: 최세범\nlecture_name: 고등차량제어설계\nlecture_time: 화 10:30-12:00; 목 10:30-12:00\ninfo:"
+  },
+  {
+    "doc_id": "doc_0084.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0084.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0084.txt",
+    "content": "type: lecture\nbuilding: N7\nroom: 2108\nprof_name: 오일권\nlecture_name: 기능성 소재 및 구조\nlecture_time: 월 10:30-12:00; 수 10:30-12:00\ninfo:"
+  },
+  {
+    "doc_id": "doc_0085.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0085.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0085.txt",
+    "content": "type: lecture\nbuilding: N7\nroom: 2204\nprof_name: 이익진\nlecture_name: 확률공학설계\nlecture_time: 월 10:30-12:00; 수 10:30-12:00\ninfo:"
+  },
+  {
+    "doc_id": "doc_0086.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0086.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0086.txt",
+    "content": "type: lecture\nbuilding: N7\nroom: 2202\nprof_name: 유홍기\nlecture_name: 광학이미징 시스템설계\nlecture_time: 화 09:00-10:30; 목 09:00-10:30\ninfo:"
+  },
+  {
+    "doc_id": "doc_0087.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0087.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0087.txt",
+    "content": "type: lecture\nbuilding: N7\nroom: 2110\nprof_name: 이봉재\nlecture_name: 복사열전달\nlecture_time: 월 14:30-16:00; 수 14:30-16:00\ninfo:"
+  },
+  {
+    "doc_id": "doc_0088.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0088.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0088.txt",
+    "content": "type: lecture\nbuilding: N7\nroom: 2110\nprof_name: 김지태\nlecture_name: 기계공학특론\nlecture_time: 월 13:00-14:30; 수 13:00-14:30\ninfo:"
+  },
+  {
+    "doc_id": "doc_0089.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0089.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0089.txt",
+    "content": "type: lecture\nbuilding: N7\nroom: 2110\nprof_name: 김산하\nlecture_name: 기계공학특론\nlecture_time: 화 10:30-12:00; 목 10:30-12:00\ninfo:"
+  },
+  {
+    "doc_id": "doc_0090.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0090.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0090.txt",
+    "content": "type: lecture\nbuilding: N7\nroom: 2110\nprof_name: 조한솔\nlecture_name: 기계공학특론\nlecture_time: 화 13:00-14:30; 목 13:00-14:30\ninfo:"
+  },
+  {
+    "doc_id": "doc_0091.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0091.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0091.txt",
+    "content": "type: lecture\nbuilding: N7\nroom: 2204\nprof_name: 장대준\nlecture_name: 기계공학특론\nlecture_time: 월 16:00-17:30; 수 16:00-17:30\ninfo:"
+  },
+  {
+    "doc_id": "doc_0092.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0092.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0092.txt",
+    "content": "type: seminar_room\nbuilding: N7\nroom: 3231\nname: C2 세미나실\ninfo:\n  - screen_output: 프로젝터\n  - camera: X\n  - speaker: X\n  - microphone: X\n  - video_conference_enabled: X\n  - capacity: 32\n  - notes:"
+  },
+  {
+    "doc_id": "doc_0093.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0093.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0093.txt",
+    "content": "type: seminar_room\nbuilding: N7\nroom: 3230\nname: C3 세미나실\ninfo:\n  - screen_output: 프로젝터\n  - camera: X\n  - speaker: X\n  - microphone: X\n  - video_conference_enabled: X\n  - capacity: 32\n  - notes:"
+  },
+  {
+    "doc_id": "doc_0094.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0094.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0094.txt",
+    "content": "type: seminar_room\nbuilding: N7\nroom: 3130\nname: C4 세미나실\ninfo:\n  - screen_output: 프로젝터\n  - camera: X\n  - speaker: X\n  - microphone: X\n  - video_conference_enabled: X\n  - capacity: 12\n  - notes:"
+  },
+  {
+    "doc_id": "doc_0095.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0095.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0095.txt",
+    "content": "type: seminar_room\nbuilding: N7\nroom: 3129\nname: C5 세미나실\ninfo:\n  - screen_output: 프로젝터\n  - camera: O\n  - speaker: 카메라 겸용\n  - microphone: 카메라 겸용\n  - video_conference_enabled: O\n  - capacity: 32\n  - notes:"
+  },
+  {
+    "doc_id": "doc_0096.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0096.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0096.txt",
+    "content": "type: seminar_room\nbuilding: N7\nroom: 3128\nname: C6 세미나실\ninfo:\n  - screen_output: 프로젝터, TV(85인치)\n  - camera: O\n  - speaker: 천장 및 테이블 고정\n  - microphone: 핸드(1ea), 핀(1ea)\n  - video_conference_enabled: O\n  - capacity: 24\n  - notes:"
+  },
+  {
+    "doc_id": "doc_0097.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0097.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0097.txt",
+    "content": "type: seminar_room\nbuilding: N7\nroom: 4117\nname: W2 세미나실\ninfo:\n  - screen_output: 프로젝터\n  - camera: X\n  - speaker: X\n  - microphone: X\n  - video_conference_enabled: X\n  - capacity: 24\n  - notes:"
+  },
+  {
+    "doc_id": "doc_0098.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0098.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0098.txt",
+    "content": "type: seminar_room\nbuilding: N7\nroom: 3102A\nname: W4 세미나실\ninfo:\n  - screen_output: TV(65인치)\n  - camera: X\n  - speaker: X\n  - microphone: X\n  - video_conference_enabled: X\n  - capacity: 18\n  - notes:"
+  },
+  {
+    "doc_id": "doc_0099.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0099.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0099.txt",
+    "content": "type: seminar_room\nbuilding: N7\nroom: 3102B\nname: W5 세미나실\ninfo:\n  - screen_output: TV(65인치)\n  - camera: X\n  - speaker: X\n  - microphone: X\n  - video_conference_enabled: X\n  - capacity: 18\n  - notes:"
+  },
+  {
+    "doc_id": "doc_0100.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0100.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0100.txt",
+    "content": "type: seminar_room\nbuilding: N7\nroom: 3213\nname: SWK - INTEX 컨퍼런스홀\ninfo:\n  - screen_output: 프로젝터\n  - camera: O\n  - speaker: 천장 및 테이블 고정\n  - microphone: 핸드(2ea), 핀(1ea)\n  - video_conference_enabled: O\n  - capacity: 40\n  - notes:"
+  },
+  {
+    "doc_id": "doc_0101.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0101.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0101.txt",
+    "content": "type: seminar_room\nbuilding: N7\nroom: 1212\nname: SHI - KAIST 세미나실\ninfo:\n  - screen_output: 프로젝터\n  - camera: O\n  - speaker: 천장 및 테이블 고정\n  - microphone: 핀(1ea)\n  - video_conference_enabled: O\n  - capacity: 22\n  - notes:"
+  },
+  {
+    "doc_id": "doc_0102.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0102.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0102.txt",
+    "content": "type: seminar_room\nbuilding: N7\nroom: 3201\nname: SWK - INTEK 미팅룸\ninfo:\n  - screen_output: TV(85인치)\n  - camera: O\n  - speaker: 테이블고정\n  - microphone: \n  - video_conference_enabled: O\n  - capacity: 12\n  - notes:"
+  },
+  {
+    "doc_id": "doc_0103.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0103.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0103.txt",
+    "content": "type: seminar_room\nbuilding: N7\nroom: 1601\nname: 대회의실\ninfo:\n  - screen_output: 프로젝터\n  - camera: O\n  - speaker: \n  - microphone: 핸드(3ea), 핀(1ea)\n  - video_conference_enabled: O\n  - capacity: 144\n  - notes:"
+  },
+  {
+    "doc_id": "doc_0104.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0104.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0104.txt",
+    "content": "type: seminar_room\nbuilding: N7\nroom: 2601\nname: 소회의실\ninfo:\n  - screen_output: 프로젝터\n  - camera: X\n  - speaker: O\n  - microphone: 핸드(2ea)\n  - video_conference_enabled: X\n  - capacity: 24\n  - notes:"
+  },
+  {
+    "doc_id": "doc_0105.txt",
+    "chunk_id": 0,
+    "relative_path": "doc_0105.txt",
+    "source": "/Users/develop/techfor+interactive/Interactive-Information-System/back/rag_system/data/source_documents/doc_0105.txt",
+    "content": "type: seminar_room\nbuilding: N7\nroom: 2602\nname: 해동정보홀\ninfo:\n  - screen_output: 프로젝터\n  - camera: O\n  - speaker: \n  - microphone: 핸드(2ea)\n  - video_conference_enabled: O\n  - capacity: 72\n  - notes:"
+  }
+]

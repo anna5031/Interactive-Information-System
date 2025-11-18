@@ -1,0 +1,13 @@
+type: professor
+building: N7
+room: 6116
+prof_name: 심기동
+lecture_name: 
+lecture_time: 
+info:
+  - 최종학위: Ph.D., KAIST (2012)
+  - 연구분야: Mechanical Properties of Materials, Thin Film Mechanics, Fracture and Fatigue
+  - 연구실: 극한소재역학 및 신뢰성 평가 연구실
+  - 연구실 웹사이트: https://icare.kaist.ac.kr/
+  - E-mail: gdsim@kaist.ac.kr
+  - Phone: 042-350- 7318

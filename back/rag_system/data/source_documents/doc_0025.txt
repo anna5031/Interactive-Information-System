@@ -1,0 +1,13 @@
+type: professor
+building: N7
+room: 5110
+prof_name: 김형수
+lecture_name: 
+lecture_time: 
+info:
+  - 최종학위: Ph.D., Delft University of Technology (2013)
+  - 연구분야: Soft Matter Hydrodynamics, Interfacial Instabilities, Microfluidics
+  - 연구실: 유체 및 계면 연구실
+  - 연구실 웹사이트: http://fil.kaist.ac.kr/
+  - E-mail: hshk@kaist.ac.kr
+  - Phone: 042-350-3049

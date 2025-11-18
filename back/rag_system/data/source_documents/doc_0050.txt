@@ -1,0 +1,13 @@
+type: professor
+building: 
+room: 
+prof_name: 이필승
+lecture_name: 
+lecture_time: 
+info:
+  - 최종학위: Ph.D., MIT (2004)
+  - 연구분야: Computational Mechanics, Structural Systems, Experimental Biology
+  - 연구실: 전산역학 및 구조시스템 연구실
+  - 연구실 웹사이트: http://cmss.kaist.ac.kr/
+  - E-mail: phillseung@kaist.edu
+  - Phone: 042-350-1512

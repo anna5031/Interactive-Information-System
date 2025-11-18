@@ -1,0 +1,13 @@
+type: professor
+building: N7
+room: 5204
+prof_name: 박수경
+lecture_name: 
+lecture_time: 
+info:
+  - 최종학위: Ph.D., University of Michigan (2002)
+  - 연구분야: Biomechanics, Dynamic Walking, Postural Control, Sports Mechanics, Biomimetics
+  - 연구실: 생체역학 연구실
+  - 연구실 웹사이트: http://biomech.kaist.ac.kr
+  - E-mail: sukyungp@kaist.ac.kr
+  - Phone: 042-350-3230

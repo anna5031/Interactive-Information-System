@@ -1,0 +1,13 @@
+type: professor
+building: N7
+room: 6102
+prof_name: 박인규
+lecture_name: 
+lecture_time: 
+info:
+  - 최종학위: Ph.D., UC Berkeley (2007)
+  - 연구분야: Micro/nano-sensors for robotics, healthcare, and environment applications & AI+Smart sensors
+  - 연구실: 기계지능 및 첨단센서 연구실
+  - 연구실 웹사이트: http://mint.kaist.ac.kr/
+  - E-mail: inkyu@kaist.ac.kr
+  - Phone: 042-350- 7922

@@ -1,0 +1,13 @@
+type: professor
+building: 
+room: 
+prof_name: 오일권
+lecture_name: 
+lecture_time: 
+info:
+  - 최종학위: Ph.D., KAIST (2001)
+  - 연구분야: Soft Actuators and Mechatronics, Smart Materials/Structures, Energy Harvesting, Graphene and Nano-Engineering
+  - 연구실: 소프트 로보틱스 및 지능형 재료 연구실
+  - 연구실 웹사이트: https://srim.kaist.ac.kr/
+  - E-mail: ikoh@kaist.ac.kr
+  - Phone: 042-350-1520

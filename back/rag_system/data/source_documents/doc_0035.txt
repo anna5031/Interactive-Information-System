@@ -1,0 +1,13 @@
+type: professor
+building: N7
+room: 5205
+prof_name: 신현정
+lecture_name: 
+lecture_time: 
+info:
+  - 최종학위: Ph.D., MIT (2004)
+  - 연구분야: Cellular Mechanobiology, Tissue Engineering, Microfluidics, Plasma Medicine
+  - 연구실: 연성 생체역학 연구실
+  - 연구실 웹사이트: http://softbm.kaist.ac.kr/
+  - E-mail: j_shin@kaist.ac.kr
+  - Phone: 042-350- 3232

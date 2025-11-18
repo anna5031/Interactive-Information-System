@@ -1,0 +1,20 @@
+{
+  "building": "N7",
+  "floors": [
+    {
+      "floor": 1,
+      "rooms": [
+        {"name": "101", "type": "lecture", "description": "기초 설계 수업이 열리는 강의실"},
+        {"name": "로비", "type": "facility", "description": "안내 데스크와 휴게 공간"},
+        {"name": "엘리베이터", "type": "facility", "description": "모든 층 이동 가능"}
+      ]
+    },
+    {
+      "floor": 2,
+      "rooms": [
+        {"name": "201", "type": "lab", "description": "열유체 실험실"},
+        {"name": "화장실", "type": "facility", "description": "남녀 공용 화장실"}
+      ]
+    }
+  ]
+}

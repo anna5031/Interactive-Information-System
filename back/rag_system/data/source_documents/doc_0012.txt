@@ -1,0 +1,13 @@
+type: professor
+building: N7
+room: 6102
+prof_name: 이승철
+lecture_name: 
+lecture_time: 
+info:
+  - 최종학위: Ph.D., The University of Michigan, Ann Arbor (2010)
+  - 연구분야: Industrial AI, Manufacturing AI, Physics-informed AI
+  - 연구실: 산업 인공지능 연구실
+  - 연구실 웹사이트: https://iailab.kaist.ac.kr/
+  - E-mail: seunglee@kaist.ac.kr
+  - Phone: 042-350-3026

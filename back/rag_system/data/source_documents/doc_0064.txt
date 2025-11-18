@@ -1,0 +1,7 @@
+type: lecture
+building: N7
+room: 2202
+prof_name: 이두용
+lecture_name: 시스템 모델링 및 제어
+lecture_time: 화 13:00-14:30; 목 13:00-14:30
+info: 

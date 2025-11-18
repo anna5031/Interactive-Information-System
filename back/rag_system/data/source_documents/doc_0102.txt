@@ -1,0 +1,12 @@
+type: seminar_room
+building: N7
+room: 3201
+name: SWK - INTEK 미팅룸
+info:
+  - screen_output: TV(85인치)
+  - camera: O
+  - speaker: 테이블고정
+  - microphone: 
+  - video_conference_enabled: O
+  - capacity: 12
+  - notes: 
