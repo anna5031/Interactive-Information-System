@@ -1,0 +1,7 @@
+type: lecture
+building: N7
+room: 2110
+prof_name: 김지태
+lecture_name: 기계공학특론
+lecture_time: 월 13:00-14:30; 수 13:00-14:30
+info: 

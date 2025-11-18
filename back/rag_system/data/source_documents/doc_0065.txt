@@ -1,0 +1,7 @@
+type: lecture
+building: N7-4
+room: 4102
+prof_name: 윤국진
+lecture_name: 자율모바일시스템 프로그래밍
+lecture_time: 월 16:00-18:00; 수 16:00-19:00
+info: 

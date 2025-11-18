@@ -1,0 +1,7 @@
+type: lecture
+building: N7
+room: 2204
+prof_name: 김대겸
+lecture_name: 점성유동
+lecture_time: 월 13:00-14:30; 수 13:00-14:30
+info: 

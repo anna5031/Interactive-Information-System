@@ -1,0 +1,13 @@
+type: professor
+building: N7
+room: 5113
+prof_name: 김대겸
+lecture_name: 
+lecture_time: 
+info:
+  - 최종학위: Ph.D., California Institute of Technology (2010)
+  - 연구분야: Fluid-structure interaction, Biological flow, Energy harvesting, Unsteady aerodynamics and hydrodynamics
+  - 연구실: 응용유체역학 연구실
+  - 연구실 웹사이트: http://fluid.kaist.ac.kr/
+  - E-mail: daegyoum@kaist.ac.kr
+  - Phone: 042-350-3218

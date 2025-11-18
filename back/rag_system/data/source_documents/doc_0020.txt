@@ -1,0 +1,13 @@
+type: professor
+building: N7
+room: 6106
+prof_name: 오현동
+lecture_name: 
+lecture_time: 
+info:
+  - 최종학위: Ph.D., Cranfield University (2013)
+  - 연구분야: Unmanned Vehicles, Perception and Planning, Multi-Agent Systems
+  - 연구실: 필드 인공지능 및 로보틱스 연구실
+  - 연구실 웹사이트: https://asl.unist.ac.kr/
+  - E-mail: h.oh@kaist.ac.kr
+  - Phone: 042-350-3028

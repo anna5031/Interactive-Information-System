@@ -1,0 +1,12 @@
+type: seminar_room
+building: N7
+room: 3213
+name: SWK - INTEX 컨퍼런스홀
+info:
+  - screen_output: 프로젝터
+  - camera: O
+  - speaker: 천장 및 테이블 고정
+  - microphone: 핸드(2ea), 핀(1ea)
+  - video_conference_enabled: O
+  - capacity: 40
+  - notes: 

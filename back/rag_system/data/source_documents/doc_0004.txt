@@ -1,0 +1,13 @@
+type: professor
+building: N7
+room: 6108
+prof_name: 이강택
+lecture_name: 
+lecture_time: 
+info:
+  - 최종학위: Ph.D.,University of Florida(2010)
+  - 연구분야: SOFCs, Solid-state Batteries, Hydrogen Production, 3D Nano-imaging
+  - 연구실: 첨단 에너지 변환 저장 연구실
+  - 연구실 웹사이트: https://www.ktlee.kaist.ac.kr/
+  - E-mail: leekt@kaist.ac.kr
+  - Phone: 042-350-3020

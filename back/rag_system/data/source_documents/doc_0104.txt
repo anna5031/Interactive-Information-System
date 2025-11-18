@@ -1,0 +1,12 @@
+type: seminar_room
+building: N7
+room: 2601
+name: 소회의실
+info:
+  - screen_output: 프로젝터
+  - camera: X
+  - speaker: O
+  - microphone: 핸드(2ea)
+  - video_conference_enabled: X
+  - capacity: 24
+  - notes: 

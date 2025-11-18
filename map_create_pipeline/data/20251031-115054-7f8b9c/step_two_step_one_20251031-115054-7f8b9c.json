@@ -1,7 +1,7 @@
 {
   "id": "step_one_20251031-115054-7f8b9c",
   "createdAt": "2025-10-31T02:54:39.043432+00:00",
-  "updatedAt": "2025-10-31T02:54:39.043469+00:00",
+  "updatedAt": "2025-11-07T05:19:20.724081+00:00",
   "rooms": [
     {
       "nodeId": "room_0",
@@ -237,8 +237,8 @@
     {
       "nodeId": "room_33",
       "graphNodeId": "room_33",
-      "name": "",
-      "number": "",
+      "name": "ㄴㄹㅁㄴㄹ",
+      "number": "ㄴㅇㄹㅁ",
       "extra": []
     },
     {

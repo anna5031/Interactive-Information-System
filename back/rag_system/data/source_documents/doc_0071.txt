@@ -1,0 +1,7 @@
+type: lecture
+building: N7
+room: 2110
+prof_name: 김남일
+lecture_name: 고등연소공학
+lecture_time: 월 10:30-12:00; 수 10:30-12:00
+info: 

@@ -1,0 +1,7 @@
+type: lecture
+building: N7
+room: 2108
+prof_name: 배충식
+lecture_name: 모빌리티 동력과 환경
+lecture_time: 월 14:30-16:00; 수 14:30-16:00
+info: 

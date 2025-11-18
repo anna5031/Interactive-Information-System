@@ -1,0 +1,12 @@
+type: seminar_room
+building: N7
+room: 3102B
+name: W5 세미나실
+info:
+  - screen_output: TV(65인치)
+  - camera: X
+  - speaker: X
+  - microphone: X
+  - video_conference_enabled: X
+  - capacity: 18
+  - notes: 

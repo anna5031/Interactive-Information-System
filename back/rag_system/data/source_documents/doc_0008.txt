@@ -1,0 +1,13 @@
+type: professor
+building: N7
+room: 6114
+prof_name: 강준상
+lecture_name: 
+lecture_time: 
+info:
+  - 최종학위: Ph.D., University of California, Los Angeles (2019)
+  - 연구분야: Semiconductor thermal transport, renewable energy production, extreme thermal conduction, thermal logic circuit
+  - 연구실: 첨단 열 및 에너지 전달 연구실
+  - 연구실 웹사이트: https://sites.google.com/view/atetl
+  - E-mail: jskang1@kaist.ac.kr
+  - Phone: 042-350-3025

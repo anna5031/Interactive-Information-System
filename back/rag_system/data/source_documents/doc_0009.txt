@@ -1,0 +1,13 @@
+type: professor
+building: N7
+room: 4203
+prof_name: 노민균
+lecture_name: 
+lecture_time: 
+info:
+  - 최종학위: Ph.D., MIT (2018)
+  - 연구분야: Electric motors and drives; Sensors and actuators; Control, instrumentation, and robotics
+  - 연구실: 정밀 메카트로닉스 연구실
+  - 연구실 웹사이트: https://pml.kaist.ac.kr/
+  - E-mail: minkyun.noh@kaist.ac.kr
+  - Phone: 042-350-3021

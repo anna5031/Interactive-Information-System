@@ -1,0 +1,7 @@
+type: lecture
+building: N7
+room: 2202
+prof_name: 박용화
+lecture_name: 랜덤데이타: 해석 및 처리
+lecture_time: 월 14:30-16:00; 수 14:30-16:00
+info: 

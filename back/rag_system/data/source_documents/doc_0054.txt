@@ -1,0 +1,13 @@
+type: professor
+building: N7
+room: 5115
+prof_name: 정상권
+lecture_name: 
+lecture_time: 
+info:
+  - 최종학위: Ph.D., MIT (1992)
+  - 연구분야: Cryogenic enginnering, Cryogenic heat transfer, Cryogenic refrigeration, Applied superconductivity
+  - 연구실: 저온공학 연구실
+  - 연구실 웹사이트: https://sites.google.com/view/cryokaist
+  - E-mail: skjeong@kaist.ac.kr
+  - Phone: 042-350- 3039

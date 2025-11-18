@@ -1,0 +1,7 @@
+type: lecture
+building: N7
+room: 2108
+prof_name: 강준상
+lecture_name: 통계열역학개론
+lecture_time: 월 09:00-10:30; 수 09:00-10:30
+info: 

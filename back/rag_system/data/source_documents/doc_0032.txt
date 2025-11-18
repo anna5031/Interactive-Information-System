@@ -1,0 +1,13 @@
+type: professor
+building: N7
+room: 7111
+prof_name: 배중면
+lecture_name: 
+lecture_time: 
+info:
+  - 최종학위: Ph.D., Imperial College London (1996)
+  - 연구분야: Solid Oxide Fuel Cell (SOFC), Liquid Fuel Reforming, Fuel Cell System, Hydrogen Storage System
+  - 연구실: 신 에너지변환시스템 연구실
+  - 연구실 웹사이트: https://www.necs.kr/
+  - E-mail: jmbae@kaist.ac.kr
+  - Phone: 042-350-3045

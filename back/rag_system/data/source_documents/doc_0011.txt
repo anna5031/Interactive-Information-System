@@ -1,0 +1,13 @@
+type: professor
+building: 
+room: 
+prof_name: 윤희택
+lecture_name: 
+lecture_time: 
+info:
+  - 최종학위: Ph.D., Purdue Univ.(2021)
+  - 연구분야: Smart Manufacturing, Manufacturing Mechatronics, Manufacturing AI
+  - 연구실: 스마트생산시스템 연구실
+  - 연구실 웹사이트: https://smslab.kaist.ac.kr/
+  - E-mail: htyun@kaist.ac.kr
+  - Phone: 042-350-3011

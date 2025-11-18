@@ -1,0 +1,12 @@
+type: professor
+building: N7
+room: 5109
+prof_name: 배충식
+lecture_name: 
+lecture_time: 
+info:
+  - 최종학위: Ph.D., Imperial College London (1994)
+  - 연구분야: Internal combustion engine, Laser diagnostics and instrumentation
+  - 연구실: 수송동력연구실
+  - 연구실 웹사이트: http://ftpl.kaist.ac.kr/
+  - E-mail: csbae@kaist.ac.kr

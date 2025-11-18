@@ -1,0 +1,12 @@
+type: seminar_room
+building: N7
+room: 3231
+name: C2 세미나실
+info:
+  - screen_output: 프로젝터
+  - camera: X
+  - speaker: X
+  - microphone: X
+  - video_conference_enabled: X
+  - capacity: 32
+  - notes: 

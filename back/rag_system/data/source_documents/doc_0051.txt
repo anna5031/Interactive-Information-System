@@ -1,0 +1,13 @@
+type: professor
+building: 
+room: 
+prof_name: 장대준
+lecture_name: 
+lecture_time: 
+info:
+  - 최종학위: Ph.D., KAIST (1997)
+  - 연구분야: Process Engineering for energy systems, High Pressure Storage Tanks, Risk and Reliability
+  - 연구실: 에너지시스템공학 연구실
+  - 연구실 웹사이트: http://iesel.kaist.ac.kr/
+  - E-mail: djchang@kaist.ac.kr
+  - Phone: 042-350-1514

@@ -1,0 +1,12 @@
+type: seminar_room
+building: N7
+room: 3128
+name: C6 세미나실
+info:
+  - screen_output: 프로젝터, TV(85인치)
+  - camera: O
+  - speaker: 천장 및 테이블 고정
+  - microphone: 핸드(1ea), 핀(1ea)
+  - video_conference_enabled: O
+  - capacity: 24
+  - notes: 

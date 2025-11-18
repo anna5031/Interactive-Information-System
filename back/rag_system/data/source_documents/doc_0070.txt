@@ -1,0 +1,7 @@
+type: lecture
+building: N7
+room: 2204
+prof_name: 박인규
+lecture_name: 센서 및 계측공학
+lecture_time: 월 09:00-10:30; 수 09:00-10:30
+info: 

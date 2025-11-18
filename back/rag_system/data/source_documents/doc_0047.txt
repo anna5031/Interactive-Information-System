@@ -1,0 +1,13 @@
+type: professor
+building: N7
+room: 7109
+prof_name: 이익진
+lecture_name: 
+lecture_time: 
+info:
+  - 최종학위: Ph.D., University of Iowa (2008)
+  - 연구분야: Design under uncertainties and applications, Statistical input identification
+  - 연구실: 최적 설계 연구실
+  - 연구실 웹사이트: http://idol.kaist.ac.kr/
+  - E-mail: ikjin.lee@kaist.ac.kr
+  - Phone: 042-350-3041

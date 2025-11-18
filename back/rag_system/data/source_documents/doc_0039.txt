@@ -1,0 +1,13 @@
+type: professor
+building: N7
+room: 3205
+prof_name: 유승화
+lecture_name: 
+lecture_time: 
+info:
+  - 최종학위: Ph.D., Stanford University (2011)
+  - 연구분야: Multiscale mechanics and material simulation, Machine learning based design of structural materials
+  - 연구실: AiM⁴ Lab - 지능형 설계 및 제조 연구실
+  - 연구실 웹사이트: https://sites.google.com/site/seunghwalab/
+  - E-mail: ryush@kaist.ac.kr
+  - Phone: 042-350-3019

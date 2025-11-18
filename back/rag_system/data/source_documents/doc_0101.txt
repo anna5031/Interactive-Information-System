@@ -1,0 +1,12 @@
+type: seminar_room
+building: N7
+room: 1212
+name: SHI - KAIST 세미나실
+info:
+  - screen_output: 프로젝터
+  - camera: O
+  - speaker: 천장 및 테이블 고정
+  - microphone: 핀(1ea)
+  - video_conference_enabled: O
+  - capacity: 22
+  - notes: 
