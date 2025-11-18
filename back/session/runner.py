@@ -56,7 +56,7 @@ class SessionRunnerFactory:
             show_overlay=self.show_exploration_overlay,
             assistance_config=assistance_cfg,
         )
-        qa = QAPipeline()
+        qa = QAPipeline(connection=connection)
         return SessionRunner(
             connection=connection,
             exploration=exploration,

@@ -9,9 +9,11 @@ from .guardrails import GuardrailLLM
 from .indoor_map import load_indoor_map
 from .navigation import find_route
 from .retriever import EnsembleRetriever
-from .speech_interface import request_rephrase
 from .state import RagState
 from .vector_index import LocalVectorIndex
+
+
+SESSION_END_MESSAGE = "필요한 사항이 있으면 다시 불러 주세요."
 
 
 class RagWorkflowBuilder:
@@ -41,6 +43,9 @@ class RagWorkflowBuilder:
                 abort_message = verdict.reason or "안전하지 않은 요청입니다."
             else:
                 abort_message = ""
+            if verdict.should_end_session:
+                abort_message = abort_message or SESSION_END_MESSAGE
+            session_should_end = bool(verdict.should_end_session or abort_message)
             logs = [
                 f"Guardrail verdict: allowed={verdict.allowed}, retry={verdict.needs_retry}, reason={verdict.reason}"
             ]
@@ -49,15 +54,15 @@ class RagWorkflowBuilder:
                 "needs_retry": verdict.needs_retry,
                 "guardrail_reason": verdict.reason or "",
                 "abort_message": abort_message,
+                "session_should_end": session_should_end,
                 "processing_log": logs,
             }
 
         async def retry_node(state: RagState) -> RagState:
-            new_question = await request_rephrase()
+            message = "질문을 잘 인식하지 못했어요. 다시 말씀해 주세요."
             return {
-                "question": new_question,
-                "sanitized_question": new_question,
-                "needs_retry": False,
+                "abort_message": message,
+                "needs_retry": True,
                 "processing_log": ["사용자에게 재질문을 요청했습니다."],
             }
 
@@ -79,25 +84,29 @@ class RagWorkflowBuilder:
             )
             output = self.answer_llm.generate(state["sanitized_question"], docs_preview, self.indoor_map, history_digest)
             base_answer = output.final_answer.strip()
-            if not base_answer.endswith("추가 질문이 있다면 물어봐 주세요."):
-                base_answer = f"{base_answer}\n\n추가 질문이 있다면 물어봐 주세요."
-            logs = [
-                "Answer generated.",
-                f"Navigation trigger: {output.navigation_trigger or 'None'}",
-            ]
+            logs = ["Answer generated."]
+            nav_request: Dict[str, str] = {}
+            if output.needs_navigation:
+                logs.append(f"Navigation trigger: {output.navigation_trigger or '요청됨'}")
+                if output.destination_room:
+                    nav_request["destination"] = output.destination_room
+                # if output.origin_room:
+                #     nav_request["origin"] = output.origin_room
+            else:
+                logs.append("Navigation not required.")
             return {
                 "answer_text": base_answer,
                 "needs_navigation": bool(output.needs_navigation),
+                "navigation_request": nav_request if nav_request else {},
                 "processing_log": logs,
             }
-
+        
+        #todo: origin 바꾸기.
         async def navigation_node(state: RagState) -> RagState:
-            destination = None
-            for doc in state.get("retrieved_documents", []):
-                if "호" in doc.page_content:
-                    destination = doc.metadata.get("room") or doc.metadata.get("doc_id")
-                    break
-            nav_result = find_route(destination)
+            request = state.get("navigation_request") or {}
+            destination = request.get("destination")
+            origin = "예시 시작점"
+            nav_result = find_route(origin, destination)
             updated_answer = state.get("answer_text", "")
             if nav_result.get("success"):
                 updated_answer = f"{updated_answer}\n\n경로 안내: {nav_result['message']}"
@@ -109,6 +118,7 @@ class RagWorkflowBuilder:
             return {
                 "navigation_payload": nav_result,
                 "answer_text": updated_answer,
+                "navigation_request": {},
                 "processing_log": logs,
             }
 
@@ -154,7 +164,7 @@ class RagWorkflowBuilder:
             guardrail_router,
             {"speech_retry": "speech_retry", "retrieve": "retrieve", "finalize": "finalize"},
         )
-        workflow.add_edge("speech_retry", "guardrail")
+        workflow.add_edge("speech_retry", "finalize")
         workflow.add_edge("retrieve", "answer")
         workflow.add_conditional_edges(
             "answer",

@@ -30,6 +30,12 @@ def main() -> None:
         result = asyncio.run(service.answer(args.question))
         print(result.answer)
         StreamingRAGService._print_similarity(result)
+        if result.navigation.get("success"):
+            print("경로 안내:", result.navigation["message"])
+        elif result.navigation_request.get("destination"):
+            dest = result.navigation_request.get("destination")
+            origin = "예시 시작점"
+            print(f"경로 안내 대기: 출발 {origin or '알 수 없음'} → 도착 {dest}")
     elif not args.build_index:
         parser.error("--question, --interactive 중 하나를 선택하거나 --build-index를 사용하세요.")
 
