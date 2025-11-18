@@ -12,7 +12,13 @@ import torch
 
 from devices import load_device_preferences
 
-from .config import AssistanceConfig, DetectionConfig, MappingConfig, TrackingConfig
+from .config import (
+    AssistanceConfig,
+    DetectionConfig,
+    MappingConfig,
+    TrackingConfig,
+    SpeedMetric,
+)
 from .core import (
     AssistanceClassifier,
     FootPointEstimator,
@@ -42,6 +48,7 @@ class ExplorationPipeline:
         show_overlay: bool = False,
         max_frames: Optional[int] = None,
         detection_config: Optional[DetectionConfig] = None,
+        tracking_config: Optional[TrackingConfig] = None,
         foot_config: Optional[FootPointEstimatorConfig] = None,
         mapping_config: Optional[MappingConfig] = None,
         assistance_config: Optional[AssistanceConfig] = None,
@@ -69,13 +76,25 @@ class ExplorationPipeline:
         self._device = self._select_device()
         self._pose_model = PoseModel(self._model_path, self._device)
 
-        self._tracking = CentroidTracker(TrackingConfig())
+        self._tracking_config = tracking_config or TrackingConfig()
+        self._tracking = CentroidTracker(self._tracking_config)
         self._assistance = AssistanceClassifier(assistance_config or AssistanceConfig())
         self._detection_config = detection_config or DetectionConfig()
+        self._requires_world_speed = (
+            self._tracking_config.speed_metric == SpeedMetric.WORLD
+        )
         self._mapping_config = mapping_config or MappingConfig()
+        if self._requires_world_speed and not self._mapping_config.enabled:
+            raise RuntimeError(
+                "월드 속도 기준을 사용하려면 픽셀→월드 매핑을 활성화해야 합니다."
+            )
         self._pixel_mapper: Optional[PixelToWorldMapper] = load_pixel_to_world_mapper(
             self._mapping_config
         )
+        if self._requires_world_speed and self._pixel_mapper is None:
+            raise RuntimeError(
+                "월드 속도 기준에 필요한 픽셀→월드 매퍼를 초기화하지 못했습니다."
+            )
         self._foot_estimator = FootPointEstimator(
             foot_config,
             pixel_mapper=self._pixel_mapper,
@@ -144,13 +163,26 @@ class ExplorationPipeline:
             fps = max(1.0, fps_estimator.current)
             assignments = self._tracking.step(detections, frame_count, fps)
             frame_count += 1
+            current_frame_idx = frame_count - 1
 
             for track, detection in assignments:
                 foot_point = self._foot_estimator.update_track(track, detection)
                 detection["foot_point"] = foot_point
                 detection["walking"] = track.walking
-                track.foot_point_world = None
-                detection.pop("foot_point_world", None)
+                world_point = None
+                if (
+                    foot_point is not None
+                    and self._pixel_mapper is not None
+                ):
+                    world_point = self._foot_estimator.map_to_world(foot_point)
+                detection["foot_point_world"] = world_point
+                track.foot_point_world = world_point
+                if world_point is not None:
+                    track.update_world_motion(world_point, current_frame_idx, fps)
+                elif self._requires_world_speed:
+                    raise RuntimeError(
+                        f"월드 속도 기준이지만 track={track.track_id} 의 발 좌표를 월드 좌표로 변환하지 못했습니다."
+                    )
 
             decision = self._assistance.evaluate(tuple(assignments))
             self._last_assistance_decision = decision
@@ -169,15 +201,8 @@ class ExplorationPipeline:
                     decision.reason,
                 )
             if decision.needs_assistance and decision.track is not None:
-                detection_ref = decision.detection
-                world_point = None
-                if detection_ref is not None:
-                    foot_pixel = detection_ref.get("foot_point")
-                    if isinstance(foot_pixel, np.ndarray):
-                        world_point = self._foot_estimator.map_to_world(foot_pixel)
-                if world_point is not None and detection_ref is not None:
-                    detection_ref["foot_point_world"] = world_point
-                    decision.track.foot_point_world = world_point
+                world_point = decision.track.foot_point_world
+                if world_point is not None:
                     logger.info(
                         "타겟 월드 좌표: (%.1f, %.1f, %.1f)",
                         float(world_point[0]),

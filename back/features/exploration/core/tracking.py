@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-import math
 from collections import deque
 from dataclasses import dataclass, field
 from typing import Deque, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 
-from ..config import TrackingConfig
+from ..config import SpeedMetric, TrackingConfig
+from .motion import MotionState, update_motion_state
 
 
 @dataclass(slots=True)
@@ -33,49 +33,46 @@ class Track:
     assistance_assigned_at: Optional[float] = None
     assistance_initial_distance: Optional[float] = None
     assistance_dismissed: bool = False
+    pixel_motion: MotionState = field(default_factory=MotionState)
+    world_motion: MotionState = field(default_factory=MotionState)
 
-    def update(self, position: Sequence[float], frame_idx: int, fps: float) -> None:
+    def update_pixel_motion(
+        self, position: Sequence[float], frame_idx: int, fps: float
+    ) -> None:
         new_position = np.asarray(position, dtype=float)
-        frame_gap = max(1, frame_idx - self.last_frame)
-        displacement = new_position - self.position
-        fps = fps if fps > 0 else 30.0
-        instant_velocity = displacement * fps / frame_gap
-        alpha = max(0.0, min(1.0, self.config.velocity_smoothing))
-        blended_alpha = alpha**frame_gap if frame_gap > 1 else alpha
-        self.smoothed_velocity = (
-            blended_alpha * self.smoothed_velocity
-            + (1.0 - blended_alpha) * instant_velocity
+        update_motion_state(
+            self.pixel_motion,
+            new_point=new_position,
+            frame_idx=frame_idx,
+            fps=fps,
+            config=self.config,
         )
-        self.velocity = instant_velocity
-        self.speed = float(np.linalg.norm(self.smoothed_velocity))
-
-        if self.speed <= self.config.stationary_speed_threshold:
-            self.stationary_time += frame_gap / fps
-        else:
-            self.stationary_time = 0.0
-
-        self.is_stationary = (
-            self.stationary_time >= self.config.stationary_duration_seconds
-        )
-
-        effective_velocity = (
-            np.zeros_like(self.smoothed_velocity)
-            if self.is_stationary
-            else self.smoothed_velocity
-        )
-
-        effective_speed = float(np.linalg.norm(effective_velocity))
-        if effective_speed >= self.config.angle_speed_threshold:
-            self.angle_deg = (
-                math.degrees(math.atan2(-effective_velocity[1], effective_velocity[0]))
-                + 360.0
-            ) % 360.0
-        else:
-            self.angle_deg = None
-
         self.position = new_position
         self.last_frame = frame_idx
         self.missed = 0
+        if self.config.speed_metric == SpeedMetric.PIXEL:
+            self._apply_motion_state(self.pixel_motion)
+
+    def update_world_motion(
+        self, point: Sequence[float] | np.ndarray, frame_idx: int, fps: float
+    ) -> None:
+        update_motion_state(
+            self.world_motion,
+            new_point=point,
+            frame_idx=frame_idx,
+            fps=fps,
+            config=self.config,
+        )
+        if self.config.speed_metric == SpeedMetric.WORLD:
+            self._apply_motion_state(self.world_motion)
+
+    def _apply_motion_state(self, state: MotionState) -> None:
+        self.velocity = state.velocity.copy()
+        self.smoothed_velocity = state.smoothed_velocity.copy()
+        self.speed = state.speed
+        self.stationary_time = state.stationary_time
+        self.is_stationary = state.is_stationary
+        self.angle_deg = state.angle_deg
 
 
 class CentroidTracker:
@@ -125,7 +122,7 @@ class CentroidTracker:
             track_idx, det_idx = min_idx
             track_id = track_ids[track_idx]
             track = self.tracks[track_id]
-            track.update(centroids[det_idx], frame_idx, fps)
+            track.update_pixel_motion(centroids[det_idx], frame_idx, fps)
             assignments.append((track, detections[det_idx]))
             assigned_tracks.add(track_id)
             assigned_dets.add(det_idx)
