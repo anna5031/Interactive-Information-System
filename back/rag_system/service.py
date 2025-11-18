@@ -36,6 +36,7 @@ class SessionResult:
     question: str
     answer: str
     documents: List[Document]
+    scores: List[float]
     navigation: Dict
     processing_log: List[str]
 
@@ -75,9 +76,17 @@ class StreamingRAGService:
             answer = state.get("answer_text", "")
             navigation = state.get("navigation_payload", {})
             documents = state.get("retrieved_documents", [])
+            scores = state.get("retrieval_scores", [])
             log = state.get("processing_log", [])
             self._conversation_history = state.get("conversation_history", [])
-            return SessionResult(question=question, answer=answer, documents=documents, navigation=navigation, processing_log=log)
+            return SessionResult(
+                question=question,
+                answer=answer,
+                documents=documents,
+                scores=list(scores or []),
+                navigation=navigation,
+                processing_log=log,
+            )
 
     def reset(self) -> None:
         self._conversation_history = []
@@ -101,6 +110,7 @@ class StreamingRAGService:
                 break
             result = await self.answer(question)
             print("\n답변:", result.answer)
+            self._print_similarity(result)
             if result.navigation.get("success"):
                 print("경로 안내:", result.navigation["message"])
 
@@ -113,3 +123,13 @@ class StreamingRAGService:
             except asyncio.TimeoutError as exc:
                 raise TimeoutError from exc
         return await future
+
+    @staticmethod
+    def _print_similarity(result: SessionResult) -> None:
+        if not result.documents:
+            print("검색된 문서가 없습니다.")
+            return
+        print("검색 문서 유사도:")
+        for idx, (doc, score) in enumerate(zip(result.documents, result.scores), start=1):
+            source = doc.metadata.get("doc_id") or doc.metadata.get("source") or doc.page_content[:30]
+            print(f"  {idx}. score={score:.3f} source={source}")

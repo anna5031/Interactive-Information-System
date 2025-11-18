@@ -29,6 +29,7 @@ def main() -> None:
         service = service or StreamingRAGService()
         result = asyncio.run(service.answer(args.question))
         print(result.answer)
+        StreamingRAGService._print_similarity(result)
     elif not args.build_index:
         parser.error("--question, --interactive 중 하나를 선택하거나 --build-index를 사용하세요.")
 
