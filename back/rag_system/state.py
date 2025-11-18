@@ -35,3 +35,4 @@ class RagState(TypedDict):
     navigation_request: Annotated[Dict, _override]
     processing_log: Annotated[List[str], _extend_list]
     abort_message: Annotated[str, _override]
+    session_should_end: Annotated[bool, _override]

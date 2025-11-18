@@ -15,3 +15,6 @@ __pycache__/
 
 # Ignore checkboard images used for calibration
 /nudge_test/vision/checkboard/*
+
+/my_env
+/my_env/*

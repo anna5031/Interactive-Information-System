@@ -1,3 +1,3 @@
-from .service import StreamingRAGService, SessionConfig
+from .service import StreamingRAGService, SessionConfig, SessionResult
 
-__all__ = ["StreamingRAGService", "SessionConfig"]
+__all__ = ["StreamingRAGService", "SessionConfig", "SessionResult"]

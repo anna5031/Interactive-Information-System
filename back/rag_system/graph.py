@@ -9,9 +9,11 @@ from .guardrails import GuardrailLLM
 from .indoor_map import load_indoor_map
 from .navigation import find_route
 from .retriever import EnsembleRetriever
-from .speech_interface import request_rephrase
 from .state import RagState
 from .vector_index import LocalVectorIndex
+
+
+SESSION_END_MESSAGE = "필요한 사항이 있으면 다시 불러 주세요."
 
 
 class RagWorkflowBuilder:
@@ -41,6 +43,9 @@ class RagWorkflowBuilder:
                 abort_message = verdict.reason or "안전하지 않은 요청입니다."
             else:
                 abort_message = ""
+            if verdict.should_end_session:
+                abort_message = abort_message or SESSION_END_MESSAGE
+            session_should_end = bool(verdict.should_end_session or abort_message)
             logs = [
                 f"Guardrail verdict: allowed={verdict.allowed}, retry={verdict.needs_retry}, reason={verdict.reason}"
             ]
@@ -49,15 +54,15 @@ class RagWorkflowBuilder:
                 "needs_retry": verdict.needs_retry,
                 "guardrail_reason": verdict.reason or "",
                 "abort_message": abort_message,
+                "session_should_end": session_should_end,
                 "processing_log": logs,
             }
 
         async def retry_node(state: RagState) -> RagState:
-            new_question = await request_rephrase()
+            message = "질문을 잘 인식하지 못했어요. 다시 말씀해 주세요."
             return {
-                "question": new_question,
-                "sanitized_question": new_question,
-                "needs_retry": False,
+                "abort_message": message,
+                "needs_retry": True,
                 "processing_log": ["사용자에게 재질문을 요청했습니다."],
             }
 
@@ -159,7 +164,7 @@ class RagWorkflowBuilder:
             guardrail_router,
             {"speech_retry": "speech_retry", "retrieve": "retrieve", "finalize": "finalize"},
         )
-        workflow.add_edge("speech_retry", "guardrail")
+        workflow.add_edge("speech_retry", "finalize")
         workflow.add_edge("retrieve", "answer")
         workflow.add_conditional_edges(
             "answer",

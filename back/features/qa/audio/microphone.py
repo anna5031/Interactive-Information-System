@@ -6,6 +6,7 @@ import copy
 import logging
 import os
 import subprocess
+import time
 import wave
 from typing import List, Optional, Tuple
 
@@ -360,7 +361,7 @@ class MicrophoneManager:
         rms = np.sqrt(mean_square)
         return rms < self.SILENCE_THRESHOLD
 
-    def record_audio(self) -> Optional[bytes]:
+    def record_audio(self, *, max_idle_seconds: Optional[float] = None) -> Optional[bytes]:
         """음성 녹음 (VAD 적용)"""
         logger.info("🎤 음성 인식 대기 중... (말씀하세요)")
 
@@ -388,6 +389,7 @@ class MicrophoneManager:
             int(self.SILENCE_DURATION * samplerate / self.CHUNK), 1
         )
 
+        start_time = time.monotonic()
         try:
             while self.is_listening:
                 try:
@@ -405,6 +407,7 @@ class MicrophoneManager:
                             recording_started = True
                         frames.append(audio_chunk.tobytes())
                         silent_chunks = 0
+                        start_time = time.monotonic()
                     elif recording_started:
                         frames.append(audio_chunk.tobytes())
                         silent_chunks += 1
@@ -413,6 +416,12 @@ class MicrophoneManager:
                         if silent_chunks > silence_limit:
                             logger.info("⏹️  녹음 완료")
                             break
+                    else:
+                        if max_idle_seconds is not None and max_idle_seconds > 0:
+                            elapsed = time.monotonic() - start_time
+                            if elapsed >= max_idle_seconds:
+                                logger.info("⏹️  대기 시간 초과(%.1fs)로 녹음을 종료합니다.", max_idle_seconds)
+                                break
 
                 except Exception as e:
                     logger.warning(f"오디오 청크 읽기 오류: {e}")

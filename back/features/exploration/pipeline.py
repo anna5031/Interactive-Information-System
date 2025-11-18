@@ -10,7 +10,7 @@ import numpy as np
 import cv2  # type: ignore
 import torch
 
-from devices import load_device_preferences
+from ...devices.config import load_device_preferences
 
 from .config import AssistanceConfig, DetectionConfig, MappingConfig, TrackingConfig
 from .core import (

@@ -40,6 +40,8 @@ class SessionResult:
     navigation: Dict
     navigation_request: Dict
     processing_log: List[str]
+    session_should_end: bool
+    needs_retry: bool
 
 
 class StreamingRAGService:
@@ -73,6 +75,7 @@ class StreamingRAGService:
                     navigation_request={},
                     processing_log=[],
                     abort_message="",
+                    session_should_end=False,
                 )
             )
             answer = state.get("answer_text", "")
@@ -81,6 +84,8 @@ class StreamingRAGService:
             documents = state.get("retrieved_documents", [])
             scores = state.get("retrieval_scores", [])
             log = state.get("processing_log", [])
+            session_should_end = bool(state.get("session_should_end"))
+            needs_retry = bool(state.get("needs_retry"))
             self._conversation_history = state.get("conversation_history", [])
             return SessionResult(
                 question=question,
@@ -90,6 +95,8 @@ class StreamingRAGService:
                 navigation=navigation,
                 navigation_request=navigation_request,
                 processing_log=log,
+                session_should_end=session_should_end,
+                needs_retry=needs_retry,
             )
 
     def reset(self) -> None:
