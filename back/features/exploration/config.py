@@ -2,6 +2,12 @@ from __future__ import annotations
 
 from pathlib import Path
 from dataclasses import dataclass
+from enum import Enum
+
+
+class SpeedMetric(str, Enum):
+    PIXEL = "pixel"
+    WORLD = "world"
 
 
 @dataclass(slots=True)
@@ -12,6 +18,7 @@ class TrackingConfig:
     stationary_speed_threshold: float = 10.0
     stationary_duration_seconds: float = 3.0
     angle_speed_threshold: float = 10.0
+    speed_metric: SpeedMetric = SpeedMetric.PIXEL
 
 
 @dataclass(slots=True)
