@@ -1,0 +1,13 @@
+type: professor
+building: N7
+room: 3204
+prof_name: 유홍기
+lecture_name: 
+lecture_time: 
+info:
+  - 최종학위: Ph.D., KAIST(2007)
+  - 연구분야: Optical System Design, Biomedical Optics, Optical Metrology
+  - 연구실: 의광학 및 광측정 연구실
+  - 연구실 웹사이트: http://boom.kaist.ac.kr/
+  - E-mail: h.yoo@kaist.ac.kr
+  - Phone: 042-350-3243

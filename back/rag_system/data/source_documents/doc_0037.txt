@@ -1,0 +1,13 @@
+type: professor
+building: N7
+room: 7106
+prof_name: 오왕열
+lecture_name: 
+lecture_time: 
+info:
+  - 최종학위: Ph.D., KAIST (1997)
+  - 연구분야: Development and Application of Optical Imaging System
+  - 연구실: 포토닉 이미징 연구실
+  - 연구실 웹사이트: https://phil.kaist.ac.kr/
+  - E-mail: woh1@kaist.ac.kr
+  - Phone: 042-350-3237

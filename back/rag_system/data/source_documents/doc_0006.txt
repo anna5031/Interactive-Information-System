@@ -1,0 +1,13 @@
+type: professor
+building: N7
+room: 6112
+prof_name: 김현진
+lecture_name: 
+lecture_time: 
+info:
+  - 최종학위: Ph.D.,Stanford University (2009)
+  - 연구분야: Computational mechanics, Cardiovascular biomechanics, Clinical applications
+  - 연구실: 전산역학 및 생체역학 연구실
+  - 연구실 웹사이트: http://cvbml.kaist.ac.kr
+  - E-mail: kim.hyunjin@kaist.ac.kr
+  - Phone: 042-350-7925

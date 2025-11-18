@@ -1,0 +1,13 @@
+type: professor
+building: 
+room: 
+prof_name: 김진환
+lecture_name: 
+lecture_time: 
+info:
+  - 최종학위: Ph.D., Stanford University (2007)
+  - 연구분야: Mobile and marine robotics, vehicle intelligence, navigation and control
+  - 연구실: 모바일지능로봇연구실
+  - 연구실 웹사이트: http://morin.kaist.ac.kr
+  - E-mail: jinwhan@kaist.ac.kr
+  - Phone: 042-350- 1519

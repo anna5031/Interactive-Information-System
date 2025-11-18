@@ -1,0 +1,7 @@
+type: lecture
+building: N7
+room: 2110
+prof_name: 전원주
+lecture_name: 기계공학과 응용수학
+lecture_time: 수 09:00-10:30; 월 09:00-10:30
+info: 

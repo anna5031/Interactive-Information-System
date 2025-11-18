@@ -1,0 +1,7 @@
+type: lecture
+building: N7
+room: 2204
+prof_name: 이강택
+lecture_name: 기계공학특강
+lecture_time: 월 14:30-16:00; 수 14:30-16:00
+info: 

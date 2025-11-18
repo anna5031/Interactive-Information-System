@@ -1,0 +1,12 @@
+type: professor
+building: 
+room: 
+prof_name: 김지태
+lecture_name: 
+lecture_time: 
+info:
+  - 최종학위: Ph.D., POSTECH (2011)
+  - 연구분야: Additive Manufacturing, 3D printed electronics/photonics
+  - 연구실: 초정밀 적층제조 (나노 3차원 프린팅) 연구실
+  - 연구실 웹사이트: https://sites.google.com/view/kimlabkaist
+  - E-mail: jitae.kim@kaist.ac.kr

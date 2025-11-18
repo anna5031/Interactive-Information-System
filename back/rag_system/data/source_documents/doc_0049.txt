@@ -1,0 +1,13 @@
+type: professor
+building: N7
+room: 7112
+prof_name: 김경수
+lecture_name: 
+lecture_time: 
+info:
+  - 최종학위: Ph.D., KAIST (1999)
+  - 연구분야: Control theory & applications, Robotics, Sensor & Actuators
+  - 연구실: MSC (Mechatronics, Systems and Control) 연구실
+  - 연구실 웹사이트: http://msc.kaist.ac.kr/
+  - E-mail: kyungsookim@kaist.ac.kr
+  - Phone: 042-350-3047

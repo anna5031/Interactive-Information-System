@@ -1,0 +1,7 @@
+type: lecture
+building: N7
+room: 2204
+prof_name: 장대준
+lecture_name: 기계공학특론
+lecture_time: 월 16:00-17:30; 수 16:00-17:30
+info: 

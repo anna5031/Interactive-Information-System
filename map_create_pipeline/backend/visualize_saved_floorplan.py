@@ -15,7 +15,6 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from processing.yolo_out_to_graph import FloorPlanVisualizer
 
-
 def load_objects(objects_path: Path) -> Dict[str, List[Dict[str, Any]]]:
     raw = json.loads(objects_path.read_text(encoding="utf-8"))
     parsed: Dict[str, List[Dict[str, Any]]] = {}
@@ -96,7 +95,6 @@ def main() -> None:
         action="store_true",
         help="창을 띄우지 않고 파일만 저장합니다.",
     )
-
     args = parser.parse_args()
     bundle_dir: Path = args.bundle_dir.resolve()
 

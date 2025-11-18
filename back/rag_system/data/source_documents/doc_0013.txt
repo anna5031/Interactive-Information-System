@@ -1,0 +1,13 @@
+type: professor
+building: N7
+room: 5111
+prof_name: 김성진
+lecture_name: 
+lecture_time: 
+info:
+  - 최종학위: Ph.D., Ohio State University (1989)
+  - 연구분야: Microscale heat transfer and fluid flow, Optimum design of heat exchanger, heat pipes, and heat sinks
+  - 연구실: 응용열전달 연구실
+  - 연구실 웹사이트: http://appheat.kaist.ac.kr/
+  - E-mail: sungjinkim@kaist.ac.kr
+  - Phone: 042-350- 3043

@@ -1,0 +1,12 @@
+type: professor
+building: N7
+room: 6015
+prof_name: 김미소
+lecture_name: 
+lecture_time: 
+info:
+  - 최종학위: PhD., MIT (2012)
+  - 연구분야: Mechanical metamaterials, Piezoelectrics and dielectrics, Energy harvesting/Sensor/MLCC, Additive manufacturing
+  - 연구실: 스마트 에너지 소재 및 응용 연구실
+  - 연구실 웹사이트: https://sites.google.com/view/misokimgroup/
+  - E-mail: misokim@kaist.ac.kr

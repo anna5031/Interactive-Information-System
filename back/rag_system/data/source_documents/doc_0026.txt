@@ -1,0 +1,13 @@
+type: professor
+building: N7
+room: 3206
+prof_name: 공경철
+lecture_name: 
+lecture_time: 
+info:
+  - 최종학위: Ph.D., University of California, Berkeley (2009)
+  - 연구분야: Robust control systems, Human assistive robotics, Design and control of legged robots
+  - 연구실: 웨어러블로봇연구실(Exo-LAB)
+  - 연구실 웹사이트: http://robotics.kaist.ac.kr
+  - E-mail: kckong@kaist.ac.kr
+  - Phone: 042-350-3012

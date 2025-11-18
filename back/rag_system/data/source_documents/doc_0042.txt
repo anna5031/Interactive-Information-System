@@ -1,0 +1,13 @@
+type: professor
+building: N7
+room: 7115
+prof_name: 윤용진
+lecture_name: 
+lecture_time: 
+info:
+  - 최종학위: Ph.D., Stanford University(2009)
+  - 연구분야: 3D printing, Si-μSOFC, Nonlinear dynamics
+  - 연구실: JDL (Just Do it Laboratory) 적층제조 및 반도체 융합 공정 연구실
+  - 연구실 웹사이트: https://jdl.kaist.ac.kr/
+  - E-mail: yongjiny@kaist.ac.kr
+  - Phone: 042-350- 3213

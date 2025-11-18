@@ -1,0 +1,13 @@
+type: professor
+building: N7
+room: 3203
+prof_name: 전성윤
+lecture_name: 
+lecture_time: 
+info:
+  - 최종학위: Ph.D., MIT (2014)
+  - 연구분야: Microfluidics for biological applications, Organ-on-a-chip
+  - 연구실: 바이오 미세 유체 연구실
+  - 연구실 웹사이트: http://jeon.kaist.ac.kr/
+  - E-mail: jsjeon@kaist.ac.kr
+  - Phone: 042-350-3226

@@ -1,0 +1,13 @@
+type: professor
+building: N7
+room: 5112
+prof_name: 김남일
+lecture_name: 
+lecture_time: 
+info:
+  - 최종학위: Ph.D.,KAIST(2001)
+  - 연구분야: Flame control, Combustion new technology and combustor design, Thermal and reactive flow
+  - 연구실: 연소공학 연구실
+  - 연구실 웹사이트: http://combustion.kaist.ac.kr/
+  - E-mail: nikim@kaist.ac.kr
+  - Phone: 042-350-3211

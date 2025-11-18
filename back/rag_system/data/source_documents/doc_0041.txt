@@ -1,0 +1,13 @@
+type: professor
+building: N7
+room: 6101
+prof_name: 윤국진
+lecture_name: 
+lecture_time: 
+info:
+  - 최종학위: Ph.D., KAIST (2006)
+  - 연구분야: Computer Vision, Machine Learning, Pattern Analysis
+  - 연구실: 시각 지능 연구실
+  - 연구실 웹사이트: http://vi.kaist.ac.kr/
+  - E-mail: kjyoon@kaist.ac.kr
+  - Phone: 042-350- 7319

@@ -1,0 +1,13 @@
+type: professor
+building: N7
+room: 5116
+prof_name: 조연우
+lecture_name: 
+lecture_time: 
+info:
+  - 최종학위: Ph.D., MIT (2010)
+  - 연구분야: Waves in Fluids, Nonlinear Dynamics and Waves, Renewable Energy from Fluids, Fluid-Body Interaction
+  - 연구실: 파동 및 유체역학 연구실
+  - 연구실 웹사이트: http://wfm.kaist.ac.kr/
+  - E-mail: ywoocho@kaist.ac.kr
+  - Phone: 042-350- 3220

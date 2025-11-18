@@ -1,0 +1,7 @@
+type: lecture
+building: N7
+room: 2108
+prof_name: 최세범
+lecture_name: 고등차량제어설계
+lecture_time: 화 10:30-12:00; 목 10:30-12:00
+info: 

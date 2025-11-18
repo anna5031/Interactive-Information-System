@@ -1,0 +1,13 @@
+type: professor
+building: 
+room: 
+prof_name: 황보제민
+lecture_name: 
+lecture_time: 
+info:
+  - 최종학위: Ph.D., ETH Zurich(2019)
+  - 연구분야: Legged robotics, Learning-based control
+  - 연구실: 로봇지능 연구실
+  - 연구실 웹사이트: https://www.railab.kaist.ac.kr/
+  - E-mail: jhwangbo@kaist.ac.kr
+  - Phone: 042-350-3244

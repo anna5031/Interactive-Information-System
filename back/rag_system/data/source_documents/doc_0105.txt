@@ -1,0 +1,12 @@
+type: seminar_room
+building: N7
+room: 2602
+name: 해동정보홀
+info:
+  - screen_output: 프로젝터
+  - camera: O
+  - speaker: 
+  - microphone: 핸드(2ea)
+  - video_conference_enabled: O
+  - capacity: 72
+  - notes: 

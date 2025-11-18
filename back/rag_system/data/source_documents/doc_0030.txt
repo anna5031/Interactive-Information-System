@@ -1,0 +1,13 @@
+type: professor
+building: N7
+room: 6104
+prof_name: 박해원
+lecture_name: 
+lecture_time: 
+info:
+  - 최종학위: Ph.D., University of Michigan (2012)
+  - 연구분야: Control and design of dynamic robot systems,Legged locomotion robots,Bio-inspired robots
+  - 연구실: 로봇 제어 & 설계 연구실
+  - 연구실 웹사이트: https://dynamicrobot.kaist.ac.kr/
+  - E-mail: haewonpark@kaist.ac.kr
+  - Phone: 042-350-3242

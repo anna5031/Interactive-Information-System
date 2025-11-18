@@ -1,0 +1,13 @@
+type: professor
+building: N7
+room: 5201
+prof_name: 김정
+lecture_name: 
+lecture_time: 
+info:
+  - 최종학위: Ph.D., MIT (2004)
+  - 연구분야: Biorobotics, Bioinstrumentation, Haptics, Physical HRI
+  - 연구실: 생체기계 연구실
+  - 연구실 웹사이트: http://biorobotics.kaist.ac.kr/
+  - E-mail: jungkim@kaist.ac.kr
+  - Phone: 042-350-3231
