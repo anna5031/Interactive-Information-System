@@ -26,6 +26,7 @@ class GuardrailLLM:
     def __init__(self, config: GuardrailConfig | None = None) -> None:
         self.config = config or GuardrailConfig()
         self.client = ChatGroq(model_name=self.config.model_name, temperature=0)
+        self.structured = self.client.with_structured_output(GuardrailVerdict)
 
     def analyze(self, question: str, conversation_history: List[str]) -> GuardrailVerdict:
         history_snippet = "\n".join(conversation_history[-4:])
@@ -52,20 +53,23 @@ sanitized_question: 후속 파이프라인에서 사용할 명확한 문장
 reason: 한 줄 요약
 unsupported_reason: allowed=false일 때 작성
 """
-        response = self.client.invoke(prompt)
-        text = self._extract_content(response)
-        payload = self._parse_json(text)
         try:
-            return GuardrailVerdict(**payload)
-        except ValidationError:
-            return GuardrailVerdict(
-                allowed=False,
-                is_safe=False,
-                needs_retry=True,
-                sanitized_question=question,
-                reason="Guardrail LLM 파싱 실패",
-                unsupported_reason="guardrail_parse_error",
-            )
+            return self.structured.invoke(prompt)
+        except Exception:
+            try:
+                response = self.client.invoke(prompt)
+                text = self._extract_content(response)
+                payload = self._parse_json(text)
+                return GuardrailVerdict(**payload)
+            except Exception:
+                return GuardrailVerdict(
+                    allowed=False,
+                    is_safe=False,
+                    needs_retry=True,
+                    sanitized_question=question,
+                    reason="Guardrail LLM 호출 실패",
+                    unsupported_reason=None,
+                )
 
     @staticmethod
     def _extract_content(message) -> str:

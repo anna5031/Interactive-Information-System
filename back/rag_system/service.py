@@ -38,6 +38,7 @@ class SessionResult:
     documents: List[Document]
     scores: List[float]
     navigation: Dict
+    navigation_request: Dict
     processing_log: List[str]
 
 
@@ -69,12 +70,14 @@ class StreamingRAGService:
                     answer_text="",
                     needs_navigation=False,
                     navigation_payload={},
+                    navigation_request={},
                     processing_log=[],
                     abort_message="",
                 )
             )
             answer = state.get("answer_text", "")
             navigation = state.get("navigation_payload", {})
+            navigation_request = state.get("navigation_request", {})
             documents = state.get("retrieved_documents", [])
             scores = state.get("retrieval_scores", [])
             log = state.get("processing_log", [])
@@ -85,6 +88,7 @@ class StreamingRAGService:
                 documents=documents,
                 scores=list(scores or []),
                 navigation=navigation,
+                navigation_request=navigation_request,
                 processing_log=log,
             )
 
@@ -113,6 +117,10 @@ class StreamingRAGService:
             self._print_similarity(result)
             if result.navigation.get("success"):
                 print("경로 안내:", result.navigation["message"])
+            elif result.navigation_request.get("destination"):
+                dest = result.navigation_request.get("destination")
+                origin = "예시 시작점"
+                print(f"경로 안내 대기: 출발 {origin or '알 수 없음'} → 도착 {dest}")
 
     async def _prompt(self, timeout: int | None = None) -> str:
         loop = asyncio.get_event_loop()
@@ -127,9 +135,9 @@ class StreamingRAGService:
     @staticmethod
     def _print_similarity(result: SessionResult) -> None:
         if not result.documents:
-            print("검색된 문서가 없습니다.")
+            print("🔍 검색된 문서가 없습니다.")
             return
-        print("검색 문서 유사도:")
+        print("🔍 검색 문서 유사도:")
         for idx, (doc, score) in enumerate(zip(result.documents, result.scores), start=1):
             source = doc.metadata.get("doc_id") or doc.metadata.get("source") or doc.page_content[:30]
             print(f"  {idx}. score={score:.3f} source={source}")

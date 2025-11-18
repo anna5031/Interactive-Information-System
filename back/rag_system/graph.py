@@ -79,25 +79,29 @@ class RagWorkflowBuilder:
             )
             output = self.answer_llm.generate(state["sanitized_question"], docs_preview, self.indoor_map, history_digest)
             base_answer = output.final_answer.strip()
-            if not base_answer.endswith("추가 질문이 있다면 물어봐 주세요."):
-                base_answer = f"{base_answer}\n\n추가 질문이 있다면 물어봐 주세요."
-            logs = [
-                "Answer generated.",
-                f"Navigation trigger: {output.navigation_trigger or 'None'}",
-            ]
+            logs = ["Answer generated."]
+            nav_request: Dict[str, str] = {}
+            if output.needs_navigation:
+                logs.append(f"Navigation trigger: {output.navigation_trigger or '요청됨'}")
+                if output.destination_room:
+                    nav_request["destination"] = output.destination_room
+                # if output.origin_room:
+                #     nav_request["origin"] = output.origin_room
+            else:
+                logs.append("Navigation not required.")
             return {
                 "answer_text": base_answer,
                 "needs_navigation": bool(output.needs_navigation),
+                "navigation_request": nav_request if nav_request else {},
                 "processing_log": logs,
             }
-
+        
+        #todo: origin 바꾸기.
         async def navigation_node(state: RagState) -> RagState:
-            destination = None
-            for doc in state.get("retrieved_documents", []):
-                if "호" in doc.page_content:
-                    destination = doc.metadata.get("room") or doc.metadata.get("doc_id")
-                    break
-            nav_result = find_route(destination)
+            request = state.get("navigation_request") or {}
+            destination = request.get("destination")
+            origin = "예시 시작점"
+            nav_result = find_route(origin, destination)
             updated_answer = state.get("answer_text", "")
             if nav_result.get("success"):
                 updated_answer = f"{updated_answer}\n\n경로 안내: {nav_result['message']}"
@@ -109,6 +113,7 @@ class RagWorkflowBuilder:
             return {
                 "navigation_payload": nav_result,
                 "answer_text": updated_answer,
+                "navigation_request": {},
                 "processing_log": logs,
             }
 
