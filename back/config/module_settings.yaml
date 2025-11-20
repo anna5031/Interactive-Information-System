@@ -1,0 +1,15 @@
+projector:
+  axis2light_offset_vector: [50.0, 0.0, 150.0]  # 빔프로젝터 광선과 tilt 회전축 간 오프셋 벡터 mm
+  intrinsic:
+    width_px: 3840
+    height_px: 2160
+    horizontal_fov_deg: 45.0
+motor:
+  pan:
+    min_deg: 0.0
+    max_deg: 180.0
+    init_deg: 63.0
+  tilt:
+    min_deg: 50.0
+    max_deg: 170.0
+    init_deg: 111.0
