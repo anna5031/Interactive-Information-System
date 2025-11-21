@@ -30,4 +30,5 @@ rag_system/.env
 rag_system/chroma_db/
 rag_system/hf_cache/
 rag_system/onnx_model/
+rag_system/onnx_reranker/
 .env

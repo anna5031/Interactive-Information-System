@@ -66,11 +66,18 @@ class LocalVectorIndex:
             raise RuntimeError("임베딩 데이터를 로드하지 못했습니다.")
         return self._embeddings
 
-    def search(self, query: str, top_k: int = 10) -> List[ScoredDocument]:
+    def search(self, query: str, top_k: int | None = 10) -> List[ScoredDocument]:
         if not self.documents:
             return []
         embedder = get_embedding_model()
         query_vec = np.array(embedder.embed_query(query), dtype=np.float32)
         scores = self.embeddings @ query_vec
-        top_indices = np.argsort(scores)[::-1][:top_k]
+        total = len(scores)
+        if total == 0:
+            return []
+        if top_k is None or top_k <= 0 or top_k > total:
+            k = total
+        else:
+            k = top_k
+        top_indices = np.argsort(scores)[::-1][:k]
         return [ScoredDocument(self.documents[idx], float(scores[idx])) for idx in top_indices]

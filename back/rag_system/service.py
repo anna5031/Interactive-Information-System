@@ -28,7 +28,6 @@ def build_index_from_source() -> None:
 @dataclass(slots=True)
 class SessionConfig:
     idle_timeout_seconds: int = 7
-    relative_threshold: float = INDEX_CONFIG.relative_threshold
 
 
 @dataclass
@@ -64,11 +63,13 @@ class StreamingRAGService:
                 RagState(
                     question=question,
                     sanitized_question=question,
+                    question_type="INFORMATION",
                     conversation_history=list(self._conversation_history),
                     guardrail_reason="",
                     needs_retry=False,
                     retrieved_documents=[],
                     retrieval_scores=[],
+                    retrieval_max_score=0.0,
                     answer_text="",
                     needs_navigation=False,
                     navigation_payload={},
