@@ -1,0 +1,14 @@
+projector:
+  axis_height: 1350 #mm
+nudge: # nudge plane = ceiling
+  plane_normal_vector: [0.0, 0.0, 1.0]  # nudge 평면 법선 벡터
+  plane_displacement: 1200
+  screen_width: 354.0    # nudge 스크린 폭 mm
+  screen_ratio: 0.5625   # nudge 스크린 가로세로 비율
+qa:
+  plane_normal_vec: [0.0, 0.0, 1.0]  # 천장 법선 벡터
+  plane_displacement: 400.0    # 천장과 빔프로젝터 광선 교차점 거리 mm
+  screen_width: 354.0    # 스크린 폭 mm
+  screen_ratio: 0.5625
+  pan: 63
+  tilt: 111

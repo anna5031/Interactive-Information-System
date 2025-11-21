@@ -1,0 +1,38 @@
+# Microphone device selection and audio capture defaults
+microphone:
+  selection_mode: priority
+  priority_device_names:
+    - AirPods
+    - MacBook
+    - FIFNE
+  fallback_to_auto: true
+  auto_priority:
+    - label: USB microphone
+      keywords: [usb, microphone, mic, headset, webcam]
+    - label: PulseAudio default
+      keywords: [pulse, default]
+  audio:
+    chunk_size: 1024
+    dtype: int16
+    channels: 1
+    sample_rate: 16000
+    silence_threshold: 500
+    silence_duration: 2.0
+
+# Speaker device selection preferences (matches DeviceManager priority search)
+speaker:
+  priority_device_names:
+    - HD Audio
+    - External Speaker
+
+# Camera source and frame size preferences
+camera:
+  source: 0          # 0 for default webcam, or path like "/dev/video0"
+  frame_size: [1280, 720]
+
+# Arduino serial connection defaults
+arduino:
+  serial:
+    port: /dev/ttyACM0
+    baudrate: 115200
+    timeout: 1.0
