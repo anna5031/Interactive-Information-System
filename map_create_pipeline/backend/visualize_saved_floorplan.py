@@ -13,7 +13,8 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
 
-from processing.yolo_out_to_graph import FloorPlanVisualizer
+from processing.object_detection_out_to_graph import FloorPlanVisualizer
+
 
 def load_objects(objects_path: Path) -> Dict[str, List[Dict[str, Any]]]:
     raw = json.loads(objects_path.read_text(encoding="utf-8"))
@@ -83,7 +84,7 @@ def main() -> None:
         "--bundle-dir",
         type=Path,
         required=True,
-        help="map_create_pipeline/backend/data/<request_id> 경로",
+        help="map_create_pipeline/backend/data/<user_id>/<request_id> 경로",
     )
     parser.add_argument(
         "--output",
@@ -95,11 +96,13 @@ def main() -> None:
         action="store_true",
         help="창을 띄우지 않고 파일만 저장합니다.",
     )
+
     args = parser.parse_args()
     bundle_dir: Path = args.bundle_dir.resolve()
 
     objects_path = bundle_dir / "floorplan_objects.json"
-    graph_path = bundle_dir / "navigation_graph.json"
+    graph_candidates = sorted(bundle_dir.glob("navigation_graph_*.json"))
+    graph_path = graph_candidates[0] if graph_candidates else bundle_dir / "navigation_graph.json"
 
     if not objects_path.exists():
         raise FileNotFoundError(f"objects 파일이 없습니다: {objects_path}")

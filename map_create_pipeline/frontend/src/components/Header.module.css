@@ -1,0 +1,28 @@
+.topbar {
+  width: 100%;
+  height: 64px;
+  display: flex;
+  align-items: center;
+}
+
+.container {
+  width: 100%;
+  margin: 0;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.logoArea {
+  display: flex;
+  align-items: center;
+}
+
+.logoText {
+  font-family: 'Nanum Brush Script', serif;
+  font-size: 32px;
+  line-height: 21px;
+  letter-spacing: -0.32px;
+  color: #000000;
+}

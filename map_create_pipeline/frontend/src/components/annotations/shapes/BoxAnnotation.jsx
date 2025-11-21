@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import styles from '../AnnotationCanvas.module.css';
+import { BOX_BORDER_WIDTH, BOX_BORDER_OFFSET, BOX_BORDER_EXTEND } from '../boxDrawingConstants';
 
 const CORNERS = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
 const CURSOR_MAP = {
@@ -15,9 +16,8 @@ const EDGE_CURSOR_MAP = {
   left: 'ew-resize',
   right: 'ew-resize',
 };
-const BORDER_WIDTH = 2;
-const BORDER_OFFSET = BORDER_WIDTH / 2;
-const BORDER_EXTEND = 1;
+const HANDLE_SCREEN_SIZE = 10;
+const HANDLE_BORDER_WIDTH = 2;
 
 const BoxAnnotation = ({
   box,
@@ -28,47 +28,57 @@ const BoxAnnotation = ({
   onPointerUp,
   onResizePointerDown,
   onResizePointerMove,
+  viewportScale = 1,
 }) => {
   const baseColor = label?.color || '#f59e0b';
+  const safeScale = Number.isFinite(viewportScale) && viewportScale > 0 ? viewportScale : 1;
+  const handleSize = HANDLE_SCREEN_SIZE / safeScale;
+  const handleBorderWidth = HANDLE_BORDER_WIDTH / safeScale;
+  const handleDimensions = {
+    width: `${handleSize}px`,
+    height: `${handleSize}px`,
+    borderWidth: `${handleBorderWidth}px`,
+  };
   const edgeStrokeStyle = (edge) => {
     const color = baseColor;
+    const strokeThickness = `${BOX_BORDER_WIDTH}px`;
 
     switch (edge) {
       case 'left':
         return {
-          top: `-${BORDER_EXTEND}px`,
-          bottom: `-${BORDER_EXTEND}px`,
+          top: `-${BOX_BORDER_EXTEND}px`,
+          bottom: `-${BOX_BORDER_EXTEND}px`,
           left: 0,
-          width: BORDER_WIDTH,
-          transform: `translateX(-${BORDER_OFFSET}px)`,
+          width: strokeThickness,
+          transform: `translateX(-${BOX_BORDER_OFFSET}px)`,
           backgroundColor: color,
         };
       case 'right':
         return {
-          top: `-${BORDER_EXTEND}px`,
-          bottom: `-${BORDER_EXTEND}px`,
+          top: `-${BOX_BORDER_EXTEND}px`,
+          bottom: `-${BOX_BORDER_EXTEND}px`,
           left: '100%',
-          width: BORDER_WIDTH,
-          transform: `translateX(-${BORDER_OFFSET}px)`,
+          width: strokeThickness,
+          transform: `translateX(-${BOX_BORDER_OFFSET}px)`,
           backgroundColor: color,
         };
       case 'top':
         return {
-          left: `-${BORDER_OFFSET}px`,
-          right: `-${BORDER_OFFSET}px`,
+          left: `-${BOX_BORDER_OFFSET}px`,
+          right: `-${BOX_BORDER_OFFSET}px`,
           top: 0,
-          height: BORDER_WIDTH,
-          transform: `translateY(-${BORDER_OFFSET}px)`,
+          height: strokeThickness,
+          transform: `translateY(-${BOX_BORDER_OFFSET}px)`,
           backgroundColor: color,
         };
       case 'bottom':
       default:
         return {
-          left: `-${BORDER_OFFSET}px`,
-          right: `-${BORDER_OFFSET}px`,
+          left: `-${BOX_BORDER_OFFSET}px`,
+          right: `-${BOX_BORDER_OFFSET}px`,
           top: '100%',
-          height: BORDER_WIDTH,
-          transform: `translateY(-${BORDER_OFFSET}px)`,
+          height: strokeThickness,
+          transform: `translateY(-${BOX_BORDER_OFFSET}px)`,
           backgroundColor: color,
         };
     }
@@ -157,15 +167,13 @@ const BoxAnnotation = ({
           style={edgeStrokeStyle(edge)}
         />
       ))}
-      <span className={styles.label} style={{ backgroundColor: baseColor }}>
-        {label?.name || box.labelId}
-      </span>
       {isSelected &&
         CORNERS.map((corner) => {
           // const [vertical, horizontal] = corner.split('-');
           const cursor = CURSOR_MAP[corner] || 'pointer';
           const style = {
             ...cornerStyle(corner),
+            ...handleDimensions,
             cursor,
           };
 
@@ -186,6 +194,7 @@ const BoxAnnotation = ({
           const cursor = EDGE_CURSOR_MAP[edge] || 'pointer';
           const style = {
             ...edgeStyle(edge),
+            ...handleDimensions,
             cursor,
           };
 
@@ -226,10 +235,12 @@ BoxAnnotation.propTypes = {
   onPointerUp: PropTypes.func.isRequired,
   onResizePointerDown: PropTypes.func.isRequired,
   onResizePointerMove: PropTypes.func.isRequired,
+  viewportScale: PropTypes.number,
 };
 
 BoxAnnotation.defaultProps = {
   label: undefined,
+  viewportScale: 1,
 };
 
 export default BoxAnnotation;

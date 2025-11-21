@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import styles from './StepTwoCanvas.module.css';
 
 const NODE_COLORS = {
@@ -24,9 +24,134 @@ const StepTwoCanvas = ({
   error,
   showRoomLabels,
   showDoorLabels,
+  enableNodeDrag,
+  onNodePositionChange,
+  draggableNodeTypes,
+  selectedGraphNodeIds = [],
+  showStairLabels,
+  showElevatorLabels,
+  onSelectEdge,
 }) => {
   const width = Math.max(imageSize?.width ?? 1000, 1);
   const height = Math.max(imageSize?.height ?? 1000, 1);
+  const svgRef = useRef(null);
+  const dragStateRef = useRef(null);
+
+  const effectiveShowStairLabels =
+    typeof showStairLabels === 'boolean' ? showStairLabels : showDoorLabels;
+  const effectiveShowElevatorLabels =
+    typeof showElevatorLabels === 'boolean' ? showElevatorLabels : showDoorLabels;
+
+  useEffect(() => {
+    return () => {
+      if (dragStateRef.current) {
+        window.removeEventListener('pointermove', dragStateRef.current.moveHandler);
+        window.removeEventListener('pointerup', dragStateRef.current.upHandler);
+      }
+    };
+  }, []);
+
+  const clamp = (value, min, max) => {
+    if (!Number.isFinite(value)) {
+      return min;
+    }
+    return Math.min(Math.max(value, min), max);
+  };
+
+  const isNodeDraggable = (node) => {
+    if (!enableNodeDrag) {
+      return false;
+    }
+    if (!Array.isArray(node?.pos) || node.pos.length < 2) {
+      return false;
+    }
+    if (typeof node?.id === 'string' && node.id.startsWith('door_')) {
+      return false;
+    }
+    if (!draggableNodeTypes || draggableNodeTypes.length === 0) {
+      return true;
+    }
+    const normalized = (node.type || '').toLowerCase();
+    return draggableNodeTypes.includes(normalized);
+  };
+
+  const toCanvasCoordinates = (clientX, clientY) => {
+    const svgElement = svgRef.current;
+    if (!svgElement) {
+      return null;
+    }
+    const rect = svgElement.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) {
+      return null;
+    }
+    const scaleX = width / rect.width;
+    const scaleY = height / rect.height;
+    return {
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY,
+    };
+  };
+
+  const attachGlobalHandlers = () => {
+    const moveHandler = (event) => {
+      const dragState = dragStateRef.current;
+      if (!dragState || !dragState.nodeId || !enableNodeDrag || !onNodePositionChange) {
+        return;
+      }
+      const coords = toCanvasCoordinates(event.clientX, event.clientY);
+      if (!coords) {
+        return;
+      }
+      const newX = clamp(coords.x - dragState.offsetX, 0, width);
+      const newY = clamp(coords.y - dragState.offsetY, 0, height);
+      dragState.lastPosition = [newX, newY];
+      onNodePositionChange(dragState.nodeId, [newX, newY]);
+    };
+
+    const upHandler = () => {
+      const dragState = dragStateRef.current;
+      dragStateRef.current = null;
+      window.removeEventListener('pointermove', moveHandler);
+      window.removeEventListener('pointerup', upHandler);
+      if (dragState?.onComplete) {
+        dragState.onComplete();
+      }
+    };
+
+    window.addEventListener('pointermove', moveHandler);
+    window.addEventListener('pointerup', upHandler);
+
+    dragStateRef.current = {
+      ...dragStateRef.current,
+      moveHandler,
+      upHandler,
+    };
+  };
+
+  const handleNodePointerDown = (node, event) => {
+    if (!isNodeDraggable(node) || typeof onNodePositionChange !== 'function') {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    const svgElement = svgRef.current;
+    if (!svgElement) {
+      return;
+    }
+    const coords = toCanvasCoordinates(event.clientX, event.clientY);
+    if (!coords) {
+      return;
+    }
+    const offsetX = coords.x - Number(node.x ?? 0);
+    const offsetY = coords.y - Number(node.y ?? 0);
+
+    dragStateRef.current = {
+      nodeId: node.id,
+      offsetX,
+      offsetY,
+    };
+    attachGlobalHandlers();
+  };
 
   const nodeMap = useMemo(() => {
     const map = new Map();
@@ -53,22 +178,56 @@ const StepTwoCanvas = ({
     return new Set([selectedRoomId]);
   }, [selectedRoomId]);
 
+  const doorEndpointsByDoor = useMemo(() => {
+    const map = new Map();
+    (graph?.nodes ?? []).forEach((node) => {
+      if ((node?.type || '').toLowerCase() !== 'door_endpoints') {
+        return;
+      }
+      const links = node?.attributes?.door_link_ids || node?.attributes?.doorLinkIds || [];
+      links.forEach((rawId) => {
+        const normalized =
+          typeof rawId === 'number'
+            ? `door_${rawId}`
+            : String(rawId).startsWith('door_')
+              ? String(rawId)
+              : `door_${rawId}`;
+        if (!map.has(normalized)) {
+          map.set(normalized, new Set());
+        }
+        map.get(normalized).add(node.id);
+      });
+    });
+    return map;
+  }, [graph]);
+
   const selectedDoorNodeIds = useMemo(() => {
     const set = new Set();
-    if (!selectedDoorId) {
-      return set;
+    const doorIds = new Set(
+      (selectedGraphNodeIds || []).filter((nodeId) => typeof nodeId === 'string' && nodeId.startsWith('door_'))
+    );
+    if (selectedDoorId) {
+      doorIds.add(selectedDoorId);
     }
-    set.add(selectedDoorId);
-    (graph?.edges ?? []).forEach((edge) => {
-      if (edge.source === selectedDoorId && edge.target.startsWith('door_endpoints')) {
-        set.add(edge.target);
-      }
-      if (edge.target === selectedDoorId && edge.source.startsWith('door_endpoints')) {
-        set.add(edge.source);
+    doorIds.forEach((doorId) => {
+      set.add(doorId);
+      const endpoints = doorEndpointsByDoor.get(doorId);
+      if (endpoints) {
+        endpoints.forEach((endpointId) => set.add(endpointId));
       }
     });
     return set;
-  }, [selectedDoorId, graph]);
+  }, [selectedDoorId, selectedGraphNodeIds, doorEndpointsByDoor]);
+
+  const selectedGraphNodesSet = useMemo(
+    () => new Set(selectedGraphNodeIds || []),
+    [selectedGraphNodeIds]
+  );
+
+  const selectedPair =
+    Array.isArray(selectedGraphNodeIds) && selectedGraphNodeIds.length === 2
+      ? [selectedGraphNodeIds[0], selectedGraphNodeIds[1]]
+      : null;
 
   const edgeSegments = useMemo(() => {
     if (!graph?.edges?.length) {
@@ -90,11 +249,19 @@ const StepTwoCanvas = ({
         if (connectsRoomDoor) {
           return null;
         }
+        const connectsSelectedPair =
+          selectedPair &&
+          ((edge.source === selectedPair[0] && edge.target === selectedPair[1]) ||
+            (edge.source === selectedPair[1] && edge.target === selectedPair[0]));
         const isActive =
-          selectedRoomNodeIds.has(edge.source) ||
-          selectedRoomNodeIds.has(edge.target) ||
-          selectedDoorNodeIds.has(edge.source) ||
-          selectedDoorNodeIds.has(edge.target);
+          selectedPair != null
+            ? connectsSelectedPair
+            : selectedRoomNodeIds.has(edge.source) ||
+              selectedRoomNodeIds.has(edge.target) ||
+              selectedDoorNodeIds.has(edge.source) ||
+              selectedDoorNodeIds.has(edge.target) ||
+              selectedGraphNodesSet.has(edge.source) ||
+              selectedGraphNodesSet.has(edge.target);
         return {
           key: `${edge.source}-${edge.target}-${index}`,
           x1: source.x,
@@ -102,10 +269,12 @@ const StepTwoCanvas = ({
           x2: target.x,
           y2: target.y,
           active: isActive,
+          sourceId: edge.source,
+          targetId: edge.target,
         };
       })
       .filter(Boolean);
-  }, [graph, nodeMap, selectedRoomNodeIds, selectedDoorNodeIds]);
+  }, [graph, nodeMap, selectedRoomNodeIds, selectedDoorNodeIds, selectedGraphNodesSet, selectedPair]);
 
   const nodeList = useMemo(() => Array.from(nodeMap.values()), [nodeMap]);
 
@@ -119,8 +288,33 @@ const StepTwoCanvas = ({
     onSelectEntity?.({ type: 'room', nodeId });
   };
 
-  const handleDoorClick = (nodeId) => {
-    onSelectEntity?.({ type: 'door', nodeId });
+const handleDoorClick = (nodeId) => {
+  onSelectEntity?.({ type: 'door', nodeId });
+};
+
+  const handleStairClick = (nodeId) => {
+    if (!enableNodeDrag) {
+      return;
+    }
+    onSelectEntity?.({ type: 'graph-node', nodeId });
+  };
+
+  const handleElevatorClick = (nodeId) => {
+    if (!enableNodeDrag) {
+      return;
+    }
+    onSelectEntity?.({ type: 'graph-node', nodeId });
+  };
+
+  const handleEdgeClick = (edge, event) => {
+    if (!onSelectEdge) {
+      return;
+    }
+    event.stopPropagation();
+    if (!edge?.sourceId || !edge?.targetId) {
+      return;
+    }
+    onSelectEdge({ source: edge.sourceId, target: edge.targetId });
   };
 
   const handleNodeClick = (node) => {
@@ -128,6 +322,8 @@ const StepTwoCanvas = ({
       onSelectEntity?.({ type: 'room', nodeId: node.id });
     } else if (node.id.startsWith('door_')) {
       onSelectEntity?.({ type: 'door', nodeId: node.id });
+    } else {
+      onSelectEntity?.({ type: 'graph-node', nodeId: node.id });
     }
   };
 
@@ -143,6 +339,7 @@ const StepTwoCanvas = ({
     <div className={styles.canvasWrapper}>
       {error && <div className={styles.errorBanner}>{error}</div>}
       <svg
+        ref={svgRef}
         className={styles.svgCanvas}
         viewBox={`0 0 ${width} ${height}`}
         preserveAspectRatio='xMidYMid meet'
@@ -189,13 +386,79 @@ const StepTwoCanvas = ({
           );
         })}
 
-        {stairs.map((stair) => (
-          <polygon key={stair.id} points={stair.polygon} className={styles.stairPolygon} />
-        ))}
+        {stairs.map((stair) => {
+          const nodeId = stair.nodeId || stair.id;
+          const isSelected = selectedGraphNodesSet.has(nodeId);
+          const stairLabel = stair.label ?? stair.id;
+          return (
+            <g key={stair.id}>
+              <polygon
+                points={stair.polygon}
+                className={`${styles.stairPolygon} ${isSelected ? styles.stairPolygonSelected : ''}`}
+                onClick={(event) => {
+                  if (!enableNodeDrag) {
+                    return;
+                  }
+                  event.stopPropagation();
+                  handleStairClick(nodeId);
+                }}
+              />
+              {effectiveShowStairLabels && stairLabel && stair.centroid && (
+                <text
+                  x={stair.centroid[0]}
+                  y={stair.centroid[1]}
+                  className={styles.stairLabel}
+                  onClick={(event) => {
+                    if (!enableNodeDrag) {
+                      return;
+                    }
+                    event.stopPropagation();
+                    handleStairClick(nodeId);
+                  }}
+                >
+                  {stairLabel}
+                </text>
+              )}
+            </g>
+          );
+        })}
 
-        {elevators.map((elevator) => (
-          <polygon key={elevator.id} points={elevator.polygon} className={styles.elevatorPolygon} />
-        ))}
+        {elevators.map((elevator) => {
+          const nodeId = elevator.nodeId || elevator.id;
+          const isSelected = selectedGraphNodesSet.has(nodeId);
+          const elevatorLabel = elevator.label ?? elevator.id;
+          return (
+            <g key={elevator.id}>
+              <polygon
+                points={elevator.polygon}
+                className={`${styles.elevatorPolygon} ${isSelected ? styles.elevatorPolygonSelected : ''}`}
+                onClick={(event) => {
+                  if (!enableNodeDrag) {
+                    return;
+                  }
+                  event.stopPropagation();
+                  handleElevatorClick(nodeId);
+                }}
+              />
+              {effectiveShowElevatorLabels && elevatorLabel && elevator.centroid && (
+                <text
+                  x={elevator.centroid[0]}
+                  y={elevator.centroid[1]}
+                  className={styles.elevatorLabel}
+                  onClick={(event) => {
+                    if (!enableNodeDrag) {
+                      return;
+                    }
+                    event.stopPropagation();
+                    handleElevatorClick(nodeId);
+                  }}
+                >
+                  {elevatorLabel}
+                </text>
+              )}
+            </g>
+          );
+        })}
 
         {edgeSegments.map((edge) => (
           <line
@@ -204,12 +467,20 @@ const StepTwoCanvas = ({
             y1={edge.y1}
             x2={edge.x2}
             y2={edge.y2}
-            className={`${styles.graphEdge} ${edge.active ? styles.graphEdgeActive : ''}`}
+            className={`${styles.graphEdge} ${edge.active ? styles.graphEdgeActive : ''} ${
+              onSelectEdge ? styles.graphEdgeSelectable : ''
+            }`}
+            onClick={(event) => handleEdgeClick(edge, event)}
           />
         ))}
 
         {doors.map((door) => {
-          const isSelected = selectedDoorId === door.nodeId;
+          const isSelected = selectedDoorId === door.nodeId || selectedGraphNodesSet.has(door.nodeId);
+          const labelNumber = door.index != null ? Math.max(0, door.index - 1) : null;
+          const doorLabelText =
+            labelNumber != null
+              ? `door ${labelNumber}`
+              : door.label ?? (door.nodeId?.replace(/^door_/, '') || door.nodeId);
           if (door.polygon) {
             const centroid = door.centroid ?? null;
             return (
@@ -222,7 +493,7 @@ const StepTwoCanvas = ({
                     handleDoorClick(door.nodeId);
                   }}
                 />
-                {showDoorLabels && door.label && centroid && (
+                {showDoorLabels && doorLabelText && centroid && (
                   <text
                     x={centroid[0]}
                     y={centroid[1] - 8}
@@ -232,7 +503,7 @@ const StepTwoCanvas = ({
                       handleDoorClick(door.nodeId);
                     }}
                   >
-                    {door.label}
+                    {doorLabelText}
                   </text>
                 )}
               </g>
@@ -253,7 +524,7 @@ const StepTwoCanvas = ({
                     handleDoorClick(door.nodeId);
                   }}
                 />
-                {showDoorLabels && door.label && (
+                {showDoorLabels && doorLabelText && (
                   <text
                     x={cx}
                     y={cy - radius - 6}
@@ -263,7 +534,7 @@ const StepTwoCanvas = ({
                       handleDoorClick(door.nodeId);
                     }}
                   >
-                    {door.label}
+                    {doorLabelText}
                   </text>
                 )}
               </g>
@@ -290,25 +561,28 @@ const StepTwoCanvas = ({
               ? 2.2
               : 2.6;
           const isSelected =
-            selectedRoomNodeIds.has(node.id) || selectedDoorNodeIds.has(node.id);
-          const isSelectable = false;
+            selectedGraphNodesSet.has(node.id) ||
+            selectedRoomNodeIds.has(node.id) ||
+            selectedDoorNodeIds.has(node.id);
+          const isSelectable = enableNodeDrag && isNodeDraggable(node);
           return (
             <circle
               key={node.id}
               cx={node.x}
               cy={node.y}
-            r={radius}
-            className={`${styles.graphNode} ${isSelected ? styles.graphNodeSelected : ''} ${
-              isSelectable ? styles.graphNodeSelectable : ''
-            }`}
-            style={{ fill: color }}
-            onClick={(event) => {
+              r={radius}
+              className={`${styles.graphNode} ${isSelected ? styles.graphNodeSelected : ''} ${
+                isSelectable ? styles.graphNodeSelectable : ''
+              }`}
+              style={{ fill: color }}
+              onClick={(event) => {
                 if (!isSelectable) {
                   return;
                 }
                 event.stopPropagation();
                 handleNodeClick(node);
               }}
+              onPointerDown={(event) => handleNodePointerDown(node, event)}
             />
           );
         })}
@@ -354,13 +628,19 @@ StepTwoCanvas.propTypes = {
   stairs: PropTypes.arrayOf(
     PropTypes.shape({
       id: PropTypes.string.isRequired,
+      nodeId: PropTypes.string,
       polygon: PropTypes.string.isRequired,
+      centroid: PropTypes.arrayOf(PropTypes.number),
+      label: PropTypes.string,
     })
   ),
   elevators: PropTypes.arrayOf(
     PropTypes.shape({
       id: PropTypes.string.isRequired,
+      nodeId: PropTypes.string,
       polygon: PropTypes.string.isRequired,
+      centroid: PropTypes.arrayOf(PropTypes.number),
+      label: PropTypes.string,
     })
   ),
   selectedEntity: PropTypes.shape({
@@ -372,6 +652,13 @@ StepTwoCanvas.propTypes = {
   error: PropTypes.string,
   showRoomLabels: PropTypes.bool,
   showDoorLabels: PropTypes.bool,
+  enableNodeDrag: PropTypes.bool,
+  onNodePositionChange: PropTypes.func,
+  draggableNodeTypes: PropTypes.arrayOf(PropTypes.string),
+  selectedGraphNodeIds: PropTypes.arrayOf(PropTypes.string),
+  showStairLabels: PropTypes.bool,
+  showElevatorLabels: PropTypes.bool,
+  onSelectEdge: PropTypes.func,
 };
 
 StepTwoCanvas.defaultProps = {
@@ -388,6 +675,13 @@ StepTwoCanvas.defaultProps = {
   error: null,
   showRoomLabels: true,
   showDoorLabels: true,
+  enableNodeDrag: false,
+  onNodePositionChange: null,
+  draggableNodeTypes: undefined,
+  selectedGraphNodeIds: [],
+  showStairLabels: undefined,
+  showElevatorLabels: undefined,
+  onSelectEdge: undefined,
 };
 
 export default StepTwoCanvas;

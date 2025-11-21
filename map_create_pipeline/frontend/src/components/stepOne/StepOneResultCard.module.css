@@ -6,7 +6,10 @@
   border-radius: 16px;
   background: white;
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+  position: relative;
 }
 
 .card:hover {
@@ -45,10 +48,24 @@
   color: #0f172a;
 }
 
+.requestId {
+  margin-left: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  font-family: 'Fira Code', monospace;
+}
+
 .subtitle {
   margin: 0;
   font-size: 12px;
   color: #64748b;
+}
+
+.fileInfo {
+  margin: 0;
+  font-size: 11px;
+  color: #94a3b8;
 }
 
 .metrics {
@@ -92,15 +109,46 @@
   color: #dc2626;
 }
 
+.stageStatusList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.stageStatusItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  background: rgba(148, 163, 184, 0.2);
+  color: #475569;
+}
+
+.stageStatusItem strong {
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+
+.stageStatusReady {
+  background: rgba(34, 197, 94, 0.15);
+  color: #15803d;
+}
+
+.stageStatusPending {
+  background: rgba(248, 113, 113, 0.15);
+  color: #b45309;
+}
+
 .actions {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.primaryButton,
-.secondaryButton,
-.mutedButton {
+.actionButton {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -111,45 +159,100 @@
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+  color: #e2e8f0;
+  background: #1f2937;
 }
 
-.primaryButton {
-  background: linear-gradient(135deg, #22c55e, #16a34a);
-  color: white;
-}
-
-.primaryButton:hover {
+.actionButton:hover {
   transform: translateY(-1px);
-  box-shadow: 0 12px 24px rgba(22, 163, 74, 0.25);
 }
 
-.secondaryButton {
-  background: rgba(37, 99, 235, 0.12);
-  color: #1d4ed8;
+.editButton {
+  background: linear-gradient(135deg, #15803d, #16a34a);
+  color: #ecfdf5;
 }
 
-.secondaryButton:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 10px 18px rgba(37, 99, 235, 0.2);
+.editButton:hover {
+  box-shadow: 0 12px 26px rgba(22, 163, 74, 0.35);
 }
 
-.mutedButton {
-  background: rgba(148, 163, 184, 0.25);
-  color: #475569;
+.graphButton {
+  background: linear-gradient(135deg, #0f172a, #1e293b);
+  color: #e2e8f0;
+}
+
+.graphButton:hover {
+  box-shadow: 0 12px 28px rgba(30, 41, 59, 0.45);
+}
+
+.baseButton {
+  background: linear-gradient(135deg, #1f3a8a, #1d4ed8);
+  color: #dbeafe;
+}
+
+.baseButton:hover {
+  box-shadow: 0 12px 28px rgba(30, 64, 175, 0.45);
+}
+
+.detailButton {
+  background: linear-gradient(135deg, #5b21b6, #7c3aed);
+  color: #f3e8ff;
+}
+
+.detailButton:hover {
+  box-shadow: 0 12px 28px rgba(91, 33, 182, 0.4);
+}
+
+.deleteIconButton {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(239, 68, 68, 0.1);
+  color: #b91c1c;
   cursor: pointer;
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+  z-index: 1;
 }
 
-.mutedButton:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 10px 20px rgba(148, 163, 184, 0.2);
+.deleteIconButton:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.2);
+  transform: translateY(-2px);
 }
 
-.primaryButton:disabled,
-.secondaryButton:disabled,
-.mutedButton:disabled {
+.actionButton:disabled {
   opacity: 0.5;
   box-shadow: none;
   cursor: not-allowed;
   transform: none;
+}
+
+.deleteIconButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.deleteSpinner {
+  animation: cardDeleteSpin 0.8s linear infinite;
+}
+
+@keyframes cardDeleteSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }

@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import { Trash2, SquarePlus } from 'lucide-react';
 import LABEL_CONFIG, { getLabelById, isLineLabel, isBoxLabel, isPointLabel } from '../../config/annotationConfig';
+import { createDefaultWallFilter } from '../../utils/wallFilter';
 import styles from './AnnotationSidebar.module.css';
 
 const formatPercentage = (value) => `${(value * 100).toFixed(1)}%`;
@@ -28,6 +29,9 @@ const AnnotationSidebar = ({
   onToggleLabelVisibility,
   isLineLabelActive,
   isPointLabelActive,
+  wallFilter,
+  wallFilterStats,
+  onWallFilterChange,
 }) => {
   const handleSelectBox = (box) => onSelect?.({ type: 'box', id: box.id });
   const handleSelectLine = (line) => onSelect?.({ type: 'line', id: line.id });
@@ -54,15 +58,146 @@ const AnnotationSidebar = ({
   const helperMessage = isLineLabelActive
     ? '화면에서 선을 그리고 놓으면 선이 추가됩니다.'
     : isPointLabelActive
-    ? '벽이나 박스의 외곽을 클릭하면 문이 추가됩니다.'
-    : '화면에서 드래그하여 박스를 추가하세요.';
+      ? '벽이나 박스의 외곽을 클릭하면 문이 추가됩니다.'
+      : '화면에서 드래그하여 박스를 추가하세요.';
+
+  const resolvedWallFilter = wallFilter ?? createDefaultWallFilter();
+  const resolvedStats = wallFilterStats ?? {
+    total: lines.length,
+    kept: lines.length,
+    removed: 0,
+    percentileValuePx: null,
+    guardLimitPx: resolvedWallFilter.minPixels ?? null,
+    thresholdPx: null,
+    sampleSize: 0,
+    minSegments: resolvedWallFilter.minSegments ?? 0,
+    applied: false,
+    reason: resolvedWallFilter.enabled ? 'NOT_READY' : 'DISABLED',
+    protectedCount: 0,
+  };
+
+  const formatPxValue = (value) => {
+    if (value === Number.POSITIVE_INFINITY) {
+      return '∞';
+    }
+    if (Number.isFinite(value) && value >= 0) {
+      return `${value.toFixed(1)} px`;
+    }
+    return null;
+  };
+
+  const thresholdLabel = (() => {
+    if (resolvedStats.reason === 'PERCENTILE_100') {
+      return '∞ (모든 벽 제거)';
+    }
+    if (resolvedStats.reason === 'PERCENTILE_100_PROTECTED') {
+      return '∞ (문 있는 벽 유지)';
+    }
+    const formatted = formatPxValue(resolvedStats.thresholdPx);
+    if (formatted) {
+      return formatted;
+    }
+    if (!resolvedWallFilter.enabled) {
+      return '비활성화됨';
+    }
+    if (resolvedStats.reason === 'NOT_ENOUGH_SEGMENTS') {
+      return `최소 ${resolvedStats.minSegments ?? 0}개 필요`;
+    }
+    if (resolvedStats.reason === 'NO_PERCENTILE') {
+      return '퍼센타일 미설정';
+    }
+    if (resolvedStats.reason === 'ZERO_PERCENTILE') {
+      return '0% (필터 꺼짐)';
+    }
+    if (resolvedStats.reason === 'NON_POSITIVE_THRESHOLD') {
+      return '길이 정보 부족';
+    }
+    return '대기 중';
+  })();
+
+  const filterHelperText = (() => {
+    if (!resolvedWallFilter.enabled) {
+      return '필터 비활성화 상태입니다.';
+    }
+    if (resolvedStats.reason === 'NOT_ENOUGH_SEGMENTS') {
+      return `선분 ${resolvedStats.minSegments ?? 0}개 이상에서 적용됩니다.`;
+    }
+    if (resolvedStats.reason === 'NO_PERCENTILE') {
+      return '퍼센타일 값을 입력하면 필터가 활성화됩니다.';
+    }
+    if (resolvedStats.reason === 'ZERO_PERCENTILE') {
+      return '퍼센타일을 0%로 설정하면 필터가 꺼집니다.';
+    }
+    if (resolvedStats.reason === 'PERCENTILE_100_PROTECTED') {
+      const protectedCount = resolvedStats.protectedCount ?? 0;
+      return protectedCount > 0
+        ? `퍼센타일 100%에서도 문이 연결된 벽 ${protectedCount}개는 유지됩니다.`
+        : '퍼센타일 100%로 모든 벽이 숨겨졌습니다.';
+    }
+    if (resolvedStats.reason === 'PROTECTED_LINES') {
+      const protectedCount = resolvedStats.protectedCount ?? 0;
+      return protectedCount > 0
+        ? `문이 연결된 벽 ${protectedCount}개는 숨기지 않습니다.`
+        : '문이 있는 벽은 항상 표시됩니다.';
+    }
+    if (resolvedStats.reason === 'PERCENTILE_100') {
+      return '퍼센타일 100%로 모든 벽이 숨겨졌습니다.';
+    }
+    if (resolvedStats.reason === 'NON_POSITIVE_THRESHOLD') {
+      return '적용 가능한 길이 정보를 찾지 못했습니다.';
+    }
+    if (resolvedStats.applied && (resolvedStats.removed ?? 0) > 0) {
+      return `${resolvedStats.removed}개의 짧은 벽이 숨겨졌습니다.`;
+    }
+    return '현재 필터를 적용할 짧은 벽이 없습니다.';
+  })();
+
+  const handleFilterToggle = (event) => {
+    onWallFilterChange?.({
+      ...resolvedWallFilter,
+      enabled: event.target.checked,
+    });
+  };
+
+  const handlePercentileChange = (event) => {
+    if (!onWallFilterChange) {
+      return;
+    }
+    const raw = event.target.value;
+    if (raw === '') {
+      onWallFilterChange({ ...resolvedWallFilter, percentile: null });
+      return;
+    }
+    const parsed = Number.parseFloat(raw);
+    onWallFilterChange({
+      ...resolvedWallFilter,
+      percentile: Number.isFinite(parsed) ? parsed : resolvedWallFilter.percentile,
+    });
+  };
+
+  const handleMinPixelsChange = (event) => {
+    if (!onWallFilterChange) {
+      return;
+    }
+    const parsed = Number.parseFloat(event.target.value);
+    onWallFilterChange({
+      ...resolvedWallFilter,
+      minPixels: Number.isFinite(parsed) ? Math.max(0, parsed) : resolvedWallFilter.minPixels,
+    });
+  };
+
+  const handleResetFilter = () => {
+    onWallFilterChange?.(createDefaultWallFilter());
+  };
 
   return (
     <aside className={styles.sidebar}>
       <div className={styles.section}>
         <h3 className={styles.heading}>라벨 추가</h3>
         <div className={styles.fieldGroup}>
-          <label className={styles.label} htmlFor='label-selector'>객체 종류</label>
+          <label className={styles.label} htmlFor='label-selector'>
+            객체 종류
+          </label>
           <select
             id='label-selector'
             className={styles.select}
@@ -86,6 +221,84 @@ const AnnotationSidebar = ({
         </button>
         {addMode && <p className={styles.helperText}>{helperMessage}</p>}
       </div>
+
+      {typeof onWallFilterChange === 'function' && (
+        <div className={styles.section}>
+          <div className={styles.headingRow}>
+            <h3 className={styles.heading}>벽 길이 필터</h3>
+            <button type='button' className={styles.helpIcon} aria-label='벽 길이 필터 설명'>
+              ?
+              <span className={styles.helpTooltip}>
+                최대 제거 선분 임계값은 퍼센타일 컷과 최대 제거 길이(px) 중 더 작은 값으로 계산됩니다. 문이 붙어 있는
+                벽은 필터링 대상이더라도 항상 화면에 표시됩니다.
+              </span>
+            </button>
+          </div>
+          <label className={styles.filterToggle}>
+            <input type='checkbox' checked={Boolean(resolvedWallFilter.enabled)} onChange={handleFilterToggle} />
+            짧은 벽 자동 제거
+          </label>
+          <div className={styles.filterControlRow}>
+            <div className={styles.fieldGroup}>
+              <label className={styles.label} htmlFor='wall-filter-percentile'>
+                퍼센타일 (%)
+              </label>
+              <input
+                id='wall-filter-percentile'
+                type='number'
+                min='0'
+                max='100'
+                step='1'
+                className={styles.numberInput}
+                value={
+                  resolvedWallFilter.percentile === null || resolvedWallFilter.percentile === undefined
+                    ? ''
+                    : resolvedWallFilter.percentile
+                }
+                onChange={handlePercentileChange}
+              />
+            </div>
+            <div className={styles.fieldGroup}>
+              <label className={styles.label} htmlFor='wall-filter-minlength'>
+                최대 제거 길이 (px)
+              </label>
+              <input
+                id='wall-filter-minlength'
+                type='number'
+                min='0'
+                step='1'
+                className={styles.numberInput}
+                value={resolvedWallFilter.minPixels ?? 0}
+                onChange={handleMinPixelsChange}
+              />
+            </div>
+          </div>
+          <div className={styles.filterStatsCard}>
+            <div className={styles.filterStatsRow}>
+              <span className={styles.statLabel}>유지/전체</span>
+              <span className={styles.statValue}>
+                {(resolvedStats.kept ?? 0).toString()} / {(resolvedStats.total ?? 0).toString()}
+              </span>
+            </div>
+            <div className={styles.filterStatsRow}>
+              <span className={styles.statLabel}>최대 제거 선분 임계값</span>
+              <span className={styles.statValue}>{thresholdLabel}</span>
+            </div>
+            <div className={styles.filterStatsRow}>
+              <span className={styles.statLabel}>샘플</span>
+              <span className={styles.statValue}>
+                {(resolvedStats.sampleSize ?? 0).toString()} / {(resolvedStats.minSegments ?? 0).toString()}
+              </span>
+            </div>
+          </div>
+          <div className={styles.filterFooter}>
+            <span className={styles.filterHelperText}>{filterHelperText}</span>
+            <button type='button' className={styles.resetButton} onClick={handleResetFilter}>
+              기본값
+            </button>
+          </div>
+        </div>
+      )}
 
       {selectedBox && (
         <div className={styles.section}>
@@ -332,7 +545,6 @@ const AnnotationSidebar = ({
           })}
         </ul>
       </div>
-
     </aside>
   );
 };
@@ -411,6 +623,25 @@ AnnotationSidebar.propTypes = {
   onToggleLabelVisibility: PropTypes.func,
   isLineLabelActive: PropTypes.bool,
   isPointLabelActive: PropTypes.bool,
+  wallFilter: PropTypes.shape({
+    enabled: PropTypes.bool,
+    percentile: PropTypes.number,
+    minPixels: PropTypes.number,
+    minSegments: PropTypes.number,
+  }),
+  wallFilterStats: PropTypes.shape({
+    total: PropTypes.number,
+    kept: PropTypes.number,
+    removed: PropTypes.number,
+    percentileValuePx: PropTypes.number,
+    guardLimitPx: PropTypes.number,
+    thresholdPx: PropTypes.number,
+    sampleSize: PropTypes.number,
+    minSegments: PropTypes.number,
+    applied: PropTypes.bool,
+    reason: PropTypes.string,
+  }),
+  onWallFilterChange: PropTypes.func,
 };
 
 AnnotationSidebar.defaultProps = {
@@ -427,6 +658,9 @@ AnnotationSidebar.defaultProps = {
   onToggleLabelVisibility: undefined,
   isLineLabelActive: false,
   isPointLabelActive: false,
+  wallFilter: null,
+  wallFilterStats: null,
+  onWallFilterChange: undefined,
 };
 
 export default AnnotationSidebar;

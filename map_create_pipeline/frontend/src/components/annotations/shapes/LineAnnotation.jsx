@@ -1,7 +1,11 @@
 import PropTypes from 'prop-types';
 import styles from '../AnnotationCanvas.module.css';
 
-const HIGHLIGHT_COLOR = '#a855f7';
+const DEFAULT_HIGHLIGHT_COLOR = '#a855f7';
+
+const HANDLE_SCREEN_RADIUS = 4;
+const DEFAULT_STROKE_WIDTH = 2;
+const DEFAULT_HIT_WIDTH = 16;
 
 const LineAnnotation = ({
   line,
@@ -9,11 +13,16 @@ const LineAnnotation = ({
   isSelected,
   isHighlighted = false,
   imageBox,
+  viewportScale = 1,
   onPointerDown,
   onPointerMove,
   onPointerUp,
   onHandlePointerDown,
   onHandlePointerMove,
+  strokeWidth = DEFAULT_STROKE_WIDTH,
+  hitStrokeWidth = DEFAULT_HIT_WIDTH,
+  handleRadius: handleRadiusInput,
+  highlightColor = DEFAULT_HIGHLIGHT_COLOR,
 }) => {
   const baseStroke = label?.color || '#f59e0b';
   const stroke = baseStroke;
@@ -21,6 +30,9 @@ const LineAnnotation = ({
   const startY = line.y1 * imageBox.height;
   const endX = line.x2 * imageBox.width;
   const endY = line.y2 * imageBox.height;
+  const safeScale = Number.isFinite(viewportScale) && viewportScale > 0 ? viewportScale : 1;
+  const resolvedHandleBase = Number.isFinite(handleRadiusInput) && handleRadiusInput > 0 ? handleRadiusInput : HANDLE_SCREEN_RADIUS;
+  const handleRadius = resolvedHandleBase / safeScale;
 
   return (
     <g className={styles.lineGroup}>
@@ -31,7 +43,7 @@ const LineAnnotation = ({
         x2={endX}
         y2={endY}
         stroke={stroke}
-        strokeWidth={2}
+        strokeWidth={strokeWidth}
         strokeLinecap='round'
         pointerEvents='none'
       />
@@ -42,7 +54,7 @@ const LineAnnotation = ({
         x2={endX}
         y2={endY}
         stroke='transparent'
-        strokeWidth={16}
+        strokeWidth={hitStrokeWidth}
         strokeLinecap='round'
         className={styles.line}
         onPointerDown={(event) => onPointerDown(event, line)}
@@ -55,7 +67,7 @@ const LineAnnotation = ({
           y1={startY}
           x2={endX}
           y2={endY}
-          stroke={HIGHLIGHT_COLOR}
+          stroke={highlightColor}
           strokeWidth={8}
           strokeLinecap='round'
           strokeOpacity={0.4}
@@ -68,22 +80,22 @@ const LineAnnotation = ({
           <circle
             cx={startX}
             cy={startY}
-            r={4}
+            r={handleRadius}
             className={styles.lineHandle}
             onPointerDown={(event) => onHandlePointerDown(event, line, 'start')}
             onPointerMove={onHandlePointerMove}
             onPointerUp={onPointerUp}
-            style={isHighlighted ? { stroke: HIGHLIGHT_COLOR } : undefined}
+            style={isHighlighted ? { stroke: highlightColor } : undefined}
           />
           <circle
             cx={endX}
             cy={endY}
-            r={4}
+            r={handleRadius}
             className={styles.lineHandle}
             onPointerDown={(event) => onHandlePointerDown(event, line, 'end')}
             onPointerMove={onHandlePointerMove}
             onPointerUp={onPointerUp}
-            style={isHighlighted ? { stroke: HIGHLIGHT_COLOR } : undefined}
+            style={isHighlighted ? { stroke: highlightColor } : undefined}
           />
         </>
       )}
@@ -110,16 +122,26 @@ LineAnnotation.propTypes = {
     width: PropTypes.number.isRequired,
     height: PropTypes.number.isRequired,
   }).isRequired,
+  viewportScale: PropTypes.number,
   onPointerDown: PropTypes.func.isRequired,
   onPointerMove: PropTypes.func.isRequired,
   onPointerUp: PropTypes.func.isRequired,
   onHandlePointerDown: PropTypes.func.isRequired,
   onHandlePointerMove: PropTypes.func.isRequired,
+  strokeWidth: PropTypes.number,
+  hitStrokeWidth: PropTypes.number,
+  handleRadius: PropTypes.number,
+  highlightColor: PropTypes.string,
 };
 
 LineAnnotation.defaultProps = {
   label: undefined,
   isHighlighted: false,
+  viewportScale: 1,
+  strokeWidth: DEFAULT_STROKE_WIDTH,
+  hitStrokeWidth: DEFAULT_HIT_WIDTH,
+  handleRadius: undefined,
+  highlightColor: DEFAULT_HIGHLIGHT_COLOR,
 };
 
 export default LineAnnotation;

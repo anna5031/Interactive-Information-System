@@ -39,19 +39,25 @@ export const AuthProvider = ({ children, initialLoading = true }) => {
     setLoading(false);
   }, [tokenKey, userDataKey]);
 
-  const login = async (id, name, email, token = 'local_token') => {
-    const userData = { id, name, email };
+  const login = async (id, name, email, token = 'local_token', extra = {}) => {
+    const userData = {
+      id,
+      name,
+      email,
+      // Provide fallback school metadata for pages that expect them.
+      school_id: extra.school_id ?? id,
+      school_name: extra.school_name ?? name ?? 'Demo School',
+    };
 
     try {
       // 백엔드에 로그인 정보 전송
       await userLogin({ id, name, email });
-
-      setUserForApiRequests(userData);
     } catch (error) {
       console.error('Backend login failed:', error);
     } finally {
       // 백엔드 로그인 실패시에도 프론트엔드에서는 로그인 상태 유지
       setUser(userData);
+      setUserForApiRequests(userData);
       localStorage.setItem(tokenKey, token);
       localStorage.setItem(userDataKey, JSON.stringify(userData));
     }
