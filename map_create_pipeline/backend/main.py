@@ -2,53 +2,119 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+import json
+from datetime import datetime
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
 
-from typing import List
+from typing import List, Optional
 
-from fastapi import FastAPI, File, HTTPException, Request, UploadFile
+from fastapi import FastAPI, File, HTTPException, Query, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
 
+from api.dependencies import resolve_active_user_id
 from api.schemas import (
+    AutoCorrectLayoutRequest,
+    AutoCorrectLayoutResponse,
+    FloorPlanFloorSummary,
+    FreeSpacePreviewOptions,
+    FreeSpacePreviewRequest,
+    FreeSpacePreviewResponse,
+    GraphDataResponse,
+    GraphUpdateRequest,
+    PrepareGraphRequest,
     ProcessFloorPlanRequest,
     ProcessFloorPlanResponse,
-    StepTwoRecord,
-    StepTwoSaveRequest,
-    StepTwoStatus,
+    SaveStepOneRequest,
+    SaveStepOneResponse,
+    StepThreeRecord,
+    StepThreeSaveRequest,
+    StepThreeStatus,
     StoredFloorPlanSummary,
 )
+from configuration import get_auto_correction_settings
+from services.auto_correction_service import FloorPlanAutoCorrectionService
 from services.floorplan_pipeline import FloorPlanProcessingService
 from services.inference_service import (
     DependencyNotAvailableError,
     TorchNotAvailableError,
     build_inference_service_from_config,
 )
-from services.step_two_repository import StepTwoRepository
+from services.step_three_repository import StepThreeRepository
+from services.user_storage import UserScopedStorage, sanitize_user_id
+from processing.corridor_pipeline import CorridorPipelineConfig
 
 
 DATA_DIR = PROJECT_ROOT / "data"
+USER_STORAGE = UserScopedStorage(DATA_DIR)
 
 app = FastAPI(
     title="Floor Plan Processing API",
-    description="프런트엔드에서 전달한 YOLO 라벨을 그래프로 변환하고 결과를 JSON으로 저장합니다.",
+    description="프런트엔드에서 전달한 객체 감지 라벨을 그래프로 변환하고 결과를 JSON으로 저장합니다.",
     version="1.0.0",
 )
 
-service = FloorPlanProcessingService(storage_root=DATA_DIR)
+service = FloorPlanProcessingService(storage_root=DATA_DIR, user_storage=USER_STORAGE)
+AUTO_CORRECTION_SETTINGS = get_auto_correction_settings()
+auto_correction_service = FloorPlanAutoCorrectionService(config=AUTO_CORRECTION_SETTINGS)
 inference_service = build_inference_service_from_config()
-step_two_repository = StepTwoRepository(storage_root=DATA_DIR)
+step_three_repository = StepThreeRepository(storage_root=DATA_DIR, user_storage=USER_STORAGE)
+DEFAULT_CORRIDOR_CONFIG = CorridorPipelineConfig()
+BUILDING_REGISTRY_PATH = DATA_DIR / "building_registry.json"
 
 
-def _build_stored_floorplan_results() -> List[dict]:
-    raw_results = service.list_results()
-    step_two_records = step_two_repository.list_all()
+class BuildingRegistrationRequest(BaseModel):
+    building_name: str
+
+
+class BuildingRegistrationResponse(BaseModel):
+    building_name: str
+    building_id: str
+    is_new: bool
+
+
+def _load_building_registry() -> dict[str, dict]:
+    if not BUILDING_REGISTRY_PATH.exists():
+        return {}
+    try:
+        raw = BUILDING_REGISTRY_PATH.read_text(encoding="utf-8")
+        data = json.loads(raw) if raw.strip() else {}
+        if isinstance(data, dict):
+            return data
+    except json.JSONDecodeError:
+        pass
+    return {}
+
+
+def _save_building_registry(registry: dict[str, dict]) -> None:
+    BUILDING_REGISTRY_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with BUILDING_REGISTRY_PATH.open("w", encoding="utf-8") as fp:
+        json.dump(registry, fp, ensure_ascii=False, indent=2)
+
+
+def _generate_building_id(building_name: str, reserved_ids: set[str]) -> str:
+    preferred = sanitize_user_id(building_name, default="").strip("_").lower()
+    if preferred and preferred not in reserved_ids:
+        return preferred
+
+    suffix = 1
+    while True:
+        candidate = f"building-{suffix:04d}"
+        if candidate not in reserved_ids:
+            return candidate
+        suffix += 1
+
+
+def _build_stored_floorplan_results(user_id: str) -> List[dict]:
+    raw_results = service.list_results(user_id=user_id)
+    step_three_records = step_three_repository.list_all(user_id=user_id)
 
     request_to_step_one_id = {}
-    for record in step_two_records:
+    for record in step_three_records:
         request_id = record.get("requestId")
         step_one_id = record.get("id")
         if request_id and step_one_id:
@@ -79,16 +145,38 @@ def _build_stored_floorplan_results() -> List[dict]:
                     "walls": annotation_counts.get("walls", 0),
                     "doors": annotation_counts.get("doors", 0),
                 },
-                "yoloText": item.get("yolo_text") or "",
+                "objectDetectionText": item.get("object_detection_text") or "",
                 "wallText": item.get("wall_text") or "",
+                "wallBaseText": item.get("wall_base_text") or "",
                 "doorText": item.get("door_text") or "",
                 "imageUrl": item.get("image_url"),
                 "imageDataUrl": None,
+                "floorLabel": item.get("floor_label") or item.get("floorLabel"),
+                "floorValue": item.get("floor_value") or item.get("floorValue"),
             }
         )
 
     summaries.sort(key=lambda entry: entry.get("createdAt") or "", reverse=True)
     return summaries
+
+
+def _preview_options_to_config(options: Optional[FreeSpacePreviewOptions]) -> Optional[CorridorPipelineConfig]:
+    if not options:
+        return None
+    door_probe = options.door_probe_distance or DEFAULT_CORRIDOR_CONFIG.door_probe_distance
+    kernel = tuple(options.morph_open_kernel) if options.morph_open_kernel else DEFAULT_CORRIDOR_CONFIG.morph_open_kernel
+    morph_iters = options.morph_open_iterations or DEFAULT_CORRIDOR_CONFIG.morph_open_iterations
+    return CorridorPipelineConfig(
+        door_probe_distance=int(door_probe),
+        morph_open_kernel=(int(kernel[0]), int(kernel[1])),
+        morph_open_iterations=int(morph_iters),
+    )
+
+
+def _absolute_image_url(request: Request, request_id: str, user_id: str) -> str:
+    base_url = str(request.url_for("get_floorplan_image", request_id=request_id))
+    separator = "&" if "?" in base_url else "?"
+    return f"{base_url}{separator}userId={user_id}"
 
 
 app.add_middleware(
@@ -106,25 +194,181 @@ async def health_check() -> dict:
 
 
 @app.post(
+    "/buildings/register",
+    response_model=BuildingRegistrationResponse,
+    summary="건물 이름을 안전한 데이터 폴더 ID와 매핑",
+)
+async def register_building(payload: BuildingRegistrationRequest) -> BuildingRegistrationResponse:
+    building_name = (payload.building_name or "").strip()
+    if not building_name:
+        raise HTTPException(status_code=400, detail="building_name is required")
+
+    registry = _load_building_registry()
+    normalized_name = building_name
+    entry = registry.get(normalized_name)
+    now = datetime.utcnow().isoformat()
+
+    if entry and isinstance(entry, dict) and entry.get("building_id"):
+        entry["last_used_at"] = now
+        registry[normalized_name] = entry
+        _save_building_registry(registry)
+        building_id = entry["building_id"]
+        USER_STORAGE.resolve(building_id, create=True)
+        return BuildingRegistrationResponse(building_name=normalized_name, building_id=building_id, is_new=False)
+
+    reserved_ids = {
+        item.get("building_id")
+        for item in registry.values()
+        if isinstance(item, dict) and item.get("building_id")
+    }
+    building_id = _generate_building_id(normalized_name, reserved_ids)
+    registry[normalized_name] = {
+        "building_id": building_id,
+        "created_at": now,
+        "last_used_at": now,
+    }
+    _save_building_registry(registry)
+    USER_STORAGE.resolve(building_id, create=True)
+    return BuildingRegistrationResponse(building_name=normalized_name, building_id=building_id, is_new=True)
+
+
+@app.post(
     "/api/floorplans/process",
     response_model=ProcessFloorPlanResponse,
-    summary="YOLO 어노테이션을 그래프/객체 정보로 변환",
+    summary="객체 감지 어노테이션을 그래프/객체 정보로 변환",
 )
-async def process_floorplan(payload: ProcessFloorPlanRequest) -> ProcessFloorPlanResponse:
+async def process_floorplan(request: Request, payload: ProcessFloorPlanRequest) -> ProcessFloorPlanResponse:
+    user_id = resolve_active_user_id(request)
     try:
+        preview_payload = None
+        if payload.free_space_preview is not None:
+            if hasattr(payload.free_space_preview, "model_dump"):
+                preview_payload = payload.free_space_preview.model_dump(by_alias=True)
+            else:
+                preview_payload = payload.free_space_preview.dict(by_alias=True)
+        scale_reference_payload = None
+        if payload.scale_reference is not None:
+            scale_reference_payload = payload.scale_reference.model_dump(by_alias=True)
         result = service.process(
             image_width=payload.image_width,
             image_height=payload.image_height,
             class_names=payload.class_names,
             source_image_path=payload.source_image_path,
-            yolo_text=payload.yolo_text,
+            object_detection_text=payload.object_detection_text,
             wall_text=payload.wall_text,
+            wall_base_text=payload.wall_base_text,
             door_text=payload.door_text,
+            floor_label=payload.floor_label,
+            floor_value=payload.floor_value,
+            scale_reference=scale_reference_payload,
+            user_id=user_id,
             image_data_url=payload.image_data_url,
+            request_id=payload.request_id,
+            skip_graph=payload.skip_graph,
+            free_space_preview=preview_payload,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return ProcessFloorPlanResponse(**result)
+
+
+@app.post(
+    "/api/floorplans/save-step-one",
+    response_model=SaveStepOneResponse,
+    summary="1단계 편집 내용을 서버에 저장 (그래프 생성 없음)",
+)
+async def save_step_one(request: Request, payload: SaveStepOneRequest) -> SaveStepOneResponse:
+    user_id = resolve_active_user_id(request)
+    preview_payload = None
+    if payload.free_space_preview is not None:
+        if hasattr(payload.free_space_preview, "model_dump"):
+            preview_payload = payload.free_space_preview.model_dump(by_alias=True)
+        else:
+            preview_payload = payload.free_space_preview.dict(by_alias=True)
+    scale_reference_payload = None
+    if payload.scale_reference is not None:
+        scale_reference_payload = payload.scale_reference.model_dump(by_alias=True)
+    try:
+        result = service.save_step_one(
+            image_width=payload.image_width,
+            image_height=payload.image_height,
+            class_names=payload.class_names,
+            source_image_path=payload.source_image_path,
+            object_detection_text=payload.object_detection_text,
+            wall_text=payload.wall_text,
+            wall_base_text=payload.wall_base_text,
+            door_text=payload.door_text,
+            floor_label=payload.floor_label,
+            floor_value=payload.floor_value,
+            scale_reference=scale_reference_payload,
+            user_id=user_id,
+            image_data_url=payload.image_data_url,
+            request_id=payload.request_id,
+            free_space_preview=preview_payload,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return SaveStepOneResponse(**result)
+
+
+@app.post(
+    "/api/floorplans/{request_id}/prepare-graph",
+    response_model=ProcessFloorPlanResponse,
+    summary="저장된 Step1 텍스트를 기반으로 그래프 생성",
+)
+async def prepare_graph(
+    request: Request,
+    request_id: str,
+    payload: Optional[PrepareGraphRequest] = None,
+) -> ProcessFloorPlanResponse:
+    user_id = resolve_active_user_id(request)
+    preview_payload = None
+    if payload and payload.free_space_preview is not None:
+        if hasattr(payload.free_space_preview, "model_dump"):
+            preview_payload = payload.free_space_preview.model_dump(by_alias=True)
+        else:
+            preview_payload = payload.free_space_preview.dict(by_alias=True)
+    try:
+        result = service.prepare_graph(request_id, user_id=user_id, free_space_preview=preview_payload)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return ProcessFloorPlanResponse(**result)
+
+
+@app.post(
+    "/api/floorplans/free-space-preview",
+    response_model=FreeSpacePreviewResponse,
+    summary="복도 자유 공간 마스크 미리보기 생성",
+)
+async def free_space_preview(payload: FreeSpacePreviewRequest) -> FreeSpacePreviewResponse:
+    try:
+        config = _preview_options_to_config(payload.options)
+        result = service.generate_free_space_preview(
+            image_width=payload.image_width,
+            image_height=payload.image_height,
+            object_detection_text=payload.object_detection_text,
+            wall_text=payload.wall_text,
+            door_text=payload.door_text,
+            config=config,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return FreeSpacePreviewResponse(**result)
+
+
+@app.post(
+    "/api/floorplans/auto-correct",
+    response_model=AutoCorrectLayoutResponse,
+    summary="박스/벽 좌표를 자동 보정",
+)
+async def auto_correct_layout(payload: AutoCorrectLayoutRequest) -> AutoCorrectLayoutResponse:
+    try:
+        result = auto_correction_service.auto_correct(payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return AutoCorrectLayoutResponse(**result)
 
 
 @app.post(
@@ -158,8 +402,9 @@ async def infer_floorplan_from_image(file: UploadFile = File(...)) -> dict:
     "/api/floorplans/{request_id}/image",
     summary="저장된 원본 이미지 조회",
 )
-async def get_floorplan_image(request_id: str) -> FileResponse:
-    image_info = service.get_image_info(request_id)
+async def get_floorplan_image(request: Request, request_id: str) -> FileResponse:
+    user_id = resolve_active_user_id(request)
+    image_info = service.get_image_info(request_id, user_id=user_id)
     if image_info is None:
         raise HTTPException(status_code=404, detail="저장된 이미지를 찾을 수 없습니다.")
     image_path, mime_type = image_info
@@ -172,12 +417,35 @@ async def get_floorplan_image(request_id: str) -> FileResponse:
     summary="저장된 그래프 결과 목록 조회",
 )
 async def list_floorplan_results(request: Request) -> List[StoredFloorPlanSummary]:
-    raw_results = _build_stored_floorplan_results()
+    user_id = resolve_active_user_id(request)
+    raw_results = _build_stored_floorplan_results(user_id)
     for entry in raw_results:
-        image_url = entry.get("imageUrl")
-        if image_url:
-            entry["imageUrl"] = str(request.url_for("get_floorplan_image", request_id=entry["requestId"]))
+        request_id = entry.get("requestId")
+        if request_id:
+            entry["imageUrl"] = _absolute_image_url(request, request_id, user_id)
     return [StoredFloorPlanSummary(**entry) for entry in raw_results]
+
+
+@app.get(
+    "/api/floorplans/floors",
+    response_model=List[FloorPlanFloorSummary],
+    summary="저장된 도면의 층 정보 목록 조회",
+)
+async def list_floorplan_floors(request: Request) -> List[FloorPlanFloorSummary]:
+    user_id = resolve_active_user_id(request)
+    raw_results = _build_stored_floorplan_results(user_id)
+    floors: List[FloorPlanFloorSummary] = []
+    for entry in raw_results:
+        floors.append(
+            FloorPlanFloorSummary(
+                step_one_id=entry.get("stepOneId"),
+                request_id=entry.get("requestId"),
+                created_at=entry.get("createdAt"),
+                floor_label=entry.get("floorLabel") or entry.get("floor_label"),
+                floor_value=entry.get("floorValue") or entry.get("floor_value"),
+            )
+        )
+    return floors
 
 
 @app.get(
@@ -186,11 +454,12 @@ async def list_floorplan_results(request: Request) -> List[StoredFloorPlanSummar
     summary="Step One ID로 저장된 그래프 결과 조회",
 )
 async def get_floorplan_by_step_one(step_one_id: str, request: Request) -> StoredFloorPlanSummary:
-    for item in _build_stored_floorplan_results():
+    user_id = resolve_active_user_id(request)
+    for item in _build_stored_floorplan_results(user_id):
         if item.get("stepOneId") == step_one_id:
             image_url = item.get("imageUrl")
             if image_url:
-                item["imageUrl"] = str(request.url_for("get_floorplan_image", request_id=item["requestId"]))
+                item["imageUrl"] = _absolute_image_url(request, item["requestId"], user_id)
             return StoredFloorPlanSummary(**item)
     raise HTTPException(status_code=404, detail="저장된 결과를 찾을 수 없습니다.")
 
@@ -200,27 +469,76 @@ async def get_floorplan_by_step_one(step_one_id: str, request: Request) -> Store
     response_model=ProcessFloorPlanResponse,
     summary="저장된 그래프 결과 조회",
 )
-async def get_floorplan(request_id: str, request: Request) -> ProcessFloorPlanResponse:
+async def get_floorplan(request: Request, request_id: str) -> ProcessFloorPlanResponse:
+    user_id = resolve_active_user_id(request)
     try:
-        result = service.get_result(request_id)
+        result = service.get_result(request_id, user_id=user_id)
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     metadata = result.get("metadata") or {}
     image_url = metadata.get("image_url")
     if image_url:
-        metadata["image_url"] = str(request.url_for("get_floorplan_image", request_id=request_id))
+        metadata["image_url"] = _absolute_image_url(request, request_id, user_id)
     result["metadata"] = metadata
     return ProcessFloorPlanResponse(**result)
 
 
 @app.get(
-    "/api/step-two",
-    response_model=List[StepTwoStatus],
-    summary="2단계 저장 현황 조회",
+    "/api/floorplans/{request_id}/graph",
+    response_model=GraphDataResponse,
+    summary="그래프 데이터 조회",
 )
-async def list_step_two_results() -> List[StepTwoStatus]:
-    records = step_two_repository.list_all()
-    statuses: List[StepTwoStatus] = []
+async def get_floorplan_graph(request: Request, request_id: str) -> GraphDataResponse:
+    user_id = resolve_active_user_id(request)
+    try:
+        graph_payload = service.get_graph_data(request_id, user_id=user_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return GraphDataResponse(**graph_payload)
+
+
+@app.put(
+    "/api/floorplans/{request_id}/graph",
+    response_model=GraphDataResponse,
+    summary="그래프 데이터 저장",
+)
+async def save_floorplan_graph(request: Request, request_id: str, payload: GraphUpdateRequest) -> GraphDataResponse:
+    user_id = resolve_active_user_id(request)
+    try:
+        updated_graph = service.save_graph(request_id, payload.graph.model_dump(), user_id=user_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return GraphDataResponse(**updated_graph)
+
+
+@app.delete(
+    "/api/floorplans/{request_id}",
+    summary="저장된 도면 삭제",
+)
+async def delete_floorplan(
+    request: Request,
+    request_id: str,
+    step_one_id: Optional[str] = Query(default=None, alias="stepOneId"),
+) -> dict:
+    user_id = resolve_active_user_id(request)
+    try:
+        deletion_info = service.delete_result(request_id, user_id=user_id, step_one_id=step_one_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"status": "deleted", **deletion_info}
+
+
+@app.get(
+    "/api/step-three",
+    response_model=List[StepThreeStatus],
+    summary="3단계 저장 현황 조회",
+)
+async def list_step_three_results(request: Request) -> List[StepThreeStatus]:
+    user_id = resolve_active_user_id(request)
+    records = step_three_repository.list_all(user_id=user_id)
+    statuses: List[StepThreeStatus] = []
     for record in records:
         rooms = record.get("rooms") or []
         doors = record.get("doors") or []
@@ -245,9 +563,11 @@ async def list_step_two_results() -> List[StepTwoStatus]:
         )
 
         statuses.append(
-            StepTwoStatus(
+            StepThreeStatus(
                 id=record.get("id"),
                 request_id=record.get("requestId"),
+                floor_label=record.get("floorLabel") or record.get("floor_label"),
+                floor_value=record.get("floorValue") or record.get("floor_value"),
                 has_base=has_base,
                 has_details=has_details,
                 base_updated_at=updated_at if has_base else None,
@@ -259,22 +579,24 @@ async def list_step_two_results() -> List[StepTwoStatus]:
 
 
 @app.get(
-    "/api/step-two/{step_one_id}",
-    response_model=StepTwoRecord,
-    summary="2단계 저장본 상세 조회",
+    "/api/step-three/{step_one_id}",
+    response_model=StepThreeRecord,
+    summary="3단계 저장본 상세 조회",
 )
-async def get_step_two_result(step_one_id: str) -> StepTwoRecord:
-    record = step_two_repository.get(step_one_id)
+async def get_step_three_result(request: Request, step_one_id: str) -> StepThreeRecord:
+    user_id = resolve_active_user_id(request)
+    record = step_three_repository.get(step_one_id, user_id=user_id)
     if record is None:
-        raise HTTPException(status_code=404, detail="저장된 2단계 결과가 없습니다.")
-    return StepTwoRecord(**record)
+        raise HTTPException(status_code=404, detail="저장된 3단계 결과가 없습니다.")
+    return StepThreeRecord(**record)
 
 
 @app.put(
-    "/api/step-two/{step_one_id}",
-    response_model=StepTwoRecord,
-    summary="2단계 정보 저장",
+    "/api/step-three/{step_one_id}",
+    response_model=StepThreeRecord,
+    summary="3단계 정보 저장",
 )
-async def save_step_two(step_one_id: str, payload: StepTwoSaveRequest) -> StepTwoRecord:
-    record = step_two_repository.save(step_one_id, payload.model_dump(by_alias=True))
-    return StepTwoRecord(**record)
+async def save_step_three(request: Request, step_one_id: str, payload: StepThreeSaveRequest) -> StepThreeRecord:
+    user_id = resolve_active_user_id(request)
+    record = step_three_repository.save(step_one_id, payload.model_dump(by_alias=True), user_id=user_id)
+    return StepThreeRecord(**record)

@@ -1,0 +1,64 @@
+{
+  "connections": [
+    {
+      "connectorType": "elevator",
+      "endpoints": [
+        {
+          "requestId": "20251119-131842-44a047",
+          "nodeId": "elevator_1",
+          "label": "elevator_1"
+        },
+        {
+          "requestId": "20251119-131223-3b28d2",
+          "nodeId": "elevator_1",
+          "label": "elevator_1"
+        }
+      ]
+    },
+    {
+      "connectorType": "stair",
+      "endpoints": [
+        {
+          "requestId": "20251119-131223-3b28d2",
+          "nodeId": "stair_0",
+          "label": "stair_0"
+        },
+        {
+          "requestId": "20251119-030244-d32319",
+          "nodeId": "stair_0",
+          "label": "stair_0"
+        }
+      ]
+    },
+    {
+      "connectorType": "stair",
+      "endpoints": [
+        {
+          "requestId": "20251119-131223-3b28d2",
+          "nodeId": "stair_1",
+          "label": "stair_1"
+        },
+        {
+          "requestId": "20251119-030244-d32319",
+          "nodeId": "stair_1",
+          "label": "stair_1"
+        }
+      ]
+    },
+    {
+      "connectorType": "stair",
+      "endpoints": [
+        {
+          "requestId": "20251119-131223-3b28d2",
+          "nodeId": "stair_2",
+          "label": "stair_2"
+        },
+        {
+          "requestId": "20251119-030244-d32319",
+          "nodeId": "stair_2",
+          "label": "stair_2"
+        }
+      ]
+    }
+  ]
+}

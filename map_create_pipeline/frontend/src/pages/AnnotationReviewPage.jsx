@@ -32,7 +32,7 @@ const formatJson = (value) => {
 const AnnotationReviewPage = ({ stepOneResult, processingResult, onBack, onFinish }) => {
   const combinedPayload = useMemo(
     () => ({
-      yolo: stepOneResult?.yolo ?? {},
+      objectDetection: stepOneResult?.objectDetection ?? {},
       wall: stepOneResult?.wall ?? {},
       door: stepOneResult?.door ?? {},
       metadata: stepOneResult?.metadata ?? {},
@@ -41,7 +41,7 @@ const AnnotationReviewPage = ({ stepOneResult, processingResult, onBack, onFinis
   );
 
   const combinedJson = useMemo(() => formatJson(combinedPayload), [combinedPayload]);
-  const yoloJson = useMemo(() => formatJson(stepOneResult?.yolo), [stepOneResult]);
+  const objectDetectionJson = useMemo(() => formatJson(stepOneResult?.objectDetection), [stepOneResult]);
   const wallJson = useMemo(() => formatJson(stepOneResult?.wall), [stepOneResult]);
   const doorJson = useMemo(() => formatJson(stepOneResult?.door), [stepOneResult]);
   const objectsJson = useMemo(() => formatJson(processingResult?.objects), [processingResult]);
@@ -103,12 +103,16 @@ const AnnotationReviewPage = ({ stepOneResult, processingResult, onBack, onFinis
 
         <section className={styles.panel}>
           <div className={styles.panelHeader}>
-            <h3 className={styles.panelTitle}>세부 - YOLO</h3>
-            <button type='button' className={styles.copyButton} onClick={() => copyText(yoloJson, 'YOLO 결과')}>
+            <h3 className={styles.panelTitle}>세부 - 객체 감지</h3>
+            <button
+              type='button'
+              className={styles.copyButton}
+              onClick={() => copyText(objectDetectionJson, '객체 감지 결과')}
+            >
               <Clipboard size={16} /> 복사
             </button>
           </div>
-          <textarea className={styles.textarea} value={yoloJson} readOnly />
+          <textarea className={styles.textarea} value={objectDetectionJson} readOnly />
         </section>
 
         <section className={styles.panel}>
@@ -185,7 +189,7 @@ AnnotationReviewPage.propTypes = {
     fileName: PropTypes.string,
     filePath: PropTypes.string,
     createdAt: PropTypes.string,
-    yolo: PropTypes.object,
+    objectDetection: PropTypes.object,
     wall: PropTypes.object,
     door: PropTypes.object,
     metadata: PropTypes.shape({

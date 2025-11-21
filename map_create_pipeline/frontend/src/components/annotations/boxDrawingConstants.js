@@ -1,0 +1,9 @@
+export const BOX_BORDER_WIDTH = 2;
+export const BOX_BORDER_OFFSET = BOX_BORDER_WIDTH / 2;
+export const BOX_BORDER_EXTEND = 1;
+
+export default {
+  BOX_BORDER_WIDTH,
+  BOX_BORDER_OFFSET,
+  BOX_BORDER_EXTEND,
+};

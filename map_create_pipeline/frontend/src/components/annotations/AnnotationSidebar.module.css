@@ -28,6 +28,53 @@
   color: #0f172a;
 }
 
+.headingRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.helpIcon {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: none;
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.helpTooltip {
+  position: absolute;
+  top: 26px;
+  /* right: 0; */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 220px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.95);
+  color: white;
+  font-size: 12px;
+  line-height: 1.4;
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.25);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  z-index: 10;
+}
+
+.helpIcon:hover .helpTooltip,
+.helpIcon:focus .helpTooltip {
+  opacity: 1;
+}
+
 .fieldGroup {
   display: flex;
   flex-direction: column;
@@ -194,10 +241,82 @@
   .filterList {
     grid-template-columns: 1fr;
   }
+  .filterControlRow {
+    grid-template-columns: 1fr;
+  }
 }
 
 .helperText {
   margin: 0;
   font-size: 12px;
   color: #64748b;
+}
+
+.filterToggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #0f172a;
+}
+
+.filterToggle input {
+  width: 14px;
+  height: 14px;
+}
+
+.filterControlRow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.numberInput {
+  width: 100%;
+  border: 1px solid rgba(148, 163, 184, 0.6);
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.filterStatsCard {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  background: rgba(15, 23, 42, 0.04);
+  padding: 10px;
+  border-radius: 10px;
+}
+
+.filterStatsRow {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.filterFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+
+.filterHelperText {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.resetButton {
+  border: none;
+  background: none;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.resetButton:hover {
+  text-decoration: underline;
 }

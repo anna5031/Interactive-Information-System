@@ -14,9 +14,13 @@ const AdminEditorPage = () => {
     updateBoxes,
     updateLines,
     updatePoints,
-    setStepOneResult,
-    setProcessingResult,
     resetWorkflow,
+    wallFilter,
+    setWallFilter,
+    wallBaseLines,
+    updateWallBaseLines,
+    setCalibrationLine,
+    setCalibrationLengthMeters,
   } = useFloorPlan();
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -59,34 +63,62 @@ const AdminEditorPage = () => {
     navigate('/admin/upload', { replace: true });
   };
 
-  const handleSubmit = async ({ boxes, lines, points }) => {
+  const handleSubmit = async ({ boxes, lines, points, baseLines, wallFilterState, freeSpacePreview }) => {
+    if (!Number.isFinite(state.metersPerPixel) || state.metersPerPixel <= 0) {
+      setError('축척 정보가 없어 저장할 수 없습니다. 기준선 길이를 입력한 뒤 다시 시도해 주세요.');
+      return;
+    }
     setIsSaving(true);
     setError(null);
     try {
       updateBoxes(boxes);
       updateLines(lines);
       updatePoints(points);
-      const { stepOneResult, processingResult } = await saveAnnotations({
+      if (Array.isArray(baseLines)) {
+        updateWallBaseLines(baseLines);
+      }
+      if (wallFilterState) {
+        setWallFilter(wallFilterState);
+      }
+      const existingRequestId =
+        state.processingResult?.request_id ??
+        state.processingResult?.requestId ??
+        state.stepOneResult?.processingResult?.request_id ??
+        state.stepOneResult?.processingResult?.requestId ??
+        null;
+      const saveResponse = await saveAnnotations({
         fileName: state.fileName,
+        floorLabel: state.floorLabel,
+        floorValue: state.floorValue,
+        calibrationLine: state.calibrationLine,
+        calibrationLengthMeters: state.calibrationLengthMeters,
         imageUrl: state.imageUrl,
         boxes,
         lines,
         points,
-        rawYoloText: state.rawYoloText,
+        baseLines,
+        wallFilter: wallFilterState ?? wallFilter,
+        rawObjectDetectText: state.rawObjectDetectText,
         rawWallText: state.rawWallText,
         rawDoorText: state.rawDoorText,
         imageWidth: state.imageWidth,
         imageHeight: state.imageHeight,
         sourceOriginalId: state.stepOneOriginalId,
         sourceImagePath: state.fileName,
+        requestId: existingRequestId,
+        freeSpacePreview,
       });
-      setStepOneResult(stepOneResult, { processingResult });
-      setProcessingResult(processingResult ?? null);
-      setStage('review');
-      navigate('/admin/review');
+      if (saveResponse?.anchorLineRecoveryCount > 0 && typeof window !== 'undefined') {
+        window.alert(
+          `문 포인트가 붙어 있는 벽 선 ${saveResponse.anchorLineRecoveryCount}개가 자동으로 저장본에 포함되었습니다. 필요 시 필터 설정을 조정해 주세요.`
+        );
+      }
+      resetWorkflow({ skipUploadRedirect: true });
+      setStage('upload');
+      navigate('/admin/upload');
     } catch (saveError) {
       console.error(saveError);
-      setError('저장 중 오류가 발생했습니다.');
+      setError(saveError?.message || '저장 중 오류가 발생했습니다.');
     } finally {
       setIsSaving(false);
     }
@@ -99,14 +131,25 @@ const AdminEditorPage = () => {
         imageUrl={state.imageUrl}
         initialBoxes={state.boxes}
         initialLines={state.lines}
+        initialWallBaseLines={wallBaseLines ?? state.lines}
         initialPoints={state.points}
+        imageWidth={state.imageWidth}
+        imageHeight={state.imageHeight}
+        onBaseLinesChange={updateWallBaseLines}
         onCancel={handleCancel}
         onSubmit={handleSubmit}
         isSaving={isSaving}
         onBoxesChange={updateBoxes}
         onLinesChange={updateLines}
         onPointsChange={updatePoints}
+        wallFilter={wallFilter}
+        onWallFilterChange={setWallFilter}
         errorMessage={error}
+        calibrationLine={state.calibrationLine}
+        calibrationLengthMeters={state.calibrationLengthMeters}
+        metersPerPixel={state.metersPerPixel}
+        onCalibrationLineChange={setCalibrationLine}
+        onCalibrationLengthChange={setCalibrationLengthMeters}
       />
     </div>
   );

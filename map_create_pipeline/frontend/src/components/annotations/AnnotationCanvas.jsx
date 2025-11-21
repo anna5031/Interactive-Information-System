@@ -9,9 +9,11 @@ import PointAnnotation from './shapes/PointAnnotation';
 import useBoxInteractions from './hooks/useBoxInteractions';
 import useLineInteractions from './hooks/useLineInteractions';
 import usePointInteractions from './hooks/usePointInteractions';
+import { BOX_BORDER_WIDTH, BOX_BORDER_OFFSET } from './boxDrawingConstants';
 import {
   clamp,
   LINE_SNAP_THRESHOLD,
+  DRAW_SNAP_DISTANCE,
   AXIS_LOCK_TOLERANCE,
   buildSnapPoints,
   buildSnapSegments,
@@ -20,6 +22,8 @@ import {
   projectToClosestAnchor,
   applyAxisLockToLine,
   SNAP_RELEASE_DISTANCE,
+  findVerticalSnap,
+  findHorizontalSnap,
 } from './utils/canvasGeometry';
 
 const MIN_BOX_SIZE = 0.01;
@@ -36,6 +40,27 @@ const clampUnit = (value) => clampNumber(value, 0, 1);
 
 const HIGHLIGHT_WIDTH = 2;
 const HIGHLIGHT_OFFSET = HIGHLIGHT_WIDTH / 2;
+const CALIBRATION_COLOR = '#fb923c';
+const CALIBRATION_LABEL = { name: '기준선', color: CALIBRATION_COLOR };
+
+const buildGuidesFromAxisSnaps = (snaps) => {
+  if (!snaps || snaps.length === 0) {
+    return [];
+  }
+  const guides = [];
+  snaps.forEach((snap) => {
+    if (!snap || !snap.snapped || !Array.isArray(snap.sources)) {
+      return;
+    }
+    guides.push({
+      type: snap.axis === 'vertical' ? 'vertical' : 'horizontal',
+      value: snap.value,
+      sources: snap.sources,
+      axis: snap.axis,
+    });
+  });
+  return guides;
+};
 
 const mergeGuideSegments = (segments) => {
   if (!segments || segments.length === 0) {
@@ -186,6 +211,9 @@ const AnnotationCanvas = forwardRef(
   (
     {
       imageUrl,
+      previewOverlayUrl,
+      previewOverlayVisible = false,
+      previewOverlayOpacity = 0.4,
       boxes,
       lines,
       points = [],
@@ -199,6 +227,9 @@ const AnnotationCanvas = forwardRef(
       onAddShape,
       hiddenLabelIds,
       isReadOnly = false,
+      calibrationLine,
+      onCalibrationLineChange,
+      calibrationReadOnly = false,
     },
     ref
   ) => {
@@ -207,6 +238,14 @@ const AnnotationCanvas = forwardRef(
     const pointerStateRef = useRef(null);
     const imageBoxRef = useRef({ offsetX: 0, offsetY: 0, width: 0, height: 0 });
     const viewportRef = useRef({ scale: 1, offsetX: 0, offsetY: 0 });
+    const capturePointer = useCallback((event) => {
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      } catch (pointerError) {
+        // ignore pointer capture errors
+      }
+    }, []);
+    const [calibrationSelected, setCalibrationSelected] = useState(false);
 
     const [imageBox, setImageBox] = useState({ offsetX: 0, offsetY: 0, width: 0, height: 0 });
     const [draftShape, setDraftShape] = useState(null);
@@ -248,10 +287,11 @@ const AnnotationCanvas = forwardRef(
         if (!metrics.width || !metrics.height) {
           return;
         }
-        const scale = clampNumber(nextScale, MIN_ZOOM, MAX_ZOOM);
+        let scale = clampNumber(nextScale, MIN_ZOOM, MAX_ZOOM);
+        scale = Math.round(scale * 1000) / 1000;
 
         updateViewport((prev) => {
-          if (Math.abs(scale - prev.scale) < 0.0001) {
+          if (Math.abs(scale - prev.scale) < 1e-5) {
             return prev;
           }
 
@@ -571,7 +611,12 @@ const AnnotationCanvas = forwardRef(
     }, []);
 
     const setSelection = (type, id) => {
-      onSelect?.({ type, id });
+      setCalibrationSelected(false);
+      if (type && id) {
+        onSelect?.({ type, id });
+        return;
+      }
+      onSelect?.(null);
     };
 
     const snapDrawingPosition = (x, y, options = {}) => snapPosition({ x, y, snapPoints, snapSegments, ...options });
@@ -637,6 +682,311 @@ const AnnotationCanvas = forwardRef(
       clearGuides,
     });
 
+    const calibrationAvailable = Boolean(calibrationLine);
+    const calibrationInteractive = Boolean(
+      calibrationAvailable && onCalibrationLineChange && !calibrationReadOnly && !isReadOnly
+    );
+    const showCalibrationHandles = Boolean(calibrationSelected && calibrationInteractive);
+
+    useEffect(() => {
+      if (!calibrationInteractive) {
+        setCalibrationSelected(false);
+      }
+    }, [calibrationInteractive]);
+
+    const handleCalibrationLinePointerDown = useCallback(
+      (event) => {
+        if (!calibrationInteractive || !calibrationLine) {
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        const { x, y } = normalisePointer(event);
+        clearGuides();
+        setCalibrationSelected(true);
+        pointerStateRef.current = {
+          type: 'move-calibration',
+          pointerId: event.pointerId,
+          startX: x,
+          startY: y,
+          startLine: { ...calibrationLine },
+          snapSuppressed: false,
+          snapOrigin: null,
+          lastSnap: null,
+        };
+        capturePointer(event);
+      },
+      [
+        calibrationInteractive,
+        calibrationLine,
+        normalisePointer,
+        pointerStateRef,
+        clearGuides,
+        capturePointer,
+        setCalibrationSelected,
+      ]
+    );
+
+    const handleCalibrationLinePointerMove = useCallback(
+      (event) => {
+        if (!calibrationInteractive) {
+          return;
+        }
+        const state = pointerStateRef.current;
+        if (!state || state.type !== 'move-calibration') {
+          return;
+        }
+        event.preventDefault();
+
+        const { x, y } = normalisePointer(event);
+        const deltaX = x - state.startX;
+        const deltaY = y - state.startY;
+
+        const rawLine = {
+          x1: clamp(state.startLine.x1 + deltaX),
+          y1: clamp(state.startLine.y1 + deltaY),
+          x2: clamp(state.startLine.x2 + deltaX),
+          y2: clamp(state.startLine.y2 + deltaY),
+        };
+
+        let nextX1 = rawLine.x1;
+        let nextY1 = rawLine.y1;
+        let nextX2 = rawLine.x2;
+        let nextY2 = rawLine.y2;
+
+        let shouldSnap = true;
+        if (state.snapSuppressed && state.snapOrigin) {
+          const startDelta = Math.hypot(rawLine.x1 - state.snapOrigin.x1, rawLine.y1 - state.snapOrigin.y1);
+          const endDelta = Math.hypot(rawLine.x2 - state.snapOrigin.x2, rawLine.y2 - state.snapOrigin.y2);
+          if (Math.max(startDelta, endDelta) >= SNAP_RELEASE_DISTANCE) {
+            state.snapSuppressed = false;
+            state.snapOrigin = null;
+            state.lastSnap = null;
+          } else {
+            shouldSnap = false;
+          }
+        }
+
+        const activeSnapResults = [];
+        if (shouldSnap) {
+          const snapOptions = {
+            snapPoints,
+            snapSegments,
+            distance: DRAW_SNAP_DISTANCE,
+            excludePointOwners: undefined,
+            excludeSegmentOwners: undefined,
+          };
+
+          const vCandidates = [
+            { value: rawLine.x1, kind: 'start' },
+            { value: rawLine.x2, kind: 'end' },
+          ];
+          let bestVerticalSnap = { snapped: false, distance: Infinity };
+          let vSnapSourceKind = 'start';
+          vCandidates.forEach((candidate) => {
+            const snap = findVerticalSnap({ value: candidate.value, ...snapOptions });
+            if (snap.snapped && snap.distance < bestVerticalSnap.distance) {
+              bestVerticalSnap = snap;
+              vSnapSourceKind = candidate.kind;
+            }
+          });
+
+          const hCandidates = [
+            { value: rawLine.y1, kind: 'start' },
+            { value: rawLine.y2, kind: 'end' },
+          ];
+          let bestHorizontalSnap = { snapped: false, distance: Infinity };
+          let hSnapSourceKind = 'start';
+          hCandidates.forEach((candidate) => {
+            const snap = findHorizontalSnap({ value: candidate.value, ...snapOptions });
+            if (snap.snapped && snap.distance < bestHorizontalSnap.distance) {
+              bestHorizontalSnap = snap;
+              hSnapSourceKind = candidate.kind;
+            }
+          });
+
+          if (bestVerticalSnap.snapped) {
+            const snapDeltaX =
+              bestVerticalSnap.value - (vSnapSourceKind === 'start' ? rawLine.x1 : rawLine.x2);
+            nextX1 = rawLine.x1 + snapDeltaX;
+            nextX2 = rawLine.x2 + snapDeltaX;
+            activeSnapResults.push(bestVerticalSnap);
+          }
+
+          if (bestHorizontalSnap.snapped) {
+            const snapDeltaY =
+              bestHorizontalSnap.value - (hSnapSourceKind === 'start' ? rawLine.y1 : rawLine.y2);
+            nextY1 = rawLine.y1 + snapDeltaY;
+            nextY2 = rawLine.y2 + snapDeltaY;
+            activeSnapResults.push(bestHorizontalSnap);
+          }
+        }
+
+        const nextLine = { x1: nextX1, y1: nextY1, x2: nextX2, y2: nextY2 };
+
+        if (activeSnapResults.length > 0) {
+          state.snapSuppressed = true;
+          state.snapOrigin = { ...rawLine };
+          state.lastSnap = { line: { ...nextLine }, guides: activeSnapResults };
+          setGuidesNormalized(buildGuidesFromAxisSnaps(activeSnapResults));
+        } else if (state.snapSuppressed && state.lastSnap) {
+          Object.assign(nextLine, state.lastSnap.line);
+          setGuidesNormalized(buildGuidesFromAxisSnaps(state.lastSnap.guides));
+        } else {
+          state.lastSnap = null;
+          clearGuides();
+        }
+
+        onCalibrationLineChange?.(nextLine);
+      },
+      [
+        calibrationInteractive,
+        normalisePointer,
+        pointerStateRef,
+        snapPoints,
+        snapSegments,
+        setGuidesNormalized,
+        clearGuides,
+        onCalibrationLineChange,
+      ]
+    );
+
+    const handleCalibrationLineHandlePointerDown = useCallback(
+      (event, _line, handle) => {
+        if (!calibrationInteractive || !calibrationLine) {
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        clearGuides();
+        setCalibrationSelected(true);
+        pointerStateRef.current = {
+          type: 'resize-calibration',
+          pointerId: event.pointerId,
+          handle,
+          startLine: { ...calibrationLine },
+          snapSuppressed: false,
+          snapOrigin: null,
+          lastSnap: null,
+        };
+        capturePointer(event);
+      },
+      [
+        calibrationInteractive,
+        calibrationLine,
+        pointerStateRef,
+        clearGuides,
+        capturePointer,
+        setCalibrationSelected,
+      ]
+    );
+
+    const handleCalibrationLineHandlePointerMove = useCallback(
+      (event) => {
+        if (!calibrationInteractive) {
+          return;
+        }
+        const state = pointerStateRef.current;
+        if (!state || state.type !== 'resize-calibration') {
+          return;
+        }
+        event.preventDefault();
+
+        const { x, y } = normalisePointer(event);
+        const rawX = clamp(x);
+        const rawY = clamp(y);
+
+        const fixedX = state.handle === 'start' ? state.startLine.x2 : state.startLine.x1;
+        const fixedY = state.handle === 'start' ? state.startLine.y2 : state.startLine.y1;
+
+        let nextX = rawX;
+        let nextY = rawY;
+        let shouldSnap = true;
+        if (state.snapSuppressed && state.snapOrigin && state.snapOrigin.handle === state.handle) {
+          const dx = rawX - state.snapOrigin.x;
+          const dy = rawY - state.snapOrigin.y;
+          if (Math.hypot(dx, dy) >= SNAP_RELEASE_DISTANCE) {
+            state.snapSuppressed = false;
+            state.snapOrigin = null;
+            state.lastSnap = null;
+          } else {
+            shouldSnap = false;
+          }
+        }
+
+        const activeSnapResults = [];
+        if (shouldSnap) {
+          const snapOptions = {
+            snapPoints,
+            snapSegments,
+            distance: DRAW_SNAP_DISTANCE,
+            excludePointOwners: undefined,
+            excludeSegmentOwners: undefined,
+          };
+          const snapV = findVerticalSnap({ value: rawX, ...snapOptions });
+          if (snapV.snapped) {
+            nextX = snapV.value;
+            activeSnapResults.push(snapV);
+          }
+          const snapH = findHorizontalSnap({ value: rawY, ...snapOptions });
+          if (snapH.snapped) {
+            nextY = snapH.value;
+            activeSnapResults.push(snapH);
+          }
+        }
+
+        if (activeSnapResults.length > 0) {
+          state.snapSuppressed = true;
+          state.snapOrigin = { x: rawX, y: rawY, handle: state.handle };
+          state.lastSnap = { x: nextX, y: nextY, guides: activeSnapResults, handle: state.handle };
+          setGuidesNormalized(buildGuidesFromAxisSnaps(activeSnapResults));
+        } else if (state.snapSuppressed && state.lastSnap && state.lastSnap.handle === state.handle) {
+          nextX = state.lastSnap.x;
+          nextY = state.lastSnap.y;
+          setGuidesNormalized(buildGuidesFromAxisSnaps(state.lastSnap.guides));
+        } else {
+          state.lastSnap = null;
+          const dx = Math.abs(nextX - fixedX);
+          const dy = Math.abs(nextY - fixedY);
+          const isVertical = dx <= dy * AXIS_LOCK_TOLERANCE;
+          const isHorizontal = dy <= dx * AXIS_LOCK_TOLERANCE;
+          if (isVertical) {
+            nextX = fixedX;
+            setGuidesNormalized([
+              { type: 'vertical', value: fixedX, sources: [], axis: 'vertical' },
+              { type: 'lock_symbol', x: fixedX, y: nextY, lock: 'vertical' },
+            ]);
+          } else if (isHorizontal) {
+            nextY = fixedY;
+            setGuidesNormalized([
+              { type: 'horizontal', value: fixedY, sources: [], axis: 'horizontal' },
+              { type: 'lock_symbol', x: nextX, y: fixedY, lock: 'horizontal' },
+            ]);
+          } else {
+            clearGuides();
+          }
+        }
+
+        const nextLine = {
+          x1: state.handle === 'start' ? nextX : state.startLine.x1,
+          y1: state.handle === 'start' ? nextY : state.startLine.y1,
+          x2: state.handle === 'end' ? nextX : state.startLine.x2,
+          y2: state.handle === 'end' ? nextY : state.startLine.y2,
+        };
+        onCalibrationLineChange?.(nextLine);
+      },
+      [
+        calibrationInteractive,
+        pointerStateRef,
+        normalisePointer,
+        snapPoints,
+        snapSegments,
+        setGuidesNormalized,
+        clearGuides,
+        onCalibrationLineChange,
+      ]
+    );
+
     const handlePointerUp = (event) => {
       const state = pointerStateRef.current;
       if (!state) {
@@ -672,6 +1022,14 @@ const AnnotationCanvas = forwardRef(
         setDraftShape(null);
       }
 
+      const isCalibrationInteraction = state.type === 'move-calibration' || state.type === 'resize-calibration';
+
+      if (isCalibrationInteraction) {
+        clearGuides();
+        pointerStateRef.current = null;
+        return;
+      }
+
       if (state.type === 'move-point') {
         cleanupPointMove?.();
         const { x, y } = normalisePointer(event);
@@ -690,10 +1048,14 @@ const AnnotationCanvas = forwardRef(
 
       clearGuides();
       pointerStateRef.current = null;
+      if (!isCalibrationInteraction) {
+        setCalibrationSelected(false);
+      }
     };
 
     const handleCanvasPointerDown = (event) => {
       clearGuides();
+      setCalibrationSelected(false);
       if (isReadOnly) {
         const { isInside } = normalisePointer(event);
         if (!isInside) {
@@ -914,17 +1276,24 @@ const AnnotationCanvas = forwardRef(
     const draftElements = [];
     if (draftShape?.type === 'box') {
       const label = getLabel(draftShape.labelId);
+      const draftColor = label?.color || '#94a3b8';
+      const leftPercent = draftShape.x * 100;
+      const topPercent = draftShape.y * 100;
+      const widthPercent = draftShape.width * 100;
+      const heightPercent = draftShape.height * 100;
       draftElements.push(
         <div
           key='draft-box'
           className={styles.annotation}
           style={{
-            left: `${draftShape.x * 100}%`,
-            top: `${draftShape.y * 100}%`,
-            width: `${draftShape.width * 100}%`,
-            height: `${draftShape.height * 100}%`,
-            borderColor: label?.color || '#94a3b8',
-            opacity: 0.6,
+            left: `calc(${leftPercent}% - ${BOX_BORDER_OFFSET}px)`,
+            top: `calc(${topPercent}% - ${BOX_BORDER_OFFSET}px)`,
+            width: `calc(${widthPercent}% + ${BOX_BORDER_WIDTH}px)`,
+            height: `calc(${heightPercent}% + ${BOX_BORDER_WIDTH}px)`,
+            border: `${BOX_BORDER_WIDTH}px dashed ${draftColor}`,
+            backgroundColor: 'transparent',
+            opacity: 0.85,
+            pointerEvents: 'none',
           }}
         />
       );
@@ -1209,6 +1578,14 @@ const AnnotationCanvas = forwardRef(
               style={{ width: '100%', height: '100%' }}
             />
             <div className={styles.overlay} style={overlayStyle}>
+              {previewOverlayUrl && previewOverlayVisible && (
+                <img
+                  src={previewOverlayUrl}
+                  alt='free space preview overlay'
+                  className={styles.previewMask}
+                  style={{ opacity: previewOverlayOpacity }}
+                />
+              )}
               {guideElements}
               {draftElements}
               {visibleBoxes.map((box) => (
@@ -1217,6 +1594,7 @@ const AnnotationCanvas = forwardRef(
                   box={box}
                   label={getLabel(box.labelId)}
                   isSelected={selectedItem?.type === 'box' && selectedItem.id === box.id}
+                  viewportScale={viewport.scale}
                   onPointerDown={handleBoxPointerDown}
                   onPointerMove={handleBoxPointerMove}
                   onPointerUp={handlePointerUp}
@@ -1227,6 +1605,26 @@ const AnnotationCanvas = forwardRef(
               {highlightLayer}
 
               <svg className={styles.lineLayer} width={imageBox.width} height={imageBox.height}>
+                {calibrationAvailable && (
+                  <LineAnnotation
+                    key='__calibration__'
+                    line={{ id: '__calibration__', labelId: 'calibration', ...calibrationLine }}
+                    label={CALIBRATION_LABEL}
+                    isSelected={showCalibrationHandles}
+                    isHighlighted={showCalibrationHandles}
+                    imageBox={imageBox}
+                    viewportScale={viewport.scale}
+                    onPointerDown={handleCalibrationLinePointerDown}
+                    onPointerMove={handleCalibrationLinePointerMove}
+                    onPointerUp={handlePointerUp}
+                    onHandlePointerDown={handleCalibrationLineHandlePointerDown}
+                    onHandlePointerMove={handleCalibrationLineHandlePointerMove}
+                    strokeWidth={2}
+                    hitStrokeWidth={24}
+                    handleRadius={4}
+                    highlightColor={CALIBRATION_COLOR}
+                  />
+                )}
                 {visibleLines.map((line) => (
                   <LineAnnotation
                     key={line.id}
@@ -1234,6 +1632,7 @@ const AnnotationCanvas = forwardRef(
                     label={getLabel(line.labelId)}
                     isSelected={selectedItem?.type === 'line' && selectedItem.id === line.id}
                     imageBox={imageBox}
+                    viewportScale={viewport.scale}
                     onPointerDown={handleLinePointerDown}
                     onPointerMove={handleLinePointerMove}
                     onPointerUp={handlePointerUp}
@@ -1250,6 +1649,7 @@ const AnnotationCanvas = forwardRef(
                     label={getLabel(point.labelId)}
                     isSelected={selectedItem?.type === 'point' && selectedItem.id === point.id}
                     imageBox={imageBox}
+                    viewportScale={viewport.scale}
                     onPointerDown={handlePointPointerDown}
                     onPointerMove={handlePointPointerMove}
                     onPointerUp={handlePointerUp}
@@ -1267,6 +1667,9 @@ AnnotationCanvas.displayName = 'AnnotationCanvas';
 
 AnnotationCanvas.propTypes = {
   imageUrl: PropTypes.string.isRequired,
+  previewOverlayUrl: PropTypes.string,
+  previewOverlayVisible: PropTypes.bool,
+  previewOverlayOpacity: PropTypes.number,
   boxes: PropTypes.arrayOf(
     PropTypes.shape({
       id: PropTypes.string.isRequired,
@@ -1314,9 +1717,20 @@ AnnotationCanvas.propTypes = {
   onAddShape: PropTypes.func,
   hiddenLabelIds: PropTypes.instanceOf(Set),
   isReadOnly: PropTypes.bool,
+  calibrationLine: PropTypes.shape({
+    x1: PropTypes.number,
+    y1: PropTypes.number,
+    x2: PropTypes.number,
+    y2: PropTypes.number,
+  }),
+  onCalibrationLineChange: PropTypes.func,
+  calibrationReadOnly: PropTypes.bool,
 };
 
 AnnotationCanvas.defaultProps = {
+  previewOverlayUrl: null,
+  previewOverlayVisible: false,
+  previewOverlayOpacity: 0.4,
   selectedItem: null,
   onSelect: undefined,
   onUpdateBox: undefined,
@@ -1327,6 +1741,9 @@ AnnotationCanvas.defaultProps = {
   onAddShape: undefined,
   hiddenLabelIds: undefined,
   isReadOnly: false,
+  calibrationLine: null,
+  onCalibrationLineChange: undefined,
+  calibrationReadOnly: false,
 };
 
 export default AnnotationCanvas;

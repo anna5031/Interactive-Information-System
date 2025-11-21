@@ -37,6 +37,100 @@
   line-height: 1.6;
 }
 
+.floorSelector {
+  width: 100%;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.floorSelector label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.floorRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.floorSelect {
+  flex: 1;
+  border: 1px solid #cbd5f5;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 15px;
+  color: #0f172a;
+  background: #f8fafc;
+}
+
+.floorNumberInput {
+  width: 110px;
+  border: 1px solid #cbd5f5;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 15px;
+  color: #0f172a;
+  text-align: center;
+}
+
+.floorSuffix {
+  font-size: 15px;
+  color: #475569;
+  min-width: 24px;
+  text-align: left;
+}
+
+.floorHint {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.floorHintWarning {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.scaleSection {
+  width: 100%;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.scaleSection label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.scaleInput {
+  width: 100%;
+  border: 1px solid #cbd5f5;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 15px;
+  color: #0f172a;
+  background: #f8fafc;
+}
+
+.scaleHint {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.scaleHintWarning {
+  color: #dc2626;
+  font-weight: 600;
+}
+
 .hiddenInput {
   display: none;
 }

@@ -1,0 +1,2865 @@
+{
+  "nodes": [
+    {
+      "id": "corridor_0",
+      "type": "corridor",
+      "pos": [
+        792.0,
+        54.0
+      ]
+    },
+    {
+      "id": "corridor_1",
+      "type": "corridor",
+      "pos": [
+        775.0,
+        55.0
+      ]
+    },
+    {
+      "id": "corridor_2",
+      "type": "corridor",
+      "pos": [
+        709.0,
+        56.0
+      ]
+    },
+    {
+      "id": "corridor_3",
+      "type": "corridor",
+      "pos": [
+        724.0,
+        74.0
+      ]
+    },
+    {
+      "id": "corridor_4",
+      "type": "corridor",
+      "pos": [
+        755.0,
+        75.0
+      ]
+    },
+    {
+      "id": "corridor_6",
+      "type": "corridor",
+      "pos": [
+        51.0,
+        126.0
+      ]
+    },
+    {
+      "id": "corridor_7",
+      "type": "corridor",
+      "pos": [
+        185.0,
+        126.0
+      ]
+    },
+    {
+      "id": "corridor_8",
+      "type": "corridor",
+      "pos": [
+        481.0,
+        126.0
+      ]
+    },
+    {
+      "id": "corridor_9",
+      "type": "corridor",
+      "pos": [
+        695.0,
+        126.0
+      ]
+    },
+    {
+      "id": "corridor_10",
+      "type": "corridor",
+      "pos": [
+        318.0,
+        127.0
+      ]
+    },
+    {
+      "id": "corridor_11",
+      "type": "corridor",
+      "pos": [
+        49.0,
+        132.0
+      ]
+    },
+    {
+      "id": "corridor_12",
+      "type": "corridor",
+      "pos": [
+        716.0,
+        145.0
+      ]
+    },
+    {
+      "id": "corridor_13",
+      "type": "corridor",
+      "pos": [
+        719.0,
+        249.0
+      ]
+    },
+    {
+      "id": "corridor_14",
+      "type": "corridor",
+      "pos": [
+        719.0,
+        385.0
+      ]
+    },
+    {
+      "id": "corridor_15",
+      "type": "corridor",
+      "pos": [
+        736.0,
+        385.0
+      ]
+    },
+    {
+      "id": "corridor_16",
+      "type": "corridor",
+      "pos": [
+        54.0,
+        386.0
+      ]
+    },
+    {
+      "id": "corridor_17",
+      "type": "corridor",
+      "pos": [
+        179.0,
+        386.0
+      ]
+    },
+    {
+      "id": "corridor_18",
+      "type": "corridor",
+      "pos": [
+        329.0,
+        386.0
+      ]
+    },
+    {
+      "id": "corridor_19",
+      "type": "corridor",
+      "pos": [
+        469.0,
+        386.0
+      ]
+    },
+    {
+      "id": "corridor_20",
+      "type": "corridor",
+      "pos": [
+        693.0,
+        386.0
+      ]
+    },
+    {
+      "id": "corridor_21",
+      "type": "corridor",
+      "pos": [
+        716.0,
+        406.0
+      ]
+    },
+    {
+      "id": "corridor_22",
+      "type": "corridor",
+      "pos": [
+        717.0,
+        477.0
+      ]
+    },
+    {
+      "id": "corridor_23",
+      "type": "corridor",
+      "pos": [
+        705.0,
+        487.0
+      ]
+    },
+    {
+      "id": "corridor_24",
+      "type": "corridor",
+      "pos": [
+        725.0,
+        487.0
+      ]
+    },
+    {
+      "id": "corridor_27",
+      "type": "corridor",
+      "pos": [
+        723.0,
+        548.0
+      ]
+    },
+    {
+      "id": "corridor_28",
+      "type": "corridor",
+      "pos": [
+        716.0,
+        551.0
+      ]
+    },
+    {
+      "id": "corridor_29",
+      "type": "corridor",
+      "pos": [
+        1069.0,
+        585.0
+      ]
+    },
+    {
+      "id": "corridor_30",
+      "type": "corridor",
+      "pos": [
+        1058.0,
+        598.0
+      ]
+    },
+    {
+      "id": "corridor_31",
+      "type": "corridor",
+      "pos": [
+        880.0,
+        599.0
+      ]
+    },
+    {
+      "id": "corridor_32",
+      "type": "corridor",
+      "pos": [
+        890.0,
+        599.0
+      ]
+    },
+    {
+      "id": "corridor_33",
+      "type": "corridor",
+      "pos": [
+        1097.0,
+        600.0
+      ]
+    },
+    {
+      "id": "corridor_35",
+      "type": "corridor",
+      "pos": [
+        1105.0,
+        608.0
+      ]
+    },
+    {
+      "id": "corridor_36",
+      "type": "corridor",
+      "pos": [
+        837.0,
+        609.0
+      ]
+    },
+    {
+      "id": "corridor_37",
+      "type": "corridor",
+      "pos": [
+        853.0,
+        609.0
+      ]
+    },
+    {
+      "id": "corridor_38",
+      "type": "corridor",
+      "pos": [
+        870.0,
+        609.0
+      ]
+    },
+    {
+      "id": "corridor_39",
+      "type": "corridor",
+      "pos": [
+        743.0,
+        610.0
+      ]
+    },
+    {
+      "id": "corridor_40",
+      "type": "corridor",
+      "pos": [
+        845.0,
+        615.0
+      ]
+    },
+    {
+      "id": "corridor_42",
+      "type": "corridor",
+      "pos": [
+        720.0,
+        618.0
+      ]
+    },
+    {
+      "id": "corridor_43",
+      "type": "corridor",
+      "pos": [
+        735.0,
+        618.0
+      ]
+    },
+    {
+      "id": "corridor_44",
+      "type": "corridor",
+      "pos": [
+        845.0,
+        645.0
+      ]
+    },
+    {
+      "id": "corridor_47",
+      "type": "corridor",
+      "pos": [
+        735.0,
+        693.0
+      ]
+    },
+    {
+      "id": "corridor_50",
+      "type": "corridor",
+      "pos": [
+        845.0,
+        753.0
+      ]
+    },
+    {
+      "id": "door_endpoints_0",
+      "type": "door_endpoints",
+      "pos": [
+        327.0,
+        136.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          6
+        ],
+        "room_link_ids": [],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_1",
+      "type": "door_endpoints",
+      "pos": [
+        50.0,
+        138.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          15
+        ],
+        "room_link_ids": [],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_2",
+      "type": "door_endpoints",
+      "pos": [
+        185.0,
+        138.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          16
+        ],
+        "room_link_ids": [],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_3",
+      "type": "door_endpoints",
+      "pos": [
+        481.0,
+        138.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          14
+        ],
+        "room_link_ids": [],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_4",
+      "type": "door_endpoints",
+      "pos": [
+        50.0,
+        145.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          15
+        ],
+        "room_link_ids": [
+          0
+        ],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_5",
+      "type": "door_endpoints",
+      "pos": [
+        185.0,
+        145.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          16
+        ],
+        "room_link_ids": [
+          1
+        ],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_6",
+      "type": "door_endpoints",
+      "pos": [
+        481.0,
+        145.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          14
+        ],
+        "room_link_ids": [
+          8
+        ],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_7",
+      "type": "door_endpoints",
+      "pos": [
+        753.0,
+        250.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          22
+        ],
+        "room_link_ids": [],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_8",
+      "type": "door_endpoints",
+      "pos": [
+        760.0,
+        250.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          22
+        ],
+        "room_link_ids": [
+          25
+        ],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_9",
+      "type": "door_endpoints",
+      "pos": [
+        327.0,
+        256.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          6
+        ],
+        "room_link_ids": [],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_10",
+      "type": "door_endpoints",
+      "pos": [
+        44.0,
+        398.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          17
+        ],
+        "room_link_ids": [],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_11",
+      "type": "door_endpoints",
+      "pos": [
+        469.0,
+        398.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          5
+        ],
+        "room_link_ids": [],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_12",
+      "type": "door_endpoints",
+      "pos": [
+        40.0,
+        403.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          9
+        ],
+        "room_link_ids": [],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_13",
+      "type": "door_endpoints",
+      "pos": [
+        325.0,
+        403.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          9
+        ],
+        "room_link_ids": [
+          5
+        ],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_14",
+      "type": "door_endpoints",
+      "pos": [
+        180.0,
+        404.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          8
+        ],
+        "room_link_ids": [
+          13
+        ],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_15",
+      "type": "door_endpoints",
+      "pos": [
+        469.0,
+        404.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          8
+        ],
+        "room_link_ids": [
+          4
+        ],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_16",
+      "type": "door_endpoints",
+      "pos": [
+        44.0,
+        405.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          17
+        ],
+        "room_link_ids": [
+          13
+        ],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_17",
+      "type": "door_endpoints",
+      "pos": [
+        675.0,
+        488.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          11
+        ],
+        "room_link_ids": [
+          19
+        ],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_18",
+      "type": "door_endpoints",
+      "pos": [
+        682.0,
+        488.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          11
+        ],
+        "room_link_ids": [],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_19",
+      "type": "door_endpoints",
+      "pos": [
+        721.0,
+        511.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          7
+        ],
+        "room_link_ids": [],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_20",
+      "type": "door_endpoints",
+      "pos": [
+        469.0,
+        516.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          5
+        ],
+        "room_link_ids": [],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_21",
+      "type": "door_endpoints",
+      "pos": [
+        1219.0,
+        518.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          13
+        ],
+        "room_link_ids": [],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_22",
+      "type": "door_endpoints",
+      "pos": [
+        721.0,
+        519.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          7
+        ],
+        "room_link_ids": [],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_23",
+      "type": "door_endpoints",
+      "pos": [
+        930.0,
+        560.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          1
+        ],
+        "room_link_ids": [
+          18
+        ],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_24",
+      "type": "door_endpoints",
+      "pos": [
+        937.0,
+        560.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          1
+        ],
+        "room_link_ids": [
+          7
+        ],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_25",
+      "type": "door_endpoints",
+      "pos": [
+        890.0,
+        574.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          2
+        ],
+        "room_link_ids": [
+          18
+        ],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_26",
+      "type": "door_endpoints",
+      "pos": [
+        1069.0,
+        574.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          3
+        ],
+        "room_link_ids": [
+          11
+        ],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_27",
+      "type": "door_endpoints",
+      "pos": [
+        1111.0,
+        576.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          0
+        ],
+        "room_link_ids": [
+          10
+        ],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_28",
+      "type": "door_endpoints",
+      "pos": [
+        890.0,
+        581.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          2
+        ],
+        "room_link_ids": [],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_29",
+      "type": "door_endpoints",
+      "pos": [
+        1069.0,
+        581.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          3
+        ],
+        "room_link_ids": [],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_30",
+      "type": "door_endpoints",
+      "pos": [
+        1111.0,
+        583.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          0
+        ],
+        "room_link_ids": [],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_31",
+      "type": "door_endpoints",
+      "pos": [
+        1183.0,
+        589.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          19
+        ],
+        "room_link_ids": [
+          22
+        ],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_32",
+      "type": "door_endpoints",
+      "pos": [
+        1190.0,
+        589.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          19
+        ],
+        "room_link_ids": [
+          33
+        ],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_33",
+      "type": "door_endpoints",
+      "pos": [
+        721.0,
+        594.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          12
+        ],
+        "room_link_ids": [],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_34",
+      "type": "door_endpoints",
+      "pos": [
+        721.0,
+        601.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          12
+        ],
+        "room_link_ids": [],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_35",
+      "type": "door_endpoints",
+      "pos": [
+        1113.0,
+        608.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          20
+        ],
+        "room_link_ids": [],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_36",
+      "type": "door_endpoints",
+      "pos": [
+        1120.0,
+        608.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          20
+        ],
+        "room_link_ids": [
+          22
+        ],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_37",
+      "type": "door_endpoints",
+      "pos": [
+        647.0,
+        637.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          18
+        ],
+        "room_link_ids": [],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_38",
+      "type": "door_endpoints",
+      "pos": [
+        822.0,
+        645.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          24
+        ],
+        "room_link_ids": [
+          14
+        ],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_39",
+      "type": "door_endpoints",
+      "pos": [
+        829.0,
+        645.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          24
+        ],
+        "room_link_ids": [],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_40",
+      "type": "door_endpoints",
+      "pos": [
+        647.0,
+        693.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          25
+        ],
+        "room_link_ids": [
+          30
+        ],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_41",
+      "type": "door_endpoints",
+      "pos": [
+        720.0,
+        693.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          25
+        ],
+        "room_link_ids": [],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_42",
+      "type": "door_endpoints",
+      "pos": [
+        610.0,
+        722.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          21
+        ],
+        "room_link_ids": [],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_43",
+      "type": "door_endpoints",
+      "pos": [
+        738.0,
+        722.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          21
+        ],
+        "room_link_ids": [],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_44",
+      "type": "door_endpoints",
+      "pos": [
+        647.0,
+        729.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          18
+        ],
+        "room_link_ids": [
+          17
+        ],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_45",
+      "type": "door_endpoints",
+      "pos": [
+        733.0,
+        760.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          4
+        ],
+        "room_link_ids": [
+          17
+        ],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_46",
+      "type": "door_endpoints",
+      "pos": [
+        740.0,
+        760.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          4
+        ],
+        "room_link_ids": [
+          21
+        ],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_47",
+      "type": "door_endpoints",
+      "pos": [
+        731.0,
+        770.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          10
+        ],
+        "room_link_ids": [
+          17
+        ],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_48",
+      "type": "door_endpoints",
+      "pos": [
+        835.0,
+        770.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          23
+        ],
+        "room_link_ids": [],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_49",
+      "type": "door_endpoints",
+      "pos": [
+        731.0,
+        777.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          10
+        ],
+        "room_link_ids": [
+          20
+        ],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_50",
+      "type": "door_endpoints",
+      "pos": [
+        835.0,
+        777.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          23
+        ],
+        "room_link_ids": [
+          23
+        ],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "door_endpoints_51",
+      "type": "door_endpoints",
+      "pos": [
+        1219.0,
+        792.0
+      ],
+      "attributes": {
+        "door_link_ids": [
+          13
+        ],
+        "room_link_ids": [],
+        "is_newly_found": true
+      }
+    },
+    {
+      "id": "room_0",
+      "type": "room",
+      "pos": [
+        110.52625000000002,
+        198.19286400000001
+      ],
+      "attributes": {
+        "rooms_id": 0,
+        "connected_door_ids": [
+          15
+        ]
+      }
+    },
+    {
+      "id": "room_1",
+      "type": "room",
+      "pos": [
+        252.80546875000005,
+        198.213852
+      ],
+      "attributes": {
+        "rooms_id": 1,
+        "connected_door_ids": [
+          16
+        ]
+      }
+    },
+    {
+      "id": "room_2",
+      "type": "room",
+      "pos": [
+        396.28140625000003,
+        197.28229411887855
+      ],
+      "attributes": {
+        "rooms_id": 2,
+        "connected_door_ids": [
+          6
+        ]
+      }
+    },
+    {
+      "id": "room_3",
+      "type": "room",
+      "pos": [
+        252.44640625,
+        458.0573760000001
+      ],
+      "attributes": {
+        "rooms_id": 3,
+        "connected_door_ids": [
+          8,
+          9
+        ]
+      }
+    },
+    {
+      "id": "room_4",
+      "type": "room",
+      "pos": [
+        538.93625,
+        458.12161199999997
+      ],
+      "attributes": {
+        "rooms_id": 4,
+        "connected_door_ids": [
+          5,
+          8
+        ]
+      }
+    },
+    {
+      "id": "room_5",
+      "type": "room",
+      "pos": [
+        396.1321875,
+        458.00649599999997
+      ],
+      "attributes": {
+        "rooms_id": 5,
+        "connected_door_ids": [
+          5,
+          8,
+          9
+        ]
+      }
+    },
+    {
+      "id": "room_6",
+      "type": "room",
+      "pos": [
+        1025.095625,
+        705.98544
+      ],
+      "attributes": {
+        "rooms_id": 6,
+        "connected_door_ids": []
+      }
+    },
+    {
+      "id": "room_7",
+      "type": "room",
+      "pos": [
+        969.4031249999998,
+        548.13448
+      ],
+      "attributes": {
+        "rooms_id": 7,
+        "connected_door_ids": [
+          1
+        ]
+      }
+    },
+    {
+      "id": "room_8",
+      "type": "room",
+      "pos": [
+        539.696875,
+        199.16888715712605
+      ],
+      "attributes": {
+        "rooms_id": 8,
+        "connected_door_ids": [
+          14
+        ]
+      }
+    },
+    {
+      "id": "room_9",
+      "type": "room",
+      "pos": [
+        1184.9484375,
+        549.336096
+      ],
+      "attributes": {
+        "rooms_id": 9,
+        "connected_door_ids": [
+          13
+        ]
+      }
+    },
+    {
+      "id": "room_10",
+      "type": "room",
+      "pos": [
+        1112.32703125,
+        548.944744
+      ],
+      "attributes": {
+        "rooms_id": 10,
+        "connected_door_ids": [
+          0
+        ]
+      }
+    },
+    {
+      "id": "room_11",
+      "type": "room",
+      "pos": [
+        1040.42140625,
+        548.0954720000001
+      ],
+      "attributes": {
+        "rooms_id": 11,
+        "connected_door_ids": [
+          3
+        ]
+      }
+    },
+    {
+      "id": "room_12",
+      "type": "room",
+      "pos": [
+        844.22875,
+        447.87459200000006
+      ],
+      "attributes": {
+        "rooms_id": 12,
+        "connected_door_ids": []
+      }
+    },
+    {
+      "id": "room_13",
+      "type": "room",
+      "pos": [
+        110.56328124999999,
+        457.93017599999996
+      ],
+      "attributes": {
+        "rooms_id": 13,
+        "connected_door_ids": [
+          8,
+          9,
+          17
+        ]
+      }
+    },
+    {
+      "id": "room_14",
+      "type": "room",
+      "pos": [
+        790.3673199330276,
+        657.4159219999999
+      ],
+      "attributes": {
+        "rooms_id": 14,
+        "connected_door_ids": [
+          24
+        ]
+      }
+    },
+    {
+      "id": "room_15",
+      "type": "room",
+      "pos": [
+        845.0587499999998,
+        313.3945542081913
+      ],
+      "attributes": {
+        "rooms_id": 15,
+        "connected_door_ids": []
+      }
+    },
+    {
+      "id": "room_16",
+      "type": "room",
+      "pos": [
+        808.7525,
+        581.7483519999998
+      ],
+      "attributes": {
+        "rooms_id": 16,
+        "connected_door_ids": []
+      }
+    },
+    {
+      "id": "room_17",
+      "type": "room",
+      "pos": [
+        673.7553125,
+        749.2138300000001
+      ],
+      "attributes": {
+        "rooms_id": 17,
+        "connected_door_ids": [
+          4,
+          10,
+          18
+        ]
+      }
+    },
+    {
+      "id": "room_18",
+      "type": "room",
+      "pos": [
+        897.0624999999999,
+        547.85464
+      ],
+      "attributes": {
+        "rooms_id": 18,
+        "connected_door_ids": [
+          1,
+          2
+        ]
+      }
+    },
+    {
+      "id": "room_19",
+      "type": "room",
+      "pos": [
+        644.130625,
+        458.52208
+      ],
+      "attributes": {
+        "rooms_id": 19,
+        "connected_door_ids": [
+          11
+        ]
+      }
+    },
+    {
+      "id": "room_20",
+      "type": "room",
+      "pos": [
+        682.44921875,
+        792.09401
+      ],
+      "attributes": {
+        "rooms_id": 20,
+        "connected_door_ids": [
+          10
+        ]
+      }
+    },
+    {
+      "id": "room_21",
+      "type": "room",
+      "pos": [
+        781.2148199330276,
+        750.199948
+      ],
+      "attributes": {
+        "rooms_id": 21,
+        "connected_door_ids": [
+          4
+        ]
+      }
+    },
+    {
+      "id": "room_22",
+      "type": "room",
+      "pos": [
+        1151.4518750000002,
+        599.951732
+      ],
+      "attributes": {
+        "rooms_id": 22,
+        "connected_door_ids": [
+          19,
+          20
+        ]
+      }
+    },
+    {
+      "id": "room_23",
+      "type": "room",
+      "pos": [
+        809.0232812500001,
+        791.9188979999999
+      ],
+      "attributes": {
+        "rooms_id": 23,
+        "connected_door_ids": [
+          23
+        ]
+      }
+    },
+    {
+      "id": "room_24",
+      "type": "room",
+      "pos": [
+        645.28625,
+        581.2090239999999
+      ],
+      "attributes": {
+        "rooms_id": 24,
+        "connected_door_ids": []
+      }
+    },
+    {
+      "id": "room_25",
+      "type": "room",
+      "pos": [
+        844.4187499999999,
+        246.57399841638255
+      ],
+      "attributes": {
+        "rooms_id": 25,
+        "connected_door_ids": [
+          22
+        ]
+      }
+    },
+    {
+      "id": "room_26",
+      "type": "room",
+      "pos": [
+        826.0725,
+        92.26636680662669
+      ],
+      "attributes": {
+        "rooms_id": 26,
+        "connected_door_ids": []
+      }
+    },
+    {
+      "id": "room_27",
+      "type": "room",
+      "pos": [
+        843.78375,
+        164.59917420819127
+      ],
+      "attributes": {
+        "rooms_id": 27,
+        "connected_door_ids": []
+      }
+    },
+    {
+      "id": "room_28",
+      "type": "room",
+      "pos": [
+        789.9681011830278,
+        711.0700479999999
+      ],
+      "attributes": {
+        "rooms_id": 28,
+        "connected_door_ids": []
+      }
+    },
+    {
+      "id": "room_29",
+      "type": "room",
+      "pos": [
+        645.7528125,
+        199.44809115712607
+      ],
+      "attributes": {
+        "rooms_id": 29,
+        "connected_door_ids": []
+      }
+    },
+    {
+      "id": "room_30",
+      "type": "room",
+      "pos": [
+        629.5203125,
+        681.5825439999999
+      ],
+      "attributes": {
+        "rooms_id": 30,
+        "connected_door_ids": [
+          18,
+          21,
+          25
+        ]
+      }
+    },
+    {
+      "id": "room_31",
+      "type": "room",
+      "pos": [
+        698.9770422566837,
+        667.276042
+      ],
+      "attributes": {
+        "rooms_id": 31,
+        "connected_door_ids": [
+          25
+        ]
+      }
+    },
+    {
+      "id": "room_32",
+      "type": "room",
+      "pos": [
+        681.9586047566837,
+        710.4093500000001
+      ],
+      "attributes": {
+        "rooms_id": 32,
+        "connected_door_ids": [
+          18,
+          21
+        ]
+      }
+    },
+    {
+      "id": "room_33",
+      "type": "room",
+      "pos": [
+        1202.4556249999998,
+        685.465112
+      ],
+      "attributes": {
+        "rooms_id": 33,
+        "connected_door_ids": [
+          13,
+          19
+        ]
+      }
+    },
+    {
+      "id": "room_34",
+      "type": "room",
+      "pos": [
+        286.53875000000005,
+        83.40080000000003
+      ],
+      "attributes": {
+        "rooms_id": 34,
+        "connected_door_ids": []
+      }
+    },
+    {
+      "id": "door_0",
+      "type": "door",
+      "pos": [
+        1111.00831876378,
+        579.6211440000001
+      ],
+      "attributes": {
+        "door_id": 0,
+        "connected_room_ids": [
+          10
+        ]
+      }
+    },
+    {
+      "id": "door_1",
+      "type": "door",
+      "pos": [
+        933.8437499999999,
+        560.0257372373567
+      ],
+      "attributes": {
+        "door_id": 1,
+        "connected_room_ids": [
+          7,
+          18
+        ]
+      }
+    },
+    {
+      "id": "door_2",
+      "type": "door",
+      "pos": [
+        890.2928107673823,
+        577.998496
+      ],
+      "attributes": {
+        "door_id": 2,
+        "connected_room_ids": [
+          18
+        ]
+      }
+    },
+    {
+      "id": "door_3",
+      "type": "door",
+      "pos": [
+        1069.1579788359022,
+        577.839072
+      ],
+      "attributes": {
+        "door_id": 3,
+        "connected_room_ids": [
+          11
+        ]
+      }
+    },
+    {
+      "id": "door_4",
+      "type": "door",
+      "pos": [
+        736.5912499999998,
+        760.3537203759305
+      ],
+      "attributes": {
+        "door_id": 4,
+        "connected_room_ids": [
+          17,
+          21
+        ]
+      }
+    },
+    {
+      "id": "door_5",
+      "type": "door",
+      "pos": [
+        469.2374289053306,
+        456.87161199999986
+      ],
+      "attributes": {
+        "door_id": 5,
+        "connected_room_ids": [
+          4,
+          5
+        ]
+      }
+    },
+    {
+      "id": "door_6",
+      "type": "door",
+      "pos": [
+        326.8670411515956,
+        196.03229411887855
+      ],
+      "attributes": {
+        "door_id": 6,
+        "connected_room_ids": [
+          2
+        ]
+      }
+    },
+    {
+      "id": "door_7",
+      "type": "door",
+      "pos": [
+        721.2008689574376,
+        514.9990247407087
+      ],
+      "attributes": {
+        "door_id": 7,
+        "connected_room_ids": []
+      }
+    },
+    {
+      "id": "door_8",
+      "type": "door",
+      "pos": [
+        324.24921875000007,
+        403.7040714425344
+      ],
+      "attributes": {
+        "door_id": 8,
+        "connected_room_ids": [
+          3,
+          4,
+          5,
+          13
+        ]
+      }
+    },
+    {
+      "id": "door_9",
+      "type": "door",
+      "pos": [
+        182.44625000000005,
+        403.08239689878076
+      ],
+      "attributes": {
+        "door_id": 9,
+        "connected_room_ids": [
+          3,
+          5,
+          13
+        ]
+      }
+    },
+    {
+      "id": "door_10",
+      "type": "door",
+      "pos": [
+        731.1939634479595,
+        773.314308
+      ],
+      "attributes": {
+        "door_id": 10,
+        "connected_room_ids": [
+          17,
+          20
+        ]
+      }
+    },
+    {
+      "id": "door_11",
+      "type": "door",
+      "pos": [
+        678.3237500000001,
+        487.6956562348263
+      ],
+      "attributes": {
+        "door_id": 11,
+        "connected_room_ids": [
+          19
+        ]
+      }
+    },
+    {
+      "id": "door_12",
+      "type": "door",
+      "pos": [
+        720.5517018159759,
+        597.9322960278857
+      ],
+      "attributes": {
+        "door_id": 12,
+        "connected_room_ids": []
+      }
+    },
+    {
+      "id": "door_13",
+      "type": "door",
+      "pos": [
+        1219.0903759608852,
+        655.1800640000001
+      ],
+      "attributes": {
+        "door_id": 13,
+        "connected_room_ids": [
+          9,
+          33
+        ]
+      }
+    },
+    {
+      "id": "door_14",
+      "type": "door",
+      "pos": [
+        480.66351638350386,
+        141.69783199999998
+      ],
+      "attributes": {
+        "door_id": 14,
+        "connected_room_ids": [
+          8
+        ]
+      }
+    },
+    {
+      "id": "door_15",
+      "type": "door",
+      "pos": [
+        50.14428312127675,
+        141.778816
+      ],
+      "attributes": {
+        "door_id": 15,
+        "connected_room_ids": [
+          0
+        ]
+      }
+    },
+    {
+      "id": "door_16",
+      "type": "door",
+      "pos": [
+        185.3194232291466,
+        141.69783199999998
+      ],
+      "attributes": {
+        "door_id": 16,
+        "connected_room_ids": [
+          1
+        ]
+      }
+    },
+    {
+      "id": "door_17",
+      "type": "door",
+      "pos": [
+        44.106469252185185,
+        401.52588000000003
+      ],
+      "attributes": {
+        "door_id": 17,
+        "connected_room_ids": [
+          13
+        ]
+      }
+    },
+    {
+      "id": "door_18",
+      "type": "door",
+      "pos": [
+        647.0751202907937,
+        682.832544
+      ],
+      "attributes": {
+        "door_id": 18,
+        "connected_room_ids": [
+          17,
+          30,
+          32
+        ]
+      }
+    },
+    {
+      "id": "door_19",
+      "type": "door",
+      "pos": [
+        1186.2424999999998,
+        589.2121867743026
+      ],
+      "attributes": {
+        "door_id": 19,
+        "connected_room_ids": [
+          22,
+          33
+        ]
+      }
+    },
+    {
+      "id": "door_20",
+      "type": "door",
+      "pos": [
+        1116.66125,
+        608.1950780945554
+      ],
+      "attributes": {
+        "door_id": 20,
+        "connected_room_ids": [
+          22
+        ]
+      }
+    },
+    {
+      "id": "door_21",
+      "type": "door",
+      "pos": [
+        673.7553125,
+        722.2631166336374
+      ],
+      "attributes": {
+        "door_id": 21,
+        "connected_room_ids": [
+          30,
+          32
+        ]
+      }
+    },
+    {
+      "id": "door_22",
+      "type": "door",
+      "pos": [
+        756.1662499999999,
+        249.88396430069665
+      ],
+      "attributes": {
+        "door_id": 22,
+        "connected_room_ids": [
+          25
+        ]
+      }
+    },
+    {
+      "id": "door_23",
+      "type": "door",
+      "pos": [
+        835.1134682986973,
+        773.0658440000001
+      ],
+      "attributes": {
+        "door_id": 23,
+        "connected_room_ids": [
+          23
+        ]
+      }
+    },
+    {
+      "id": "door_24",
+      "type": "door",
+      "pos": [
+        825.8383898660554,
+        645.3282860875224
+      ],
+      "attributes": {
+        "door_id": 24,
+        "connected_room_ids": [
+          14
+        ]
+      }
+    },
+    {
+      "id": "door_25",
+      "type": "door",
+      "pos": [
+        683.2086047566838,
+        693.175779966387
+      ],
+      "attributes": {
+        "door_id": 25,
+        "connected_room_ids": [
+          30,
+          31
+        ]
+      }
+    },
+    {
+      "id": "stair_0",
+      "type": "stair",
+      "pos": [
+        848.8239630903192,
+        385.28668000000005
+      ]
+    },
+    {
+      "id": "stair_1",
+      "type": "stair",
+      "pos": [
+        651.6256018026279,
+        71.78497966409172
+      ]
+    },
+    {
+      "id": "stair_2",
+      "type": "stair",
+      "pos": [
+        642.5455364467759,
+        619.743916720391
+      ]
+    },
+    {
+      "id": "elevator_0",
+      "type": "elevator",
+      "pos": [
+        834.7656349535649,
+        53.88966910451795
+      ]
+    },
+    {
+      "id": "elevator_1",
+      "type": "elevator",
+      "pos": [
+        629.2258363517069,
+        313.55367955222744
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "source": "corridor_0",
+      "target": "corridor_1",
+      "weight": 17.414213562373096
+    },
+    {
+      "source": "corridor_0",
+      "target": "elevator_0",
+      "weight": 42.76577727445243
+    },
+    {
+      "source": "corridor_1",
+      "target": "corridor_4",
+      "weight": 28.284271247461913
+    },
+    {
+      "source": "corridor_2",
+      "target": "corridor_3",
+      "weight": 24.213203435596434
+    },
+    {
+      "source": "corridor_2",
+      "target": "stair_1",
+      "weight": 59.50619422804994
+    },
+    {
+      "source": "corridor_3",
+      "target": "corridor_4",
+      "weight": 31.414213562373096
+    },
+    {
+      "source": "corridor_3",
+      "target": "corridor_12",
+      "weight": 76.65685424949237
+    },
+    {
+      "source": "corridor_6",
+      "target": "corridor_11",
+      "weight": 6.82842712474619
+    },
+    {
+      "source": "corridor_6",
+      "target": "corridor_7",
+      "weight": 134.82842712474618
+    },
+    {
+      "source": "corridor_7",
+      "target": "corridor_10",
+      "weight": 133.4142135623731
+    },
+    {
+      "source": "corridor_7",
+      "target": "door_endpoints_2",
+      "weight": 12.0
+    },
+    {
+      "source": "corridor_8",
+      "target": "corridor_10",
+      "weight": 164.8284271247462
+    },
+    {
+      "source": "corridor_8",
+      "target": "corridor_9",
+      "weight": 214.0
+    },
+    {
+      "source": "corridor_8",
+      "target": "door_endpoints_3",
+      "weight": 12.828427124746192
+    },
+    {
+      "source": "corridor_9",
+      "target": "corridor_12",
+      "weight": 28.870057685088817
+    },
+    {
+      "source": "corridor_11",
+      "target": "door_endpoints_1",
+      "weight": 6.414213562373095
+    },
+    {
+      "source": "corridor_12",
+      "target": "corridor_13",
+      "weight": 105.82842712474618
+    },
+    {
+      "source": "corridor_13",
+      "target": "corridor_14",
+      "weight": 136.0
+    },
+    {
+      "source": "corridor_13",
+      "target": "door_endpoints_7",
+      "weight": 34.41421356237309
+    },
+    {
+      "source": "corridor_14",
+      "target": "corridor_15",
+      "weight": 17.0
+    },
+    {
+      "source": "corridor_14",
+      "target": "corridor_21",
+      "weight": 23.414213562373096
+    },
+    {
+      "source": "corridor_15",
+      "target": "stair_0",
+      "weight": 112.82432730944208
+    },
+    {
+      "source": "corridor_16",
+      "target": "corridor_17",
+      "weight": 125.0
+    },
+    {
+      "source": "corridor_16",
+      "target": "door_endpoints_10",
+      "weight": 16.142135623730955
+    },
+    {
+      "source": "corridor_17",
+      "target": "corridor_18",
+      "weight": 150.8284271247462
+    },
+    {
+      "source": "corridor_18",
+      "target": "corridor_19",
+      "weight": 140.0
+    },
+    {
+      "source": "corridor_19",
+      "target": "corridor_20",
+      "weight": 224.0
+    },
+    {
+      "source": "corridor_19",
+      "target": "door_endpoints_11",
+      "weight": 12.0
+    },
+    {
+      "source": "corridor_20",
+      "target": "corridor_21",
+      "weight": 31.284271247461913
+    },
+    {
+      "source": "corridor_20",
+      "target": "elevator_1",
+      "weight": 96.5174248281657
+    },
+    {
+      "source": "corridor_21",
+      "target": "corridor_22",
+      "weight": 71.41421356237309
+    },
+    {
+      "source": "corridor_22",
+      "target": "corridor_24",
+      "weight": 13.899494936611667
+    },
+    {
+      "source": "corridor_22",
+      "target": "corridor_23",
+      "weight": 16.142135623730955
+    },
+    {
+      "source": "corridor_23",
+      "target": "door_endpoints_18",
+      "weight": 23.414213562373096
+    },
+    {
+      "source": "corridor_24",
+      "target": "door_endpoints_19",
+      "weight": 26.82842712474619
+    },
+    {
+      "source": "corridor_27",
+      "target": "corridor_28",
+      "weight": 8.242640687119286
+    },
+    {
+      "source": "corridor_27",
+      "target": "door_endpoints_22",
+      "weight": 29.82842712474619
+    },
+    {
+      "source": "corridor_28",
+      "target": "door_endpoints_33",
+      "weight": 45.65685424949237
+    },
+    {
+      "source": "corridor_29",
+      "target": "corridor_30",
+      "weight": 17.55634918610405
+    },
+    {
+      "source": "corridor_29",
+      "target": "door_endpoints_29",
+      "weight": 4.0
+    },
+    {
+      "source": "corridor_30",
+      "target": "corridor_33",
+      "weight": 40.41421356237309
+    },
+    {
+      "source": "corridor_30",
+      "target": "corridor_32",
+      "weight": 168.4142135623731
+    },
+    {
+      "source": "corridor_31",
+      "target": "corridor_32",
+      "weight": 10.0
+    },
+    {
+      "source": "corridor_31",
+      "target": "corridor_38",
+      "weight": 14.142135623730955
+    },
+    {
+      "source": "corridor_32",
+      "target": "door_endpoints_28",
+      "weight": 18.0
+    },
+    {
+      "source": "corridor_33",
+      "target": "corridor_35",
+      "weight": 11.313708498984763
+    },
+    {
+      "source": "corridor_33",
+      "target": "door_endpoints_30",
+      "weight": 22.798989873223338
+    },
+    {
+      "source": "corridor_35",
+      "target": "door_endpoints_35",
+      "weight": 8.0
+    },
+    {
+      "source": "corridor_36",
+      "target": "corridor_40",
+      "weight": 10.485281374238571
+    },
+    {
+      "source": "corridor_36",
+      "target": "corridor_39",
+      "weight": 94.41421356237309
+    },
+    {
+      "source": "corridor_37",
+      "target": "corridor_40",
+      "weight": 10.485281374238571
+    },
+    {
+      "source": "corridor_37",
+      "target": "corridor_38",
+      "weight": 17.0
+    },
+    {
+      "source": "corridor_39",
+      "target": "corridor_43",
+      "weight": 11.313708498984763
+    },
+    {
+      "source": "corridor_40",
+      "target": "corridor_44",
+      "weight": 30.0
+    },
+    {
+      "source": "corridor_42",
+      "target": "corridor_43",
+      "weight": 15.0
+    },
+    {
+      "source": "corridor_42",
+      "target": "door_endpoints_34",
+      "weight": 17.414213562373096
+    },
+    {
+      "source": "corridor_43",
+      "target": "corridor_47",
+      "weight": 75.0
+    },
+    {
+      "source": "corridor_44",
+      "target": "corridor_50",
+      "weight": 108.0
+    },
+    {
+      "source": "corridor_44",
+      "target": "door_endpoints_39",
+      "weight": 16.0
+    },
+    {
+      "source": "corridor_47",
+      "target": "door_endpoints_41",
+      "weight": 15.0
+    },
+    {
+      "source": "corridor_50",
+      "target": "door_endpoints_48",
+      "weight": 21.142135623730958
+    },
+    {
+      "source": "door_endpoints_0",
+      "target": "door_6",
+      "weight": 60.032441356577436
+    },
+    {
+      "source": "door_endpoints_1",
+      "target": "door_15",
+      "weight": 3.78156951290617
+    },
+    {
+      "source": "door_endpoints_2",
+      "target": "door_16",
+      "weight": 3.711602443627586
+    },
+    {
+      "source": "door_endpoints_3",
+      "target": "door_14",
+      "weight": 3.7131095761361728
+    },
+    {
+      "source": "door_endpoints_4",
+      "target": "door_15",
+      "weight": 3.224413742208236
+    },
+    {
+      "source": "door_endpoints_4",
+      "target": "room_0",
+      "weight": 80.57858102240942
+    },
+    {
+      "source": "door_endpoints_5",
+      "target": "door_16",
+      "weight": 3.31758115191514
+    },
+    {
+      "source": "door_endpoints_5",
+      "target": "room_1",
+      "weight": 86.19336190847378
+    },
+    {
+      "source": "door_endpoints_6",
+      "target": "door_14",
+      "weight": 3.3192671968966994
+    },
+    {
+      "source": "door_endpoints_6",
+      "target": "room_8",
+      "weight": 79.87234484229869
+    },
+    {
+      "source": "door_endpoints_7",
+      "target": "door_22",
+      "weight": 3.168375505840815
+    },
+    {
+      "source": "door_endpoints_8",
+      "target": "door_22",
+      "weight": 3.8355056180396554
+    },
+    {
+      "source": "door_endpoints_8",
+      "target": "room_25",
+      "weight": 84.48824082920319
+    },
+    {
+      "source": "door_endpoints_9",
+      "target": "door_6",
+      "weight": 59.967853277402355
+    },
+    {
+      "source": "door_endpoints_10",
+      "target": "door_17",
+      "weight": 3.527487133365773
+    },
+    {
+      "source": "door_endpoints_11",
+      "target": "door_5",
+      "weight": 58.87209077282387
+    },
+    {
+      "source": "door_endpoints_12",
+      "target": "door_9",
+      "weight": 142.44627383091296
+    },
+    {
+      "source": "door_endpoints_13",
+      "target": "door_9",
+      "weight": 142.55377381294196
+    },
+    {
+      "source": "door_endpoints_13",
+      "target": "room_5",
+      "weight": 89.91942337856247
+    },
+    {
+      "source": "door_endpoints_14",
+      "target": "door_8",
+      "weight": 144.2495222997168
+    },
+    {
+      "source": "door_endpoints_14",
+      "target": "room_13",
+      "weight": 87.91997380662471
+    },
+    {
+      "source": "door_endpoints_15",
+      "target": "door_8",
+      "weight": 144.7510837479169
+    },
+    {
+      "source": "door_endpoints_15",
+      "target": "room_4",
+      "weight": 88.43205272717034
+    },
+    {
+      "source": "door_endpoints_16",
+      "target": "door_17",
+      "weight": 3.4757510664690403
+    },
+    {
+      "source": "door_endpoints_16",
+      "target": "room_13",
+      "weight": 85.04277713102725
+    },
+    {
+      "source": "door_endpoints_17",
+      "target": "door_11",
+      "weight": 3.33765474396334
+    },
+    {
+      "source": "door_endpoints_17",
+      "target": "room_19",
+      "weight": 42.683323211964456
+    },
+    {
+      "source": "door_endpoints_18",
+      "target": "door_11",
+      "weight": 3.6888262618208443
+    },
+    {
+      "source": "door_endpoints_19",
+      "target": "door_7",
+      "weight": 4.004066334972785
+    },
+    {
+      "source": "door_endpoints_20",
+      "target": "door_5",
+      "weight": 59.128864693681095
+    },
+    {
+      "source": "door_endpoints_21",
+      "target": "door_13",
+      "weight": 137.18009377040985
+    },
+    {
+      "source": "door_endpoints_22",
+      "target": "door_7",
+      "weight": 4.006014398816248
+    },
+    {
+      "source": "door_endpoints_23",
+      "target": "door_1",
+      "weight": 3.843836165588471
+    },
+    {
+      "source": "door_endpoints_23",
+      "target": "room_18",
+      "weight": 35.105393827439215
+    },
+    {
+      "source": "door_endpoints_23",
+      "target": "door_endpoints_25",
+      "weight": 42.37924020083418
+    },
+    {
+      "source": "door_endpoints_24",
+      "target": "door_1",
+      "weight": 3.1563549337625942
+    },
+    {
+      "source": "door_endpoints_24",
+      "target": "room_7",
+      "weight": 34.50729016651427
+    },
+    {
+      "source": "door_endpoints_25",
+      "target": "door_2",
+      "weight": 4.009202964120349
+    },
+    {
+      "source": "door_endpoints_25",
+      "target": "room_18",
+      "weight": 27.082443681831915
+    },
+    {
+      "source": "door_endpoints_26",
+      "target": "door_3",
+      "weight": 3.8423210607361957
+    },
+    {
+      "source": "door_endpoints_26",
+      "target": "room_11",
+      "weight": 38.571758990617965
+    },
+    {
+      "source": "door_endpoints_27",
+      "target": "door_0",
+      "weight": 3.621153555231723
+    },
+    {
+      "source": "door_endpoints_27",
+      "target": "room_10",
+      "weight": 27.08778117831011
+    },
+    {
+      "source": "door_endpoints_28",
+      "target": "door_2",
+      "weight": 3.015752709940049
+    },
+    {
+      "source": "door_endpoints_29",
+      "target": "door_3",
+      "weight": 3.164873320336392
+    },
+    {
+      "source": "door_endpoints_30",
+      "target": "door_0",
+      "weight": 3.378866240407622
+    },
+    {
+      "source": "door_endpoints_31",
+      "target": "door_19",
+      "weight": 3.2494352551155536
+    },
+    {
+      "source": "door_endpoints_31",
+      "target": "room_22",
+      "weight": 33.39497903600833
+    },
+    {
+      "source": "door_endpoints_31",
+      "target": "door_endpoints_36",
+      "weight": 65.80273550544841
+    },
+    {
+      "source": "door_endpoints_32",
+      "target": "door_19",
+      "weight": 3.7634863460879164
+    },
+    {
+      "source": "door_endpoints_32",
+      "target": "room_33",
+      "weight": 97.26592634274945
+    },
+    {
+      "source": "door_endpoints_33",
+      "target": "door_12",
+      "weight": 3.9577674657217154
+    },
+    {
+      "source": "door_endpoints_34",
+      "target": "door_12",
+      "weight": 3.1002869096786703
+    },
+    {
+      "source": "door_endpoints_35",
+      "target": "door_20",
+      "weight": 3.6664433754629497
+    },
+    {
+      "source": "door_endpoints_36",
+      "target": "door_20",
+      "weight": 3.3444442027748975
+    },
+    {
+      "source": "door_endpoints_36",
+      "target": "room_22",
+      "weight": 32.465290062087256
+    },
+    {
+      "source": "door_endpoints_37",
+      "target": "stair_2",
+      "weight": 17.821746707318095
+    },
+    {
+      "source": "door_endpoints_37",
+      "target": "door_18",
+      "weight": 45.83260556165254
+    },
+    {
+      "source": "door_endpoints_38",
+      "target": "door_24",
+      "weight": 3.8524029538844644
+    },
+    {
+      "source": "door_endpoints_38",
+      "target": "room_14",
+      "weight": 33.9820771485428
+    },
+    {
+      "source": "door_endpoints_39",
+      "target": "door_24",
+      "weight": 3.1786082480107285
+    },
+    {
+      "source": "door_endpoints_40",
+      "target": "door_25",
+      "weight": 36.20903142894504
+    },
+    {
+      "source": "door_endpoints_40",
+      "target": "room_30",
+      "weight": 20.878165068070366
+    },
+    {
+      "source": "door_endpoints_41",
+      "target": "door_25",
+      "weight": 36.79181515699506
+    },
+    {
+      "source": "door_endpoints_42",
+      "target": "door_21",
+      "weight": 63.75585543568172
+    },
+    {
+      "source": "door_endpoints_43",
+      "target": "door_21",
+      "weight": 64.24522629997936
+    },
+    {
+      "source": "door_endpoints_44",
+      "target": "door_18",
+      "weight": 46.16751711506724
+    },
+    {
+      "source": "door_endpoints_44",
+      "target": "room_17",
+      "weight": 33.53275518417118
+    },
+    {
+      "source": "door_endpoints_44",
+      "target": "door_endpoints_45",
+      "weight": 91.4166286842826
+    },
+    {
+      "source": "door_endpoints_44",
+      "target": "door_endpoints_47",
+      "weight": 93.47192091746055
+    },
+    {
+      "source": "door_endpoints_45",
+      "target": "door_4",
+      "weight": 3.608627809409998
+    },
+    {
+      "source": "door_endpoints_45",
+      "target": "room_17",
+      "weight": 60.21855578010452
+    },
+    {
+      "source": "door_endpoints_45",
+      "target": "door_endpoints_47",
+      "weight": 10.198039027185569
+    },
+    {
+      "source": "door_endpoints_46",
+      "target": "door_4",
+      "weight": 3.42705335045277
+    },
+    {
+      "source": "door_endpoints_46",
+      "target": "room_21",
+      "weight": 42.363928067574086
+    },
+    {
+      "source": "door_endpoints_47",
+      "target": "door_10",
+      "weight": 3.319978815897509
+    },
+    {
+      "source": "door_endpoints_47",
+      "target": "room_17",
+      "weight": 60.901716808654555
+    },
+    {
+      "source": "door_endpoints_48",
+      "target": "door_23",
+      "weight": 3.067943038445429
+    },
+    {
+      "source": "door_endpoints_49",
+      "target": "door_10",
+      "weight": 3.690792237177334
+    },
+    {
+      "source": "door_endpoints_49",
+      "target": "room_20",
+      "weight": 50.84296901111748
+    },
+    {
+      "source": "door_endpoints_50",
+      "target": "door_23",
+      "weight": 3.9357919771177694
+    },
+    {
+      "source": "door_endpoints_50",
+      "target": "room_23",
+      "weight": 29.95602501252458
+    },
+    {
+      "source": "door_endpoints_51",
+      "target": "door_13",
+      "weight": 136.8199658487692
+    },
+    {
+      "source": "elevator_1",
+      "target": "cross_20251119-131842-44a047_elevator_1",
+      "weight": 300.2426406871193,
+      "attributes": {
+        "is_cross_floor": true,
+        "connector_type": "elevator",
+        "source_request_id": "20251119-131223-3b28d2",
+        "source_node_id": "elevator_1",
+        "source_node_label": "elevator_1",
+        "target_request_id": "20251119-131842-44a047",
+        "target_node_id": "elevator_1",
+        "target_node_label": "elevator_1",
+        "is_base_cross_floor": true
+      }
+    },
+    {
+      "source": "stair_0",
+      "target": "cross_20251119-030244-d32319_stair_0",
+      "weight": 300.2426406871193,
+      "attributes": {
+        "is_cross_floor": true,
+        "connector_type": "stair",
+        "source_request_id": "20251119-131223-3b28d2",
+        "source_node_id": "stair_0",
+        "source_node_label": "stair_0",
+        "target_request_id": "20251119-030244-d32319",
+        "target_node_id": "stair_0",
+        "target_node_label": "stair_0",
+        "is_base_cross_floor": true
+      }
+    },
+    {
+      "source": "stair_1",
+      "target": "cross_20251119-030244-d32319_stair_1",
+      "weight": 300.2426406871193,
+      "attributes": {
+        "is_cross_floor": true,
+        "connector_type": "stair",
+        "source_request_id": "20251119-131223-3b28d2",
+        "source_node_id": "stair_1",
+        "source_node_label": "stair_1",
+        "target_request_id": "20251119-030244-d32319",
+        "target_node_id": "stair_1",
+        "target_node_label": "stair_1",
+        "is_base_cross_floor": true
+      }
+    },
+    {
+      "source": "stair_2",
+      "target": "cross_20251119-030244-d32319_stair_2",
+      "weight": 300.2426406871193,
+      "attributes": {
+        "is_cross_floor": true,
+        "connector_type": "stair",
+        "source_request_id": "20251119-131223-3b28d2",
+        "source_node_id": "stair_2",
+        "source_node_label": "stair_2",
+        "target_request_id": "20251119-030244-d32319",
+        "target_node_id": "stair_2",
+        "target_node_label": "stair_2",
+        "is_base_cross_floor": true
+      }
+    }
+  ],
+  "requestId": "20251119-131223-3b28d2",
+  "floorLabel": "지상 2층",
+  "floorValue": "F2",
+  "scaleReference": {
+    "x1": 0.5452494999999999,
+    "y1": 0.60689,
+    "x2": 0.5452494999999999,
+    "y2": 0.4735855,
+    "length_meters": 15.0
+  }
+}
