@@ -254,6 +254,7 @@ class StoredFloorPlanSummary(BaseModel):
     class_names: List[str] = Field(default_factory=list, alias="classNames")
     source_image_path: Optional[str] = Field(default=None, alias="sourceImagePath")
     graph_summary: Optional[Dict[str, int]] = Field(default=None, alias="graphSummary")
+    graph_outdated: bool = Field(default=False, alias="graphOutdated")
     annotation_counts: AnnotationCounts = Field(default_factory=AnnotationCounts, alias="annotationCounts")
     object_detection_text: str = Field(default="", alias="objectDetectionText")
     wall_text: str = Field(default="", alias="wallText")
@@ -272,8 +273,10 @@ class FloorPlanFloorSummary(BaseModel):
     step_one_id: Optional[str] = Field(default=None, alias="stepOneId")
     request_id: str = Field(..., alias="requestId")
     created_at: Optional[datetime] = Field(default=None, alias="createdAt")
+    graph_outdated: bool = Field(default=False, alias="graphOutdated")
     floor_label: Optional[str] = Field(default=None, alias="floorLabel")
     floor_value: Optional[str] = Field(default=None, alias="floorValue")
+    graph_summary: Optional[Dict[str, int]] = Field(default=None, alias="graphSummary")
 
     class Config:
         populate_by_name = True

@@ -226,6 +226,12 @@ const AdminGraphEditorPage = () => {
         if (!rawRequestId) {
           return;
         }
+        const graphSummary = entry?.graphSummary ?? entry?.graph_summary ?? entry?.metadata?.graph_summary;
+        const graphOutdated = entry?.graphOutdated ?? entry?.graph_outdated ?? entry?.metadata?.graph_outdated;
+        if (graphOutdated || !graphSummary || (graphSummary?.edges ?? 0) <= 0) {
+          // 그래프가 없는 도면은 층별 연결 대상에서 제외한다.
+          return;
+        }
         const requestKey = String(rawRequestId);
         const floorLabel = entry?.floor_label ?? entry?.floorLabel ?? null;
         const floorValue = entry?.floor_value ?? entry?.floorValue ?? null;
@@ -302,6 +308,11 @@ const AdminGraphEditorPage = () => {
               item?.metadata?.requestId ??
               null;
             if (!summaryRequestId || String(summaryRequestId) === String(requestId)) {
+              return null;
+            }
+            const graphSummary = item?.graph_summary ?? item?.graphSummary ?? item?.metadata?.graph_summary;
+            const graphOutdated = item?.graph_outdated ?? item?.graphOutdated ?? item?.metadata?.graph_outdated;
+            if (graphOutdated || !graphSummary || (graphSummary?.edges ?? 0) <= 0) {
               return null;
             }
             const label =
@@ -943,7 +954,7 @@ const AdminGraphEditorPage = () => {
     [ensureRemoteGraph, requestId]
   );
 
-  const handleCreateCrossFloorConnection = () => {
+  const handleCreateCrossFloorConnection = async () => {
     if (!selectedLocalConnectorId || !selectedTargetFloorId || !selectedRemoteConnectorId) {
       setCrossFloorModalError('연결할 노드를 모두 선택해주세요.');
       return;
@@ -953,39 +964,38 @@ const AdminGraphEditorPage = () => {
     const remoteNode = remoteOptions.find((node) => node.id === selectedRemoteConnectorId) ?? null;
     const localNode = (graphState.nodes ?? []).find((node) => node.id === selectedLocalConnectorId) ?? null;
     const localNodeLabel = localNode?.id ?? selectedLocalConnectorId;
-    setGraphState((prev) => ({
-      ...prev,
-      edges: [
-        ...((prev.edges ?? []).filter(
-          (edge) =>
-            !(
-              edge?.attributes?.is_cross_floor &&
-              edge.source === selectedLocalConnectorId &&
-              edge?.attributes?.target_request_id === selectedTargetFloorId
-            )
-        )),
-        {
-          source: selectedLocalConnectorId,
-          target: `cross_${selectedTargetFloorId}_${selectedRemoteConnectorId}`,
-          weight: 1,
-          weightText: '1',
-          attributes: {
-            is_cross_floor: true,
-            is_base_cross_floor: true,
-            target_request_id: selectedTargetFloorId,
-            target_node_id: selectedRemoteConnectorId,
-            target_node_label: remoteNode?.label ?? selectedRemoteConnectorId,
-            connector_type: crossFloorType,
-            source_request_id: requestId,
-            source_node_id: selectedLocalConnectorId,
-            source_node_label: localNodeLabel,
-          },
+    const nextEdges = [
+      ...((graphState.edges ?? []).filter(
+        (edge) =>
+          !(
+            edge?.attributes?.is_cross_floor &&
+            edge.source === selectedLocalConnectorId &&
+            edge?.attributes?.target_request_id === selectedTargetFloorId
+          )
+      )),
+      {
+        source: selectedLocalConnectorId,
+        target: `cross_${selectedTargetFloorId}_${selectedRemoteConnectorId}`,
+        weight: 1,
+        weightText: '1',
+        attributes: {
+          is_cross_floor: true,
+          is_base_cross_floor: true,
+          target_request_id: selectedTargetFloorId,
+          target_node_id: selectedRemoteConnectorId,
+          target_node_label: remoteNode?.label ?? selectedRemoteConnectorId,
+          connector_type: crossFloorType,
+          source_request_id: requestId,
+          source_node_id: selectedLocalConnectorId,
+          source_node_label: localNodeLabel,
         },
-      ],
-    }));
+      },
+    ];
+    const nextGraph = { ...graphState, edges: nextEdges };
+    setGraphState(nextGraph);
     setGraphDirty(true);
     handleCloseCrossFloorModal();
-    addRemoteCrossFloorEdge({
+    await addRemoteCrossFloorEdge({
       remoteRequestId: selectedTargetFloorId,
       remoteNodeId: selectedRemoteConnectorId,
       remoteNodeLabel: remoteNode?.label ?? selectedRemoteConnectorId,
@@ -1005,9 +1015,10 @@ const AdminGraphEditorPage = () => {
           return prev;
         }
         removedEdge = edges[edgeIndex];
+        const nextEdges = edges.filter((_, index) => index !== edgeIndex);
         return {
           ...prev,
-          edges: edges.filter((_, index) => index !== edgeIndex),
+          edges: nextEdges,
         };
       });
       if (!removedEdge) {

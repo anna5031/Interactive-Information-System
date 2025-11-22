@@ -585,6 +585,8 @@ class FloorPlanProcessingService:
             ),
             "metadataPath": self._relative_to_user_root(user_root, result_dir / "metadata.json"),
             "updatedAt": datetime.now().isoformat(timespec="seconds"),
+            "graph_summary": metadata.get("graph_summary"),
+            "graph_outdated": metadata.get("graph_outdated"),
         }
         update_floorplan_index_entry(user_root, request_id, entry)
 
@@ -626,6 +628,17 @@ class FloorPlanProcessingService:
         try:
             graph = json.loads(graph_path.read_text(encoding="utf-8"))
         except json.JSONDecodeError:
+            return None
+        # 그래프가 존재하고 간선이 있으면 graph_outdated 플래그를 자동으로 해제한다.
+        graph_edges = graph.get("edges") or []
+        if graph_edges and metadata.get("graph_outdated"):
+            metadata["graph_outdated"] = False
+            try:
+                metadata_path.write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
+            except OSError:
+                pass
+        # graph_outdated가 True이면 교차층 계산에서 제외한다.
+        if metadata.get("graph_outdated"):
             return None
         node_type_map: Dict[str, str] = {}
         for node in graph.get("nodes", []):
@@ -1148,16 +1161,20 @@ class FloorPlanProcessingService:
         records = self._load_all_graph_records(user_root)
         if not records:
             return
+        record_map = {record.request_id: record for record in records}
         links = self._load_cross_floor_links(user_root)
-        if links:
-            self._validate_cross_floor_link_uniqueness(links)
-            adjacency, connector_info = self._collect_cross_floor_adjacency_from_links(records, links)
-        else:
-            links = self._collect_cross_floor_links_from_records(records)
-            if links:
-                self._validate_cross_floor_link_uniqueness(links)
-                self._save_cross_floor_links(user_root, links)
-            adjacency, connector_info = self._collect_cross_floor_adjacency_from_records(records)
+        # 그래프가 없는/사용 불가한 도면을 가리키는 링크는 제거한다.
+        filtered_links = []
+        for link in links:
+            endpoints = (link.endpoint_a.request_id, link.endpoint_b.request_id)
+            if endpoints[0] not in record_map or endpoints[1] not in record_map:
+                continue
+            filtered_links.append(link)
+        if len(filtered_links) != len(links):
+            self._save_cross_floor_links(user_root, filtered_links)
+            links = filtered_links
+        self._validate_cross_floor_link_uniqueness(links)
+        adjacency, connector_info = self._collect_cross_floor_adjacency_from_links(records, links)
         if not connector_info:
             # 교차층 정보가 없으면 기존 엣지를 제거한다.
             for record in records:
@@ -1803,6 +1820,7 @@ class FloorPlanProcessingService:
             "image_size": {"width": image_width, "height": image_height},
             "source_image_path": source_image_path,
             "graph_summary": graph_summary,
+            "graph_outdated": graph_summary is None,
             "user_id": context.user_id,
         }
         if floor_label:
@@ -1984,6 +2002,7 @@ class FloorPlanProcessingService:
             "image_size": {"width": image_width, "height": image_height},
             "source_image_path": source_image_path,
             "graph_summary": None,
+            "graph_outdated": True,
             "preview": preview_metadata,
             "user_id": context.user_id,
         }
@@ -2001,6 +2020,25 @@ class FloorPlanProcessingService:
             metadata["image_url"] = self._build_image_url(active_request_id, context.user_id)
         with metadata_path.open("w", encoding="utf-8") as handle:
             json.dump(metadata, handle, ensure_ascii=False, indent=2)
+
+        # floorplan_index 업데이트 (그래프 없음 상태로 표시)
+        dummy_graph_path = result_dir / self._graph_filename(active_request_id)
+        self._update_floorplan_index(
+            user_root=context.user_root,
+            request_id=active_request_id,
+            result_dir=result_dir,
+            metadata=metadata,
+            graph_path=dummy_graph_path,
+        )
+
+        # 그래프 파일과 교차층 링크를 제거해 재생성이 필요함을 명확히 한다.
+        for candidate in result_dir.glob(f"{self.GRAPH_FILENAME_PREFIX}*.json"):
+            candidate.unlink(missing_ok=True)
+        links_before = self._load_cross_floor_links(context.user_root)
+        self._update_cross_floor_links_for_request(context.user_root, active_request_id, [])
+        links_after = self._load_cross_floor_links(context.user_root)
+        if links_before != links_after:
+            self._synchronize_cross_floor_connections(context.user_root)
 
         lines_count = len([line for line in (wall_text or "").splitlines() if line.strip()])
         doors_count = len([line for line in (door_text or "").splitlines() if line.strip()])
@@ -2241,6 +2279,7 @@ class FloorPlanProcessingService:
             "nodes": len(normalized_graph.get("nodes", [])),
             "edges": len(normalized_graph.get("edges", [])),
         }
+        metadata["graph_outdated"] = False
         metadata["updated_at"] = datetime.now().isoformat(timespec="seconds")
         metadata_path.write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
 
@@ -2252,10 +2291,29 @@ class FloorPlanProcessingService:
             graph_path=graph_path,
         )
 
+        # 층간 연결은 그래프 편집의 "층별 연결" 기능에서만 사용되므로,
+        # 사용자 정의 링크가 변경되지 않았다면 다른 층의 그래프는 건드리지 않는다.
+        links_before = self._load_cross_floor_links(user_root)
         user_defined_links = self._extract_user_defined_cross_floor_links(resolved_request_id, normalized_graph)
-        self._update_cross_floor_links_for_request(user_root, resolved_request_id, user_defined_links)
+        # 그래프가 없는/재생성 필요한 도면을 대상으로 한 링크는 무시한다.
+        record_map = {record.request_id: record for record in self._load_all_graph_records(user_root)}
+        filtered_links = [
+            link
+            for link in user_defined_links
+            if link.endpoint_a.request_id in record_map and link.endpoint_b.request_id in record_map
+        ]
+        if len(filtered_links) != len(user_defined_links):
+            print(
+                "Skipping cross-floor links with missing/outdated floors:",
+                [link.key() for link in user_defined_links if link not in filtered_links],
+                flush=True,
+            )
+        self._update_cross_floor_links_for_request(user_root, resolved_request_id, filtered_links)
+        links_after = self._load_cross_floor_links(user_root)
+        has_links_changed = links_before != links_after
 
-        self._synchronize_cross_floor_connections(user_root)
+        if has_links_changed:
+            self._synchronize_cross_floor_connections(user_root)
 
         return self.get_graph_data(request_id, user_id=resolved_user_id)
 
@@ -2341,29 +2399,49 @@ class FloorPlanProcessingService:
                 resolved_request_id = metadata.get("request_id") or result_dir.name
                 image_url = self._build_image_url(resolved_request_id, resolved_user_id)
 
+            resolved_request_id = metadata.get("request_id") or result_dir.name
+            graph_path = self._resolve_graph_path(result_dir, resolved_request_id)
+            graph_exists = graph_path.exists()
+            graph_summary = metadata.get("graph_summary") if graph_exists else None
+            if graph_exists:
+                try:
+                    graph_payload = json.loads(graph_path.read_text(encoding="utf-8"))
+                    nodes = graph_payload.get("nodes") or []
+                    edges = graph_payload.get("edges") or []
+                    graph_summary = {"nodes": len(nodes), "edges": len(edges)}
+                except json.JSONDecodeError:
+                    graph_summary = None
+            graph_outdated = bool(metadata.get("graph_outdated")) or not graph_exists
+            if graph_summary and graph_summary.get("edges", 0) > 0:
+                graph_outdated = False
+            if isinstance(graph_summary, dict) and graph_summary.get("edges", 0) <= 0:
+                graph_summary = None
+                graph_outdated = True
+
             summaries.append(
                 {
-                    "request_id": metadata.get("request_id") or result_dir.name,
+                    "request_id": resolved_request_id,
                     "created_at": created_at.isoformat(),
                     "image_size": image_size,
                     "class_names": class_names,
                     "source_image_path": metadata.get("source_image_path"),
-                    "graph_summary": metadata.get("graph_summary"),
+                    "graph_summary": graph_summary,
+                    "graph_outdated": graph_outdated,
                     "annotation_counts": {
                         "boxes": boxes_count,
                         "walls": walls_count,
                         "doors": doors_count,
                     },
-                    "object_detection_text": object_detection_text,
-                    "wall_text": wall_text,
-                    "wall_base_text": wall_base_text,
-                    "door_text": door_text,
-                    "image_url": image_url,
-                    "image_data_url": image_data_url,
-                    "floor_label": metadata.get("floor_label"),
-                    "floor_value": metadata.get("floor_value"),
-                }
-            )
+                        "object_detection_text": object_detection_text,
+                        "wall_text": wall_text,
+                        "wall_base_text": wall_base_text,
+                        "door_text": door_text,
+                        "image_url": image_url,
+                        "image_data_url": image_data_url,
+                        "floor_label": metadata.get("floor_label"),
+                        "floor_value": metadata.get("floor_value"),
+                    }
+                )
 
         summaries.sort(key=lambda item: item.get("created_at") or "", reverse=True)
         return summaries

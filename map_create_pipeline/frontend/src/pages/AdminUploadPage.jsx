@@ -225,7 +225,14 @@ const AdminUploadPage = () => {
   };
 
   const handleSelectStepThree = (stepOneResult, targetStage = 'base') => {
-    if (!stepOneResult?.id) {
+    if (!stepOneResult) {
+      return;
+    }
+    const requestId =
+      stepOneResult?.processingResult?.request_id ?? stepOneResult?.requestId ?? stepOneResult?.id ?? null;
+    if (!requestId) {
+      // eslint-disable-next-line no-alert
+      alert('요청 ID를 찾을 수 없어 3단계로 이동할 수 없습니다.');
       return;
     }
     const hasGraph = Boolean(stepOneResult?.processingResult?.metadata?.graph_summary);
@@ -234,11 +241,11 @@ const AdminUploadPage = () => {
       alert('그래프가 아직 생성되지 않았습니다. 먼저 2단계(그래프 편집)에서 그래프를 저장해 주세요.');
       return;
     }
-    navigate(`/admin/step-three/${stepOneResult.id}`, {
+    navigate(`/admin/step-three/${requestId}`, {
       state: {
         targetStage,
         stepOneResult,
-        requestId: stepOneResult.processingResult?.request_id ?? stepOneResult.requestId ?? null,
+        requestId,
       },
     });
   };

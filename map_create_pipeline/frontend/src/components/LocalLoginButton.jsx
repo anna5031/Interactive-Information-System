@@ -1,9 +1,10 @@
 import { useState, useCallback } from 'react';
+import PropTypes from 'prop-types';
 import { useAuth } from '../utils/authContext';
 import { registerBuilding } from '../api/buildings';
 import styles from './LocalLoginButton.module.css';
 
-const LocalLoginButton = () => {
+const LocalLoginButton = ({ onSuccess }) => {
   const { login } = useAuth();
   const [buildingName, setBuildingName] = useState('');
   const [loading, setLoading] = useState(false);
@@ -28,13 +29,16 @@ const LocalLoginButton = () => {
         school_id: buildingId,
         school_name: trimmed,
       });
+      if (typeof onSuccess === 'function') {
+        onSuccess();
+      }
     } catch (err) {
       console.error(err);
       setError('건물 폴더를 준비하는 동안 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
     } finally {
       setLoading(false);
     }
-  }, [buildingName, login]);
+  }, [buildingName, login, onSuccess]);
 
   return (
     <div className={styles.container}>
@@ -62,6 +66,10 @@ const LocalLoginButton = () => {
       </button>
     </div>
   );
+};
+
+LocalLoginButton.propTypes = {
+  onSuccess: PropTypes.func,
 };
 
 export default LocalLoginButton;
