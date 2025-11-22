@@ -1,62 +1,74 @@
 {
-  "20251119-030244-d32319": {
-    "requestId": "20251119-030244-d32319",
+  "20251122-123625-ba8133": {
+    "requestId": "20251122-123625-ba8133",
     "floorLabel": "지상 1층",
     "floorValue": "F1",
     "scaleReference": {
-      "x1": 0.5445635,
-      "y1": 0.475179,
-      "x2": 0.542659,
-      "y2": 0.607311,
-      "length_meters": 10.0
+      "x1": 0.25,
+      "y1": 0.9,
+      "x2": 0.75,
+      "y2": 0.9,
+      "length_meters": 30.0
     },
     "imageSize": {
       "width": 1250,
       "height": 848
     },
-    "graphPath": "20251119-030244-d32319/navigation_graph_20251119-030244-d32319.json",
-    "roomInfoPath": "20251119-030244-d32319/room_door_info_20251119-030244-d32319.json",
-    "metadataPath": "20251119-030244-d32319/metadata.json",
-    "updatedAt": "2025-11-20T22:32:07"
-  },
-  "20251119-131842-44a047": {
-    "requestId": "20251119-131842-44a047",
-    "floorLabel": "지상 3층",
-    "floorValue": "F3",
-    "scaleReference": {
-      "x1": 0.5452494999999999,
-      "y1": 0.473434,
-      "x2": 0.5452494999999999,
-      "y2": 0.6047025,
-      "length_meters": 6.0
+    "graphPath": "20251122-123625-ba8133/navigation_graph_20251122-123625-ba8133.json",
+    "roomInfoPath": "20251122-123625-ba8133/room_door_info_20251122-123625-ba8133.json",
+    "metadataPath": "20251122-123625-ba8133/metadata.json",
+    "updatedAt": "2025-11-22T14:24:08",
+    "graph_summary": {
+      "nodes": 177,
+      "edges": 169
     },
-    "imageSize": {
-      "width": 1250,
-      "height": 848
-    },
-    "graphPath": "20251119-131842-44a047/navigation_graph_20251119-131842-44a047.json",
-    "roomInfoPath": "20251119-131842-44a047/room_door_info_20251119-131842-44a047.json",
-    "metadataPath": "20251119-131842-44a047/metadata.json",
-    "updatedAt": "2025-11-20T22:59:30"
+    "graph_outdated": false
   },
-  "20251119-131223-3b28d2": {
-    "requestId": "20251119-131223-3b28d2",
+  "20251122-123725-bacf35": {
+    "requestId": "20251122-123725-bacf35",
     "floorLabel": "지상 2층",
     "floorValue": "F2",
     "scaleReference": {
-      "x1": 0.5452494999999999,
-      "y1": 0.60689,
-      "x2": 0.5452494999999999,
-      "y2": 0.4735855,
-      "length_meters": 15.0
+      "x1": 0.25,
+      "y1": 0.9,
+      "x2": 0.75,
+      "y2": 0.9,
+      "length_meters": 50.0
     },
     "imageSize": {
       "width": 1250,
       "height": 848
     },
-    "graphPath": "20251119-131223-3b28d2/navigation_graph_20251119-131223-3b28d2.json",
-    "roomInfoPath": "20251119-131223-3b28d2/room_door_info_20251119-131223-3b28d2.json",
-    "metadataPath": "20251119-131223-3b28d2/metadata.json",
-    "updatedAt": "2025-11-20T22:32:14"
+    "graphPath": "20251122-123725-bacf35/navigation_graph_20251122-123725-bacf35.json",
+    "roomInfoPath": "20251122-123725-bacf35/room_door_info_20251122-123725-bacf35.json",
+    "metadataPath": "20251122-123725-bacf35/metadata.json",
+    "updatedAt": "2025-11-22T14:24:01",
+    "graph_summary": null,
+    "graph_outdated": true
+  },
+  "20251122-123822-e1d05b": {
+    "requestId": "20251122-123822-e1d05b",
+    "floorLabel": "지상 3층",
+    "floorValue": "F3",
+    "scaleReference": {
+      "x1": 0.25,
+      "y1": 0.9,
+      "x2": 0.75,
+      "y2": 0.9,
+      "length_meters": 20.0
+    },
+    "imageSize": {
+      "width": 1250,
+      "height": 848
+    },
+    "graphPath": "20251122-123822-e1d05b/navigation_graph_20251122-123822-e1d05b.json",
+    "roomInfoPath": "20251122-123822-e1d05b/room_door_info_20251122-123822-e1d05b.json",
+    "metadataPath": "20251122-123822-e1d05b/metadata.json",
+    "updatedAt": "2025-11-22T14:23:08",
+    "graph_summary": {
+      "nodes": 176,
+      "edges": 165
+    },
+    "graph_outdated": false
   }
 }

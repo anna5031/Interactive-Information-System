@@ -88,7 +88,7 @@ KeyValueEditor.defaultProps = {
 };
 
 const AdminStepThreePage = () => {
-  const { stepOneId } = useParams();
+  const { requestId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const locationTargetStage = location.state?.targetStage ?? null;
@@ -133,7 +133,7 @@ const AdminStepThreePage = () => {
   }, [stepOneResult?.processingResult?.request_id, locationRequestId, stepOneResult?.requestId]);
 
   const processingRequestId = latestProcessingRequestId ?? stepThreeRecord?.requestId ?? null;
-  const resolvedStepThreeId = stepOneResult?.id ?? stepOneId ?? null;
+  const resolvedStepThreeId = stepOneResult?.id ?? requestId ?? null;
 
   const updatePageHeight = useCallback(() => {
     const element = pageRef.current;
@@ -248,17 +248,17 @@ const AdminStepThreePage = () => {
 
       let resolved = null;
 
-      if (stepOneId) {
-        resolved = getStoredStepOneResultById(stepOneId);
+      if (requestId) {
+        resolved = getStoredStepOneResultById(requestId);
       }
 
       if (!resolved && locationStepOneResult) {
         resolved = locationStepOneResult;
       }
 
-      if (!resolved && stepOneId) {
+      if (!resolved && requestId) {
         try {
-          const summary = await fetchStoredFloorPlanByStepOneId(stepOneId);
+          const summary = await fetchStoredFloorPlanByStepOneId(requestId);
           if (summary) {
             resolved = buildStepOneRecordFromStoredResult(summary);
             if (resolved) {
@@ -289,7 +289,7 @@ const AdminStepThreePage = () => {
           const processingPayload = await fetchProcessingResultById(locationRequestId);
           if (processingPayload) {
             resolved = buildStepOneRecordFromProcessingData(processingPayload, {
-              stepOneId,
+              requestId,
             });
             if (resolved) {
               await saveStepOneResult({
@@ -343,7 +343,7 @@ const AdminStepThreePage = () => {
     return () => {
       cancelled = true;
     };
-  }, [stepOneId, navigate, locationTargetStage, locationStepOneResult, locationRequestId]);
+  }, [requestId, navigate, locationTargetStage, locationStepOneResult, locationRequestId]);
 
   useEffect(() => {
     if (!stepOneResult) {
@@ -409,7 +409,7 @@ const AdminStepThreePage = () => {
 
         if (data && stepOneResult?.id && needsHydration) {
           const rebuilt = buildStepOneRecordFromProcessingData(data, {
-            stepOneId: stepOneResult.id,
+            requestId: stepOneResult.id,
             sourceImagePath: stepOneResult?.metadata?.fileName ?? stepOneResult?.metadata?.sourceImagePath ?? null,
           });
           if (rebuilt) {
@@ -534,8 +534,7 @@ const AdminStepThreePage = () => {
     const storedRoomsMap = new Map((stepThreeRecord?.rooms ?? []).map((room) => [room.nodeId, room]));
     const storedDoorsMap = new Map((stepThreeRecord?.doors ?? []).map((door) => [door.nodeId, door]));
     return {
-      stepOneId: stepOneResult?.id,
-      requestId: processingRequestId,
+      requestId: processingRequestId ?? stepOneResult?.id ?? requestId ?? null,
       floorLabel,
       floorValue,
       rooms: roomsState.map((room) => {
@@ -582,6 +581,7 @@ const AdminStepThreePage = () => {
     stepOneFloorLabel,
     stepOneFloorValue,
     processingRequestId,
+    requestId,
     stepThreeRecord,
   ]);
 

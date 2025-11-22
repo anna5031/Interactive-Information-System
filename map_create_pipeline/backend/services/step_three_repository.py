@@ -70,23 +70,23 @@ class StepThreeRepository:
         resolved = self.user_storage.resolve(user_id, create=create)
         return resolved.root
 
-    def _record_path(self, user_root: Path, step_one_id: str, request_id: Optional[str] = None) -> Path:
-        safe_step_one_id = step_one_id.strip()
-        safe_request_id = (request_id or "").strip()
+    def _record_path(self, user_root: Path, request_id: str, explicit_request_id: Optional[str] = None) -> Path:
+        safe_request_id = (explicit_request_id or request_id or "").strip()
         if safe_request_id:
             request_dir = user_root / safe_request_id
             filename = f"{NEW_ROOM_INFO_PREFIX}{safe_request_id}.json"
             return request_dir / filename
-        return user_root / f"{safe_step_one_id}.json"
+        return user_root / f"{request_id}.json"
 
-    def _normalize_record(self, step_one_id: str, record: Optional[dict]) -> Optional[dict]:
+    def _normalize_record(self, request_id: str, record: Optional[dict]) -> Optional[dict]:
         if record is None:
             return None
 
         normalized = dict(record)
         normalized.pop("base", None)
         normalized.pop("details", None)
-        normalized.setdefault("id", step_one_id)
+        request_id_value = (normalized.get("requestId") or normalized.get("request_id") or "").strip()
+        normalized["id"] = request_id_value or request_id
 
         rooms = normalized.get("rooms")
         doors = normalized.get("doors")
@@ -132,10 +132,10 @@ class StepThreeRepository:
             derived_id = stem
         return self._normalize_record(derived_id, data)
 
-    def _load(self, user_root: Path, step_one_id: str) -> Optional[dict]:
+    def _load(self, user_root: Path, request_id: str) -> Optional[dict]:
         candidates: List[Path] = []
 
-        candidates.append(self._record_path(user_root, step_one_id))
+        candidates.append(self._record_path(user_root, request_id))
 
         for request_dir in user_root.iterdir():
             if not request_dir.is_dir() or request_dir.name in {"history", "deleted"}:
@@ -156,28 +156,33 @@ class StepThreeRepository:
         for legacy_name in ("step_three_results", "step_two_results"):
             legacy_dir = user_root / legacy_name
             if legacy_dir.exists():
-                candidates.append(legacy_dir / f"{step_one_id}.json")
+                candidates.append(legacy_dir / f"{request_id}.json")
 
         for path in candidates:
-            record = self._read_file(path, fallback_id=step_one_id)
-            if record is not None:
+            record = self._read_file(path, fallback_id=request_id)
+            if record is None:
+                continue
+            target_id = request_id.strip()
+            record_id = (record.get("id") or "").strip()
+            request_id = (record.get("requestId") or record.get("request_id") or "").strip()
+            if record_id == target_id or request_id == target_id:
                 return record
         return None
 
-    def _write(self, user_root: Path, step_one_id: str, record: dict, request_id: Optional[str] = None) -> dict:
-        normalized = self._normalize_record(step_one_id, record)
+    def _write(self, user_root: Path, request_id: str, record: dict, explicit_request_id: Optional[str] = None) -> dict:
+        normalized = self._normalize_record(request_id, record)
         if normalized is None:
             raise ValueError("Failed to normalize step three record")
-        path = self._record_path(user_root, step_one_id, request_id=request_id or normalized.get("requestId"))
+        path = self._record_path(user_root, request_id, explicit_request_id or normalized.get("requestId"))
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(normalized, ensure_ascii=False, indent=2), encoding="utf-8")
         return normalized
 
-    def get(self, step_one_id: str, *, user_id: Optional[str] = None) -> Optional[dict]:
+    def get(self, request_id: str, *, user_id: Optional[str] = None) -> Optional[dict]:
         user_root = self._resolve_user_root(user_id, create=False)
         if not user_root.exists():
             return None
-        return self._load(user_root, step_one_id)
+        return self._load(user_root, request_id)
 
     def list_all(self, *, user_id: Optional[str] = None) -> List[dict]:
         records_map: Dict[str, dict] = {}
@@ -228,12 +233,12 @@ class StepThreeRepository:
 
         return list(records_map.values())
 
-    def _ensure_record(self, step_one_id: str, record: Optional[dict]) -> dict:
-        normalized = self._normalize_record(step_one_id, record)
+    def _ensure_record(self, request_id: str, record: Optional[dict]) -> dict:
+        normalized = self._normalize_record(request_id, record)
         if normalized is None:
             now = _utc_now_iso()
             normalized = {
-                "id": step_one_id,
+                "id": request_id,
                 "createdAt": now,
                 "updatedAt": now,
                 "rooms": [],
@@ -248,9 +253,10 @@ class StepThreeRepository:
             normalized.setdefault("floorValue", normalized.get("floorValue"))
         return normalized
 
-    def save(self, step_one_id: str, payload: dict, *, user_id: Optional[str] = None) -> dict:
+    def save(self, request_id: str, payload: dict, *, user_id: Optional[str] = None) -> dict:
         user_root = self._resolve_user_root(user_id, create=True)
-        record = self._ensure_record(step_one_id, self._load(user_root, step_one_id))
+        resolved_request_id = (payload.get("requestId") or request_id or "").strip()
+        record = self._ensure_record(resolved_request_id, self._load(user_root, resolved_request_id))
         now = _utc_now_iso()
         if payload.get("requestId"):
             record["requestId"] = payload["requestId"]
@@ -267,5 +273,6 @@ class StepThreeRepository:
         record["rooms"] = rooms
         record["doors"] = doors
         record["updatedAt"] = now
+        record["id"] = (record.get("requestId") or resolved_request_id).strip()
 
-        return self._write(user_root, step_one_id, record, request_id=record.get("requestId"))
+        return self._write(user_root, resolved_request_id, record, explicit_request_id=record.get("requestId"))

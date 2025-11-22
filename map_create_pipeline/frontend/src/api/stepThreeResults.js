@@ -5,16 +5,16 @@ export const fetchStepThreeStatuses = async () => {
   return response.data;
 };
 
-export const fetchStepThreeResultById = async (stepOneId) => {
-  if (!stepOneId) {
+export const fetchStepThreeResultById = async (requestId) => {
+  if (!requestId) {
     return null;
   }
-  const response = await api.get(`/api/step-three/${stepOneId}`);
+  const response = await api.get(`/api/step-three/${requestId}`);
   return response.data;
 };
 
-export const saveStepThree = async ({ stepOneId, requestId, floorLabel, floorValue, rooms, doors }) => {
-  const response = await api.put(`/api/step-three/${stepOneId}`, {
+export const saveStepThree = async ({ requestId, floorLabel, floorValue, rooms, doors }) => {
+  const response = await api.put(`/api/step-three/${requestId}`, {
     requestId: requestId ?? null,
     floorLabel: floorLabel ?? null,
     floorValue: floorValue ?? null,

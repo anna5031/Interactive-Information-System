@@ -140,6 +140,7 @@ def _build_stored_floorplan_results(user_id: str) -> List[dict]:
                 "classNames": item.get("class_names") or [],
                 "sourceImagePath": item.get("source_image_path"),
                 "graphSummary": item.get("graph_summary"),
+                "graphOutdated": item.get("graph_outdated", False),
                 "annotationCounts": {
                     "boxes": annotation_counts.get("boxes", 0),
                     "walls": annotation_counts.get("walls", 0),
@@ -441,8 +442,10 @@ async def list_floorplan_floors(request: Request) -> List[FloorPlanFloorSummary]
                 step_one_id=entry.get("stepOneId"),
                 request_id=entry.get("requestId"),
                 created_at=entry.get("createdAt"),
+                graph_outdated=entry.get("graphOutdated", False),
                 floor_label=entry.get("floorLabel") or entry.get("floor_label"),
                 floor_value=entry.get("floorValue") or entry.get("floor_value"),
+                graph_summary=entry.get("graphSummary"),
             )
         )
     return floors
@@ -579,24 +582,24 @@ async def list_step_three_results(request: Request) -> List[StepThreeStatus]:
 
 
 @app.get(
-    "/api/step-three/{step_one_id}",
+    "/api/step-three/{request_id}",
     response_model=StepThreeRecord,
     summary="3단계 저장본 상세 조회",
 )
-async def get_step_three_result(request: Request, step_one_id: str) -> StepThreeRecord:
+async def get_step_three_result(request: Request, request_id: str) -> StepThreeRecord:
     user_id = resolve_active_user_id(request)
-    record = step_three_repository.get(step_one_id, user_id=user_id)
+    record = step_three_repository.get(request_id, user_id=user_id)
     if record is None:
         raise HTTPException(status_code=404, detail="저장된 3단계 결과가 없습니다.")
     return StepThreeRecord(**record)
 
 
 @app.put(
-    "/api/step-three/{step_one_id}",
+    "/api/step-three/{request_id}",
     response_model=StepThreeRecord,
     summary="3단계 정보 저장",
 )
-async def save_step_three(request: Request, step_one_id: str, payload: StepThreeSaveRequest) -> StepThreeRecord:
+async def save_step_three(request: Request, request_id: str, payload: StepThreeSaveRequest) -> StepThreeRecord:
     user_id = resolve_active_user_id(request)
-    record = step_three_repository.save(step_one_id, payload.model_dump(by_alias=True), user_id=user_id)
+    record = step_three_repository.save(request_id, payload.model_dump(by_alias=True), user_id=user_id)
     return StepThreeRecord(**record)
